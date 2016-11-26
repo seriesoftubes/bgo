@@ -1,8 +1,8 @@
 package game
 
 var (
-  PC  *Player = playerPointer("O")
-  PCC *Player = playerPointer("X")
+  PC  *Player = playerPointer("O")  // Clockwise player
+  PCC *Player = playerPointer("X")  // Counter-clockwise player
 )
 
 type Player string
