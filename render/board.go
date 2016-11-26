@@ -176,6 +176,10 @@ func printBoard(b *game.Board) {
   fmt.Println(prefix + "y\t" + renderBar(game.PCC, b.BarCC)) // character "y" is reserved for the CC bar.
   fmt.Println(prefix + "z\t" + renderBar(game.PC, b.BarC))   // character "z" is reserved for the C bar.
   fmt.Println(prefix)
+  fmt.Println(prefix + "Beared off")
+  fmt.Println(prefix + fmt.Sprintf("\t%s's: %d", game.PCC.Symbol(), b.OffCC))
+  fmt.Println(prefix + fmt.Sprintf("\t%s's: %d", game.PC.Symbol(), b.OffC))
+  fmt.Println(prefix)
   fmt.Println(prefix + "Pipcounts")
   pipC, pipCC := b.PipCounts()
   fmt.Println(prefix + fmt.Sprintf("\t%s's: %d", game.PCC.Symbol(), pipCC))
