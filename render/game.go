@@ -1,13 +1,12 @@
 package render
 
 import (
-  "fmt"
+	"fmt"
 
-  "github.com/seriesoftubes/bgo/game"
+	"github.com/seriesoftubes/bgo/game"
 )
 
 func PrintGame(g *game.Game) {
-  fmt.Println("\n\tCurrent player:\t", g.CurrentPlayer.Symbol())
-  fmt.Println("\n\tDice:\t\t", *g.CurrentRoll)
-  printBoard(g.Board)
+	fmt.Println(fmt.Sprintf("\n\tPlayer: %s  Rolled: %v", g.CurrentPlayer.Symbol(), *g.CurrentRoll))
+	printBoard(g.Board)
 }
