@@ -251,6 +251,8 @@ func TestExecuteMoveIfLegal(t *testing.T) {
 		t.Errorf("Did not move any checkers away from the original point.")
 	} else if toPt.NumCheckers != toPtChex+1 {
 		t.Errorf("Did not move any checkers to the destination.")
+	} else if toPt.Owner != PCC {
+		t.Errorf("Destination point should be owned by PCC")
 	}
 }
 
@@ -277,6 +279,8 @@ func TestExecuteMoveIfLegalFromBar(t *testing.T) {
 		t.Errorf("Did not move any checkers away from the original point.")
 	} else if toPt.NumCheckers != toPtChex+1 {
 		t.Errorf("Did not move any checkers to the destination.")
+	} else if toPt.Owner != PCC {
+		t.Errorf("Destination point owner should be PCC")
 	}
 }
 
