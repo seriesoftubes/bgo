@@ -280,6 +280,56 @@ func TestExecuteMoveIfLegalFromBar(t *testing.T) {
 	}
 }
 
+func TestExecuteMoveIfLegalBearOff(t *testing.T) {
+	b := Board{}
+	b.setUp()
+	b.OffCC = 5
+	b.Points = [NUM_BOARD_POINTS]*BoardPoint{
+		// counter-clockwise player is in bottom-left.
+		{}, {PC, 1}, {PC, 2}, {PC, 2}, {PC, 5}, {PC, 5}, {}, {}, {}, {}, {}, {},
+		{}, {}, {}, {}, {}, {}, {}, {PCC, 1}, {PCC, 1}, {PCC, 2}, {PCC, 1}, {PCC, 5},
+		//                                                        clockwise player in top-left.
+	}
+	/* Board looks like:
+	 x  w  v  u  t  s     r  q  p  o  n  m
+	=======================================
+	 X  X  X  X  X    |m| -  -  -  -  -  -
+	 X     X          |m|
+	 X                |m|
+	 X                |m|
+	 X                |m|
+	                  |m|
+
+
+	                  |w|
+	             O  O |w|
+	             O  O |w|
+	             O  O |w|
+	       O  O  O  O |w|
+	 -  O  O  O  O  O |w| -  -  -  -  -  -
+	=======================================
+	 a  b  c  d  e  f     g  h  i  j  k  l
+	*/
+
+	m := &Move{Requestor: PCC, Letter: "t", FowardDistance: 6}
+
+	// Original state
+	fromIdx, _ := alpha2Num[m.Letter]
+	fromPt := b.Points[fromIdx]
+	fromPtChex, toPtChex := fromPt.NumCheckers, b.OffCC
+
+	ok := b.ExecuteMoveIfLegal(m)
+	if !ok {
+		t.Errorf("Test move was not legal. Change the test!")
+	}
+
+	if fromPt.NumCheckers != fromPtChex-1 {
+		t.Errorf("Did not move any checkers away from the original point.")
+	} else if b.OffCC != toPtChex+1 {
+		t.Errorf("Did not move any checkers to the destination.")
+	}
+}
+
 func strSlicesEqual(a, b []string) bool {
 	if len(a) == 0 || len(b) == 0 {
 		return len(a) == len(b)
