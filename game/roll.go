@@ -22,6 +22,14 @@ func (r *Roll) moveDistances() []uint8 {
 	}
 }
 
+func (r *Roll) uniqueAmounts() map[uint8]bool {
+	out := map[uint8]bool{}
+	for _, amt := range r {
+		out[amt] = true
+	}
+	return out
+}
+
 func (r *Roll) reverse() *Roll {
 	r[1], r[0] = r[0], r[1]
 	return r

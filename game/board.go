@@ -8,6 +8,7 @@ const (
 	numCheckersPerPlayer uint8 = 15
 	NUM_BOARD_POINTS     uint8 = 24
 	barPips              uint8 = NUM_BOARD_POINTS + 1
+	alphabet                   = "abcdefghijklmnopqrstuvwxyz"
 )
 
 type BoardPoint struct {
@@ -109,12 +110,33 @@ func (b *Board) isLegalMove(m *Move) bool {
 func (b *Board) LegalMoves(p *Player, r Roll) []*Move {
 	var out []*Move
 
-	/*
-		for each boardpoint (and for the player's bar):
-		  for each unique_number in the roll:
-		    form a Move{Requestor: p, Letter: b.Letter(boardPoint), FowardDistance: unique_number}
-		    if b.isLegalMove(move): add
-	*/
+	diceAmts := r.uniqueAmounts()
+
+	// Moves off the bar.
+	if p == PCC && b.BarCC > 0 {
+		for diceAmt := range diceAmts {
+			m := &Move{Requestor: p, Letter: constants.LETTER_BAR_CC, FowardDistance: diceAmt}
+			if b.isLegalMove(m) {
+				out = append(out, m)
+			}
+		}
+	} else if p == PC && b.BarC > 0 {
+		for diceAmt := range diceAmts {
+			m := &Move{Requestor: p, Letter: constants.LETTER_BAR_C, FowardDistance: diceAmt}
+			if b.isLegalMove(m) {
+				out = append(out, m)
+			}
+		}
+	}
+
+	for pointIdx := range b.Points {
+		for diceAmt := range diceAmts {
+			m := &Move{Requestor: p, Letter: string(alphabet[pointIdx]), FowardDistance: diceAmt}
+			if b.isLegalMove(m) {
+				out = append(out, m)
+			}
+		}
+	}
 
 	return out
 }
