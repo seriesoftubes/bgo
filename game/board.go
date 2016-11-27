@@ -1,5 +1,9 @@
 package game
 
+import (
+  "github.com/seriesoftubes/bgo/constants"
+)
+
 const (
 	numCheckersPerPlayer uint8 = 15
 	NUM_BOARD_POINTS     uint8 = 24
@@ -66,14 +70,14 @@ func (b *Board) isLegalMove(m *Move) bool {
 			    if the player enters an illegal move, display a warning and try again
 	*/
 	// TODO: consts for y and z, in a shared constants package
-	isForBar := m.Letter == "y" || m.Letter == "z"
+	isForBar := m.Letter == constants.LETTER_BAR_CC || m.Letter == constants.LETTER_BAR_C
 	numOnTheBar := b.chexOnTheBar(m.Requestor)
 	if numOnTheBar > 0 && !isForBar {
 		return false // If you have anything on the bar, you must move those things first
 	}
-	expectedLetter := "z" // Clockwise player uses "z" for their bar.
+	expectedLetter := constants.LETTER_BAR_C
 	if m.Requestor == PCC {
-		expectedLetter = "y"
+		expectedLetter = constants.LETTER_BAR_CC
 	}
 	if isForBar && m.Letter != expectedLetter {
 		return false // Can't move the enemy's chex.

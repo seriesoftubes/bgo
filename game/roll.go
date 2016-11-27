@@ -27,7 +27,7 @@ func (r *Roll) reverse() *Roll {
 	return r
 }
 
-func randBetween(min, max int) uint8 { return uint8(rnd.Intn(max-min) + min) }
+func randBetween(min, max int) uint8 { return uint8(rnd.Intn(max-min+1) + min) }
 func newRoll() *Roll {
 	return &Roll{randBetween(minDiceAmt, maxDiceAmt), randBetween(minDiceAmt, maxDiceAmt)}
 }

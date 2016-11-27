@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+  "github.com/seriesoftubes/bgo/constants"
 	"github.com/seriesoftubes/bgo/game"
 )
 
@@ -27,7 +28,7 @@ const (
 var num2Alpha = map[uint8]string{
 	0: "a", 1: "b", 2: "c", 3: "d", 4: "e", 5: "f", 6: "g", 7: "h", 8: "i", 9: "j",
 	10: "k", 11: "l", 12: "m", 13: "n", 14: "o", 15: "p", 16: "q", 17: "r", 18: "s", 19: "t",
-	20: "u", 21: "v", 22: "w", 23: "x", 24: "y", 25: "z",
+	20: "u", 21: "v", 22: "w", 23: "x", 24: constants.LETTER_BAR_CC, 25: constants.LETTER_BAR_C,
 }
 
 func printBoard(b *game.Board) {
@@ -173,8 +174,8 @@ func printBoard(b *game.Board) {
 	}
 	fmt.Println(prefix + "\n")
 	fmt.Println(prefix + "The bar")
-	fmt.Println(prefix + "y\t" + renderBar(game.PCC, b.BarCC)) // character "y" is reserved for the CC bar.
-	fmt.Println(prefix + "z\t" + renderBar(game.PC, b.BarC))   // character "z" is reserved for the C bar.
+	fmt.Println(prefix + constants.LETTER_BAR_CC + "\t" + renderBar(game.PCC, b.BarCC))
+	fmt.Println(prefix + constants.LETTER_BAR_C + "\t" + renderBar(game.PC, b.BarC))
 	fmt.Println(prefix)
 	fmt.Println(prefix + "Beared off")
 	fmt.Println(prefix + fmt.Sprintf("\t%s's: %d\t\t%s's: %d", game.PCC.Symbol(), b.OffCC, game.PC.Symbol(), b.OffC))
