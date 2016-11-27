@@ -1,5 +1,9 @@
 package game
 
+import (
+	"time"
+)
+
 type Game struct {
 	Board         *Board
 	CurrentPlayer *Player
@@ -12,6 +16,11 @@ func GamePointer(g Game) *Game { return &g }
 func NewGame() *Game {
 	b := &Board{}
 	b.setUp()
-	// TODO: select the initial player randomly.
-	return &Game{b, PCC, newRoll()}
+
+	player := PCC
+	if time.Now().UnixNano()%2 == 0 {
+		player = PC
+	}
+
+	return &Game{b, player, newRoll()}
 }

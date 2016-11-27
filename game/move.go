@@ -29,8 +29,6 @@ func (m *Move) pointIdx() uint8 {
 	return alpha2Num[m.Letter]
 }
 
-// TODO: make the pipcount calc do += (numOnBar * 25)
-
 func (m *Move) nextPointIdx() uint8 {
 	if m.isToMoveSomethingOutOfTheBar() {
 		if m.Requestor == PCC {
