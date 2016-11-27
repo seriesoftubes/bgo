@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/seriesoftubes/bgo/game"
 	"github.com/seriesoftubes/bgo/render"
 )
