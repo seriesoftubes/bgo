@@ -86,6 +86,9 @@ func (b *Board) isLegalMove(m *Move) bool {
 		if (m.Requestor == PCC && nxtIdx < 0) || (m.Requestor == PC && nxtIdx >= int8(NUM_BOARD_POINTS)) {
 			return false // Must move past the correct finish line.
 		}
+		if b.doesPlayerHaveAnyRemainingCheckersBehindPoint(m.Requestor, m.pointIdx()) {
+			return false // Must have already beared off all chex behind the point.
+		}
 	}
 
 	if nxtPtExists {
@@ -95,6 +98,23 @@ func (b *Board) isLegalMove(m *Move) bool {
 	}
 
 	return true
+}
+
+func (b *Board) doesPlayerHaveAnyRemainingCheckersBehindPoint(p *Player, pointIdx uint8) bool {
+	if p == PCC {
+		for i := pointIdx + 1; i < NUM_BOARD_POINTS; i++ {
+			if pt := b.Points[i]; pt.Owner == p && pt.NumCheckers > 0 {
+				return true
+			}
+		}
+	} else {
+		for i := NUM_BOARD_POINTS - 1; i > pointIdx; i-- {
+			if pt := b.Points[i]; pt.Owner == p && pt.NumCheckers > 0 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (b *Board) LegalMoves(p *Player, diceAmt uint8) []*Move {

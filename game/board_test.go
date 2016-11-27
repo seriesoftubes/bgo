@@ -57,7 +57,7 @@ func TestLegalMovesPlainBoard(t *testing.T) {
 		if c.diceAmt != 6 {
 			incWantLetters = append(incWantLetters, constants.LETTER_BAR_CC)
 		}
-		if !reflect.DeepEqual(incGotLetters, incWantLetters) {
+		if !strSlicesEqual(incGotLetters, incWantLetters) {
 			t.Errorf("LegalMoves (with bar) for diceAmt: %v unexpected. got %v wanted %v", c.diceAmt, incGotLetters, incWantLetters)
 		}
 	}
@@ -107,7 +107,7 @@ func TestLegalMovesTakeOverEnemy(t *testing.T) {
 		}
 
 		gotLetters := mLetters(b.LegalMoves(defaultPlayer, c.diceAmt))
-		if !reflect.DeepEqual(gotLetters, c.wantLetters) {
+		if !strSlicesEqual(gotLetters, c.wantLetters) {
 			t.Errorf("LegalMoves for diceAmt: %v unexpected. got %v want %v", c.diceAmt, gotLetters, c.wantLetters)
 		}
 	}
@@ -150,11 +150,11 @@ func TestLegalMovesBearOff(t *testing.T) {
 
 		// TODO: this behavior is wrong. it should only allow bearing off when everything behind it has been beared off already.
 		{PC, 1, []string{"c", "d", "e", "f"}},
-		{PC, 2, []string{"b", "d", "e", "f"}},
-		{PC, 3, []string{"b", "c", "e", "f"}},
-		{PC, 4, []string{"b", "c", "d", "f"}},
-		{PC, 5, []string{"b", "c", "d", "e"}},
-		{PC, 6, []string{"b", "c", "d", "e", "f"}},
+		{PC, 2, []string{"d", "e", "f"}},
+		{PC, 3, []string{"e", "f"}},
+		{PC, 4, []string{"f"}},
+		{PC, 5, []string{}},
+		{PC, 6, []string{"f"}},
 	}
 	for _, c := range cases {
 		b := Board{}
@@ -166,10 +166,17 @@ func TestLegalMovesBearOff(t *testing.T) {
 		}
 
 		gotLetters := mLetters(b.LegalMoves(c.player, c.diceAmt))
-		if !reflect.DeepEqual(gotLetters, c.wantLetters) {
-			t.Errorf("LegalMoves for diceAmt: %v unexpected. got %v want %v", c.diceAmt, gotLetters, c.wantLetters)
+		if !strSlicesEqual(gotLetters, c.wantLetters) {
+			t.Errorf("LegalMoves for Player %q and diceAmt %v unexpected. got %v want %v", *c.player, c.diceAmt, gotLetters, c.wantLetters)
 		}
 	}
+}
+
+func strSlicesEqual(a, b []string) bool {
+	if len(a) == 0 || len(b) == 0 {
+		return len(a) == len(b)
+	}
+	return reflect.DeepEqual(a, b)
 }
 
 func mLetters(moves []*Move) []string {
