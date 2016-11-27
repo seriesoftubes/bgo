@@ -84,7 +84,11 @@ func (b *Board) isLegalMove(m *Move) bool {
 
 	numChexOnCurrentPoint := numOnTheBar
 	if !isForBar {
-		numChexOnCurrentPoint = b.Points[m.pointIdx()].NumCheckers
+		fromPt := b.Points[m.pointIdx()]
+		if fromPt.Owner != m.Requestor {
+			return false // Can only move your own checkers.
+		}
+		numChexOnCurrentPoint = fromPt.NumCheckers
 	}
 	if numChexOnCurrentPoint == 0 {
 		return false // Cannot move a checker from an empty point
@@ -105,34 +109,26 @@ func (b *Board) isLegalMove(m *Move) bool {
 	return true
 }
 
-func (b *Board) LegalMoves(p *Player, r Roll) []*Move {
+func (b *Board) LegalMoves(p *Player, diceAmt uint8) []*Move {
 	var out []*Move
-
-	diceAmts := r.uniqueAmounts()
 
 	// Moves off the bar.
 	if p == PCC && b.BarCC > 0 {
-		for diceAmt := range diceAmts {
-			m := &Move{Requestor: p, Letter: constants.LETTER_BAR_CC, FowardDistance: diceAmt}
-			if b.isLegalMove(m) {
-				out = append(out, m)
-			}
+		m := &Move{Requestor: p, Letter: constants.LETTER_BAR_CC, FowardDistance: diceAmt}
+		if b.isLegalMove(m) {
+			out = append(out, m)
 		}
 	} else if p == PC && b.BarC > 0 {
-		for diceAmt := range diceAmts {
-			m := &Move{Requestor: p, Letter: constants.LETTER_BAR_C, FowardDistance: diceAmt}
-			if b.isLegalMove(m) {
-				out = append(out, m)
-			}
+		m := &Move{Requestor: p, Letter: constants.LETTER_BAR_C, FowardDistance: diceAmt}
+		if b.isLegalMove(m) {
+			out = append(out, m)
 		}
 	}
 
 	for pointIdx := range b.Points {
-		for diceAmt := range diceAmts {
-			m := &Move{Requestor: p, Letter: string(alphabet[pointIdx]), FowardDistance: diceAmt}
-			if b.isLegalMove(m) {
-				out = append(out, m)
-			}
+		m := &Move{Requestor: p, Letter: string(alphabet[pointIdx]), FowardDistance: diceAmt}
+		if b.isLegalMove(m) {
+			out = append(out, m)
 		}
 	}
 
