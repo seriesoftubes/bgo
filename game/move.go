@@ -1,9 +1,13 @@
 package game
 
+import (
+	"github.com/seriesoftubes/bgo/constants"
+)
+
 var alpha2Num = map[string]uint8{
 	"a": 0, "b": 1, "c": 2, "d": 3, "e": 4, "f": 5, "g": 6, "h": 7, "i": 8, "j": 9,
 	"k": 10, "l": 11, "m": 12, "n": 13, "o": 14, "p": 15, "q": 16, "r": 17, "s": 18, "t": 19,
-	"u": 20, "v": 21, "w": 22, "x": 23, "y": 24, "z": 25,
+	"u": 20, "v": 21, "w": 22, "x": 23, LETTER_BAR_CC: 24, LETTER_BAR_C: 25,
 }
 
 // A move being requested by the current player
@@ -14,7 +18,7 @@ type Move struct {
 }
 
 func (m *Move) isToMoveSomethingOutOfTheBar() bool {
-	return m.Letter == "y" || m.Letter == "z"
+	return m.Letter == constants.LETTER_BAR_CC || m.Letter == constants.LETTER_BAR_C
 }
 
 func (m *Move) pointIdx() uint8 {
