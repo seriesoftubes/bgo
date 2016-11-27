@@ -50,25 +50,9 @@ func (b *Board) chexOnTheBar(p *Player) uint8 {
 }
 
 func (b *Board) isLegalMove(m *Move) bool {
-	/*
-			  some rules:
-			    1) if you have >=1 piece on the bar, you must move them out first before anything else
-			    2) unless there will be all their remaining checkers in the endzone,
-			       the ending point's index must be between 0 and 23. endzone game can go beyond
-			    3) the ending point must either be owned by me, or have <= 1 checker on it
-		      4) the player must have no legal moves left, or have used 2 moves, by the end of their turn.
-		          TODO: in input parser, parse the whole turn and reject if it doesn't do this
+	// The player must have no legal moves left, or have used 2 moves, by the end of their turn.
+	// TODO: in input parser, parse the whole turn and reject if it doesn't do this
 
-			    maybe just create a set of all possible moves and check for membership?
-			    (and if the set is empty, go to next turn):
-			      TO MAKE THE SET:
-			        for each piece on the board:
-			          for each unique amount on the dice:
-			            see if the piece can legally do it.
-			              DEFINED BY: the above 5 rules
-
-			    if the player enters an illegal move, display a warning and try again
-	*/
 	isForBar := m.Letter == constants.LETTER_BAR_CC || m.Letter == constants.LETTER_BAR_C
 	numOnTheBar := b.chexOnTheBar(m.Requestor)
 	if numOnTheBar > 0 && !isForBar {
