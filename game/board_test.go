@@ -334,6 +334,87 @@ func TestExecuteMoveIfLegalBearOff(t *testing.T) {
 	}
 }
 
+// TestExecuteMoveIfLegalTakeoverEnemy tests executing a move that captures an enemy checker.
+func TestExecuteMoveIfLegalTakeoverEnemy(t *testing.T) {
+	/* Board looks like:
+	 x  w  v  u  t  s     r  q  p  o  n  m
+	=======================================
+	 O  -  -  -  -  X |m| -  X  -  -  -  O
+	 O              X |m|    X           O
+	                X |m|    X           O
+	                X |m|    X           O
+	                X |m|                O
+	                  |m|
+
+
+	                  |w|
+	                  |w|                X
+	                  |w|                X
+	                  |w|                X
+	          O  O    |w|    O           X
+	 X  -  -  O  O  O |w| O  O  -  -  -  X
+	=======================================
+	 a  b  c  d  e  f     g  h  i  j  k  l
+	*/
+	b := Board{}
+	b.Points = [NUM_BOARD_POINTS]*BoardPoint{
+		// counter-clockwise player is in bottom-left.
+		{PCC, 1}, {}, {}, {PC, 2}, {PC, 2}, {PC, 1}, {PC, 1}, {PC, 2}, {}, {}, {}, {PCC, 5},
+		{PC, 5}, {}, {}, {}, {PCC, 4}, {}, {PCC, 5}, {}, {}, {}, {}, {PC, 2},
+		//                                                        clockwise player in top-left.
+	}
+
+	m := &Move{Requestor: PCC, Letter: "a", FowardDistance: 5}
+	// Expect the state to be:
+	// 0 on "a" (and nil Owner),
+	// 1 on "f" (and PCC Owner)
+	// 1 in b.BarC
+
+	// Original state
+	originalBarC := b.BarC
+	if originalBarC != 0 {
+		t.Errorf("thought there were 0 on bar C to begin with, got %v", originalBarC)
+	}
+
+	fromIdx, _ := alpha2Num[m.Letter]
+	toIdx := alpha2Num["f"]
+	fromPt, toPt := b.Points[fromIdx], b.Points[toIdx]
+	fromPtOwner, toPtOwner := fromPt.Owner, toPt.Owner
+	fromPtChex, toPtChex := fromPt.NumCheckers, toPt.NumCheckers
+
+	if fromPtChex != 1 {
+		t.Errorf("thought there was only 1 checker on the from point, got %v", fromPtChex)
+	} else if toPtChex != 1 {
+		t.Errorf("thought there was only 1 checker on the dets point, got %v", toPtChex)
+	}
+	if fromPtOwner != PCC {
+		t.Errorf("thought the owner of the from point was gonna be PCC")
+	} else if toPtOwner != PC {
+		t.Errorf("thought the owner of the destination was gonna be PC")
+	}
+
+	ok := b.ExecuteMoveIfLegal(m)
+	if !ok {
+		t.Errorf("Test move was not legal. Change the test!")
+	}
+
+	if fromPt.Owner != nil {
+		t.Errorf("expected there to be no owner of the from point, got %v", *fromPt.Owner)
+	}
+	if fromPt.NumCheckers != 0 {
+		t.Errorf("expected there to be 0 checkers on the from point, got %v", fromPt.NumCheckers)
+	}
+	if toPt.NumCheckers != 1 {
+		t.Errorf("expected there to be 1 checker on the destination point, got %v", toPt.NumCheckers)
+	}
+	if toPt.Owner != PCC {
+		t.Errorf("expected PCC to be the new owner of the destination point, got %v", toPt.Owner)
+	}
+	if b.BarC != originalBarC+1 {
+		t.Errorf("expected there to be 1 new checker on BarC. got %v", b.BarC)
+	}
+}
+
 func strSlicesEqual(a, b []string) bool {
 	if len(a) == 0 || len(b) == 0 {
 		return len(a) == len(b)
