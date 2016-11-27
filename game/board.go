@@ -71,6 +71,13 @@ func (b *Board) isLegalMove(m *Move) bool {
 	if numOnTheBar > 0 && !isForBar {
 		return false // If you have anything on the bar, you must move those things first
 	}
+	expectedLetter := "z" // Clockwise player uses "z" for their bar.
+	if m.Requestor == PCC {
+		expectedLetter = "y"
+	}
+	if isForBar && m.Letter != expectedLetter {
+		return false // Can't move the enemy's chex.
+	}
 
 	numChexOnCurrentPoint := numOnTheBar
 	if !isForBar {
@@ -141,6 +148,7 @@ func (b *Board) ExecuteMoveIfLegal(m *Move) bool {
 		b.incrementBar(nxtPt.Owner)
 	}
 	nxtPt.NumCheckers++
+	nxtPt.Owner = m.Requestor
 
 	return true
 }
