@@ -31,7 +31,7 @@ var num2Alpha = map[uint8]string{
 	20: "u", 21: "v", 22: "w", 23: "x", 24: constants.LETTER_BAR_CC, 25: constants.LETTER_BAR_C,
 }
 
-func printBoard(b *game.Board) {
+func PrintBoard(b *game.Board) {
 	var topRows, botRows []string
 
 	// Letters above the top border

@@ -102,13 +102,18 @@ func (b *Board) isLegalMove(m *Move) bool {
 
 func (b *Board) doesPlayerHaveAnyRemainingCheckersBehindPoint(p *Player, pointIdx uint8) bool {
 	if p == PCC {
-		for i := pointIdx + 1; i < NUM_BOARD_POINTS; i++ {
+		i := pointIdx - 1
+		for true {
 			if pt := b.Points[i]; pt.Owner == p && pt.NumCheckers > 0 {
 				return true
 			}
+			if i == 0 {
+				break // Prevent bug where the uint goes back to 255 and satisfies loop condition `i >= 0`.
+			}
+			i--
 		}
 	} else {
-		for i := NUM_BOARD_POINTS - 1; i > pointIdx; i-- {
+		for i := pointIdx + 1; i < NUM_BOARD_POINTS; i++ {
 			if pt := b.Points[i]; pt.Owner == p && pt.NumCheckers > 0 {
 				return true
 			}

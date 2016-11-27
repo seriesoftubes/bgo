@@ -148,7 +148,6 @@ func TestLegalMovesBearOff(t *testing.T) {
 		{PCC, 5, []string{"l", "q", "s"}},
 		{PCC, 6, []string{"a", "l", "q"}},
 
-		// TODO: this behavior is wrong. it should only allow bearing off when everything behind it has been beared off already.
 		{PC, 1, []string{"c", "d", "e", "f"}},
 		{PC, 2, []string{"d", "e", "f"}},
 		{PC, 3, []string{"e", "f"}},
@@ -162,6 +161,64 @@ func TestLegalMovesBearOff(t *testing.T) {
 			// counter-clockwise player is in bottom-left.
 			{PCC, 2}, {PC, 1}, {PC, 2}, {PC, 2}, {PC, 5}, {PC, 5}, {}, {}, {}, {}, {}, {PCC, 5},
 			{}, {}, {}, {}, {PCC, 3}, {}, {PCC, 5}, {}, {}, {}, {}, {},
+			//                                                        clockwise player in top-left.
+		}
+
+		gotLetters := mLetters(b.LegalMoves(c.player, c.diceAmt))
+		if !strSlicesEqual(gotLetters, c.wantLetters) {
+			t.Errorf("LegalMoves for Player %q and diceAmt %v unexpected. got %v want %v", *c.player, c.diceAmt, gotLetters, c.wantLetters)
+		}
+	}
+}
+
+// TestLegalMovesBearOffBoth tests getting legal moves when one move can involve bearing off for either player.
+func TestLegalMovesBearOffBoth(t *testing.T) {
+	/* Board looks like:
+	 x  w  v  u  t  s     r  q  p  o  n  m
+	=======================================
+	 X  X  X  X  X  X |m| -  -  -  -  -  -
+	 X     X        X |m|
+	 X              X |m|
+	 X              X |m|
+	 X              X |m|
+	                  |m|
+
+
+	                  |w|
+	             O  O |w|
+	             O  O |w|
+	             O  O |w|
+	       O  O  O  O |w|
+	 -  O  O  O  O  O |w| -  -  -  -  -  -
+	=======================================
+	 a  b  c  d  e  f     g  h  i  j  k  l
+	*/
+	// PCC == "X", PC = O
+	cases := []struct {
+		player      *Player
+		diceAmt     uint8
+		wantLetters []string
+	}{
+		{PCC, 1, []string{"s", "t", "u", "v", "w"}},
+		{PCC, 2, []string{"s", "t", "u", "v"}},
+		{PCC, 3, []string{"s", "t", "u"}},
+		{PCC, 4, []string{"s", "t"}},
+		{PCC, 5, []string{"s"}},
+		{PCC, 6, []string{"s"}},
+
+		{PC, 1, []string{"b", "c", "d", "e", "f"}},
+		{PC, 2, []string{"c", "d", "e", "f"}},
+		{PC, 3, []string{"d", "e", "f"}},
+		{PC, 4, []string{"e", "f"}},
+		{PC, 5, []string{"f"}},
+		{PC, 6, []string{"f"}},
+	}
+	for _, c := range cases {
+		b := Board{}
+		b.Points = [NUM_BOARD_POINTS]*BoardPoint{
+			// counter-clockwise player is in bottom-left.
+			{}, {PC, 1}, {PC, 2}, {PC, 2}, {PC, 5}, {PC, 5}, {}, {}, {}, {}, {}, {},
+			{}, {}, {}, {}, {}, {}, {PCC, 5}, {PCC, 1}, {PCC, 1}, {PCC, 2}, {PCC, 1}, {PCC, 5},
 			//                                                        clockwise player in top-left.
 		}
 
