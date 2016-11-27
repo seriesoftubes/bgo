@@ -238,7 +238,7 @@ func TestExecuteMoveIfLegal(t *testing.T) {
 
 	// Original state
 	fromIdx := alpha2Num[m.Letter]
-	toIdx, _ := m.nextPointIdx()
+	toIdx, _ := alpha2Num["g"]
 	fromPt, toPt := b.Points[fromIdx], b.Points[toIdx]
 	fromPtChex, toPtChex := fromPt.NumCheckers, toPt.NumCheckers
 
@@ -248,6 +248,32 @@ func TestExecuteMoveIfLegal(t *testing.T) {
 	}
 
 	if fromPt.NumCheckers != fromPtChex-1 {
+		t.Errorf("Did not move any checkers away from the original point.")
+	} else if toPt.NumCheckers != toPtChex+1 {
+		t.Errorf("Did not move any checkers to the destination.")
+	}
+}
+
+func TestExecuteMoveIfLegalFromBar(t *testing.T) {
+	b := Board{}
+	b.setUp()
+	// Simulate having 1 chex on the bar for PCC.
+	b.Points[0].NumCheckers--
+	b.BarCC = 1
+
+	m := &Move{Requestor: PCC, Letter: "y", FowardDistance: 1}
+
+	// Original state
+	toIdx, _ := alpha2Num["a"]
+	toPt := b.Points[toIdx]
+	fromPtChex, toPtChex := b.BarCC, toPt.NumCheckers
+
+	ok := b.ExecuteMoveIfLegal(m)
+	if !ok {
+		t.Errorf("Test move was not legal. Change the test!")
+	}
+
+	if b.BarCC != fromPtChex-1 {
 		t.Errorf("Did not move any checkers away from the original point.")
 	} else if toPt.NumCheckers != toPtChex+1 {
 		t.Errorf("Did not move any checkers to the destination.")
