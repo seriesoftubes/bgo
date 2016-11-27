@@ -3,7 +3,7 @@ package game
 const (
 	numCheckersPerPlayer uint8 = 15
 	NUM_BOARD_POINTS     uint8 = 24
-	barPips                    = NUM_BOARD_POINTS + 1
+	barPips              uint8 = NUM_BOARD_POINTS + 1
 )
 
 type BoardPoint struct {
@@ -160,21 +160,21 @@ func (b *Board) setUp() {
 	}
 }
 
-func (b *Board) PipCounts() (int, int) {
-	var pipC, pipCC int
+func (b *Board) PipCounts() (uint, uint) {
+	var pipC, pipCC uint
 
 	for i, p := range b.Points {
-		basePips, chex := i+1, int(p.NumCheckers)
+		basePips, chex := uint(i)+1, uint(p.NumCheckers)
 		if p.Owner == PC {
 			// the clockwise player's closest checker is at points[0].
 			pipC += chex * basePips
 		} else if p.Owner == PCC {
 			// the counter-clockwise player's furthest checker is at points[0].
-			pipCC += chex * (int(NUM_BOARD_POINTS) - basePips + 1)
+			pipCC += chex * (uint(NUM_BOARD_POINTS) - basePips + 1)
 		}
 	}
-	pipC += b.BarC * barPips
-	pipCC += b.BarCC * barPips
+	pipC += uint(b.BarC) * uint(barPips)
+	pipCC += uint(b.BarCC) * uint(barPips)
 
 	return pipC, pipCC
 }
