@@ -17,6 +17,24 @@ type Move struct {
 	FowardDistance uint8 // validate between 1 and 6
 }
 
+func (m *Move) isValid() bool {
+	if m.Requestor == nil {
+		return false // Must have requestor.
+	}
+
+	if _, ok := alpha2Num[m.Letter]; !ok {
+		return false // Must be a lowercase alpha character.
+	} else if len(m.Letter) != 1 {
+		return false // Letter must be 1 character.
+	}
+
+	if m.FowardDistance < 1 || m.FowardDistance > 6 {
+		return false // Distance must be between [1,6]
+	}
+
+	return true
+}
+
 func (m *Move) isToMoveSomethingOutOfTheBar() bool {
 	return m.Letter == constants.LETTER_BAR_CC || m.Letter == constants.LETTER_BAR_C
 }
@@ -29,7 +47,6 @@ func (m *Move) pointIdx() uint8 {
 	return alpha2Num[m.Letter]
 }
 
-// TODO: Board.Copy method.
 // TODO: MoveSet struct, or execute each command, 1 at a time, until the player is out of moves.
 
 // Gets the PointIndex of the next point to go to.

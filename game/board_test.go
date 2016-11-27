@@ -230,6 +230,30 @@ func TestLegalMovesBearOffBoth(t *testing.T) {
 	}
 }
 
+func TestExecuteMoveIfLegal(t *testing.T) {
+	b := Board{}
+	b.setUp()
+
+	m := &Move{Requestor: PCC, Letter: "a", FowardDistance: 6}
+
+	// Original state
+	fromIdx := alpha2Num[m.Letter]
+	toIdx, _ := m.nextPointIdx()
+	fromPt, toPt := b.Points[fromIdx], b.Points[toIdx]
+	fromPtChex, toPtChex := fromPt.NumCheckers, toPt.NumCheckers
+
+	ok := b.ExecuteMoveIfLegal(m)
+	if !ok {
+		t.Errorf("Test move was not legal. Change the test!")
+	}
+
+	if fromPt.NumCheckers != fromPtChex-1 {
+		t.Errorf("Did not move any checkers away from the original point.")
+	} else if toPt.NumCheckers != toPtChex+1 {
+		t.Errorf("Did not move any checkers to the destination.")
+	}
+}
+
 func strSlicesEqual(a, b []string) bool {
 	if len(a) == 0 || len(b) == 0 {
 		return len(a) == len(b)

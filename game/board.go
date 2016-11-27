@@ -173,7 +173,7 @@ func (b *Board) incrementBar(p *Player) {
 }
 
 func (b *Board) ExecuteMoveIfLegal(m *Move) bool {
-	if !b.isLegalMove(m) {
+	if !m.isValid() || !b.isLegalMove(m) {
 		return false
 	}
 
