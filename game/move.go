@@ -23,9 +23,7 @@ func (m *Move) isValid() bool {
 	}
 
 	if _, ok := alpha2Num[m.Letter]; !ok {
-		return false // Must be a lowercase alpha character.
-	} else if len(m.Letter) != 1 {
-		return false // Letter must be 1 character.
+		return false // Must be a whitelisted lowercase alpha character.
 	}
 
 	if m.FowardDistance < 1 || m.FowardDistance > 6 {
