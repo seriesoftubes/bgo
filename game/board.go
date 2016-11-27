@@ -1,7 +1,7 @@
 package game
 
 import (
-  "github.com/seriesoftubes/bgo/constants"
+	"github.com/seriesoftubes/bgo/constants"
 )
 
 const (

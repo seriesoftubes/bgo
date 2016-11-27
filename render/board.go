@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-  "github.com/seriesoftubes/bgo/constants"
+	"github.com/seriesoftubes/bgo/constants"
 	"github.com/seriesoftubes/bgo/game"
 )
 
