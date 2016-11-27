@@ -7,9 +7,7 @@ import (
 	"github.com/seriesoftubes/bgo/constants"
 )
 
-var defaultPlayer *Player = PCC
-
-// TestLegalMoves tests getting legal moves for the initial, clean board.
+// TestLegalMovesPlainBoard tests getting legal moves for the initial, clean board.
 func TestLegalMovesPlainBoard(t *testing.T) {
 	/* Board looks like:
 	 x  w  v  u  t  s     r  q  p  o  n  m
@@ -61,6 +59,56 @@ func TestLegalMovesPlainBoard(t *testing.T) {
 		}
 		if !reflect.DeepEqual(incGotLetters, incWantLetters) {
 			t.Errorf("LegalMoves (with bar) for diceAmt: %v unexpected. got %v wanted %v", c.diceAmt, incGotLetters, incWantLetters)
+		}
+	}
+}
+
+// TestLegalMovesTakeOverEnemy tests getting legal moves when one move can involve stepping on an enemy checker.
+func TestLegalMovesTakeOverEnemy(t *testing.T) {
+	/* Board looks like:
+	 x  w  v  u  t  s     r  q  p  o  n  m
+	=======================================
+	 O  -  -  -  -  X |m| -  X  -  -  -  O
+	 O              X |m|    X           O
+	                X |m|    X           O
+	                X |m|                O
+	                X |m|                O
+	                  |m|
+
+
+	                  |w|
+	                  |w|                X
+	                  |w|                X
+	                  |w|                X
+	 X        O  O    |w|    O           X
+	 X  -  -  O  O  O |w| O  O  -  -  -  X
+	=======================================
+	 a  b  c  d  e  f     g  h  i  j  k  l
+	*/
+	defaultPlayer := PCC // "X"
+	cases := []struct {
+		diceAmt     uint8
+		wantLetters []string
+	}{
+		{1, []string{"a", "q", "s"}},
+		{2, []string{"a", "l", "q", "s"}},
+		{3, []string{"l", "q", "s"}},
+		{4, []string{"l", "q", "s"}},
+		{5, []string{"a", "l", "q"}}, // We can move "a" to "f"
+		{6, []string{"a", "l", "q"}}, // We can move "a" to "g"
+	}
+	for _, c := range cases {
+		b := Board{}
+		b.Points = [NUM_BOARD_POINTS]*BoardPoint{
+			// counter-clockwise player is in bottom-left.
+			{PCC, 2}, {}, {}, {PC, 2}, {PC, 2}, {PC, 1}, {PC, 1}, {PC, 2}, {}, {}, {}, {PCC, 5},
+			{PC, 5}, {}, {}, {}, {PCC, 3}, {}, {PCC, 5}, {}, {}, {}, {}, {PC, 2},
+			//                                                        clockwise player in top-left.
+		}
+
+		gotLetters := mLetters(b.LegalMoves(defaultPlayer, c.diceAmt))
+		if !reflect.DeepEqual(gotLetters, c.wantLetters) {
+			t.Errorf("LegalMoves for diceAmt: %v unexpected. got %v want %v", c.diceAmt, gotLetters, c.wantLetters)
 		}
 	}
 }
