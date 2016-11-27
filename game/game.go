@@ -6,7 +6,7 @@ type Game struct {
 	CurrentRoll   *Roll
 }
 
-func CopyGame(g Game) Game { return g }  // is this a deep copy though?
+func CopyGame(g Game) Game     { return g } // is this a deep copy though?
 func GamePointer(g Game) *Game { return &g }
 
 func NewGame() *Game {
