@@ -176,11 +176,11 @@ func TestLegalMovesBearOffBoth(t *testing.T) {
 	/* Board looks like:
 	 x  w  v  u  t  s     r  q  p  o  n  m
 	=======================================
-	 X  X  X  X  X  X |m| -  -  -  -  -  -
-	 X     X        X |m|
-	 X              X |m|
-	 X              X |m|
-	 X              X |m|
+	 X  X  X  X  X    |m| -  -  -  -  -  -
+	 X     X          |m|
+	 X                |m|
+	 X                |m|
+	 X                |m|
 	                  |m|
 
 
@@ -199,12 +199,12 @@ func TestLegalMovesBearOffBoth(t *testing.T) {
 		diceAmt     uint8
 		wantLetters []string
 	}{
-		{PCC, 1, []string{"s", "t", "u", "v", "w"}},
-		{PCC, 2, []string{"s", "t", "u", "v"}},
-		{PCC, 3, []string{"s", "t", "u"}},
-		{PCC, 4, []string{"s", "t"}},
-		{PCC, 5, []string{"s"}},
-		{PCC, 6, []string{"s"}},
+		{PCC, 1, []string{"t", "u", "v", "w"}},
+		{PCC, 2, []string{"t", "u", "v"}},
+		{PCC, 3, []string{"t", "u"}},
+		{PCC, 4, []string{"t"}},
+		{PCC, 5, []string{"t"}},
+		{PCC, 6, []string{"t"}},
 
 		{PC, 1, []string{"b", "c", "d", "e", "f"}},
 		{PC, 2, []string{"c", "d", "e", "f"}},
@@ -215,10 +215,11 @@ func TestLegalMovesBearOffBoth(t *testing.T) {
 	}
 	for _, c := range cases {
 		b := Board{}
+		b.OffCC = 5
 		b.Points = [NUM_BOARD_POINTS]*BoardPoint{
 			// counter-clockwise player is in bottom-left.
 			{}, {PC, 1}, {PC, 2}, {PC, 2}, {PC, 5}, {PC, 5}, {}, {}, {}, {}, {}, {},
-			{}, {}, {}, {}, {}, {}, {PCC, 5}, {PCC, 1}, {PCC, 1}, {PCC, 2}, {PCC, 1}, {PCC, 5},
+			{}, {}, {}, {}, {}, {}, {}, {PCC, 1}, {PCC, 1}, {PCC, 2}, {PCC, 1}, {PCC, 5},
 			//                                                        clockwise player in top-left.
 		}
 
