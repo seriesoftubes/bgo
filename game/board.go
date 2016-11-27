@@ -78,10 +78,14 @@ func (b *Board) isLegalMove(m *Move) bool {
 		return false // Cannot move a checker from an empty point
 	}
 
-	nxtIdx := m.nextPointIdx()
-	nxtPtExists := nxtIdx >= 0 && nxtIdx < NUM_BOARD_POINTS
-	if !nxtPtExists && !b.doesPlayerHaveAllRemainingCheckersInHomeBoard(m.Requestor) {
-		return false // Can't move past the finish line unless all your remaining checkers are in your home board
+	nxtIdx, nxtPtExists := m.nextPointIdx()
+	if !nxtPtExists {
+		if !b.doesPlayerHaveAllRemainingCheckersInHomeBoard(m.Requestor) {
+			return false // Can't move past the finish line unless all your remaining checkers are in your home board
+		}
+		if (m.Requestor == PCC && nxtIdx < 0) || (m.Requestor == PC && nxtIdx >= int8(NUM_BOARD_POINTS)) {
+			return false // Must move past the correct finish line.
+		}
 	}
 
 	if nxtPtExists {
@@ -139,15 +143,25 @@ func (b *Board) ExecuteMoveIfLegal(m *Move) bool {
 			b.BarC--
 		}
 	} else {
-		b.Points[m.pointIdx()].NumCheckers--
+		fromPt := b.Points[m.pointIdx()]
+		fromPt.NumCheckers--
+		if fromPt.NumCheckers == 0 {
+			fromPt.Owner = nil
+		}
 	}
 
-	nxtPt := b.Points[m.nextPointIdx()]
-	if nxtPt.Owner != nil && nxtPt.Owner != m.Requestor {
-		if nxtPt.NumCheckers != 1 {
-			panic("making a legal move to overthrow >1 enemy checker")
+	nextPointIdx, nxtPtExists := m.nextPointIdx()
+	if !nxtPtExists {
+		if m.Requestor == PCC {
+			b.OffCC++
+		} else {
+			b.OffC++
 		}
+		return true
+	}
 
+	nxtPt := b.Points[nextPointIdx]
+	if nxtPt.Owner != nil && nxtPt.Owner != m.Requestor {
 		nxtPt.NumCheckers--
 		b.incrementBar(nxtPt.Owner)
 	}

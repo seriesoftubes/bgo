@@ -52,7 +52,7 @@ func TestLegalMovesPlainBoard(t *testing.T) {
 			t.Errorf("LegalMoves for diceAmt: %v unexpected. got %v want %v", c.diceAmt, gotLetters, c.wantLetters)
 		}
 
-		//  Proves that, whenever there is at least 1 on the bar, the play can only play that bar checker.
+		// Proves that, whenever there is at least 1 on the bar, the player can only move that bar checker.
 		b.incrementBar(defaultPlayer)
 		incGotLetters := mLetters(b.LegalMoves(defaultPlayer, c.diceAmt))
 		var incWantLetters []string

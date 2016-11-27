@@ -29,15 +29,24 @@ func (m *Move) pointIdx() uint8 {
 	return alpha2Num[m.Letter]
 }
 
-func (m *Move) nextPointIdx() uint8 {
+// TODO: Board.Copy method.
+// TODO: MoveSet struct, or execute each command, 1 at a time, until the player is out of moves.
+
+// Gets the PointIndex of the next point to go to.
+// May return < 0 or > 23, if the move is to bear-off a checker.
+func (m *Move) nextPointIdx() (int8, bool) {
+	var nxtIdx int8
 	if m.isToMoveSomethingOutOfTheBar() {
 		if m.Requestor == PCC {
-			return m.FowardDistance - 1
+			nxtIdx = int8(m.FowardDistance) - 1
+		} else {
+			nxtIdx = int8(NUM_BOARD_POINTS - m.FowardDistance)
 		}
-		return NUM_BOARD_POINTS - m.FowardDistance
+	} else {
+		nxtIdx = int8(int(m.pointIdx()) + m.distCC())
 	}
 
-	return uint8(int(m.pointIdx()) + m.distCC())
+	return nxtIdx, nxtIdx >= 0 && nxtIdx < int8(NUM_BOARD_POINTS)
 }
 
 // distCC gets the counter-clockwise distance (meaning, moving in a positive direction thru the BoardPoint indices).
