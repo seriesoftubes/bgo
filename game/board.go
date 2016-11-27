@@ -26,6 +26,22 @@ type Board struct {
 	OffCC, OffC uint8 // # of checkers that each player has beared off
 }
 
+// Copy returns a pointer to a deepcopy of a Board.
+func (b *Board) Copy() *Board {
+	cop := &Board{}
+	cop.setUp()
+
+	for i, pt := range b.Points {
+		copPt := cop.Points[i]
+		copPt.Owner = pt.Owner
+		copPt.NumCheckers = pt.NumCheckers
+	}
+	cop.BarC, cop.BarCC = b.BarC, b.BarCC
+	cop.OffC, cop.OffCC = b.OffC, b.OffCC
+
+	return cop
+}
+
 func (b *Board) doesPlayerHaveAllRemainingCheckersInHomeBoard(p *Player) bool {
 	totalChexInHomeOrBearedOff := b.OffC
 	if p == PCC {
