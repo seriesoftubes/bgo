@@ -17,6 +17,16 @@ type Move struct {
 	FowardDistance uint8 // validate between 1 and 6
 }
 
+type hashableMove struct {
+	p    Player
+	chr  string
+	dist uint8
+}
+
+func (m *Move) hash() hashableMove {
+	return hashableMove{p: *m.Requestor, chr: m.Letter, dist: m.FowardDistance}
+}
+
 func (m *Move) isValid() bool {
 	if m.Requestor == nil {
 		return false // Must have requestor.

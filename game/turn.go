@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 
 	"github.com/seriesoftubes/bgo/constants"
@@ -15,6 +16,14 @@ type (
 	sortableTurns []Turn
 )
 
+func (s sortableTurns) Len() int      { return len(s) }
+func (s sortableTurns) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+
+// Less determines whether one turn is less than another, first based on the number of moves, then based on the total move distance.
+func (s sortableTurns) Less(i, j int) bool {
+	return s[i].totalDist() < s[j].totalDist()
+}
+
 func (t Turn) totalDist() uint8 {
 	var out uint8
 	for _, m := range t {
@@ -23,12 +32,22 @@ func (t Turn) totalDist() uint8 {
 	return out
 }
 
-func (s sortableTurns) Len() int      { return len(s) }
-func (s sortableTurns) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+// Equals returns true if both turns involve the same letter-dist combos
+func (t Turn) Equals(o Turn) bool {
+	if len(t) != len(o) || t.totalDist() != o.totalDist() {
+		return false
+	} else if len(t) == 0 && len(o) == 0 {
+		return true
+	}
 
-// Less determines whether one turn is less than another, first based on the number of moves, then based on the total move distance.
-func (s sortableTurns) Less(i, j int) bool {
-	return s[i].totalDist() < s[j].totalDist()
+	tHashes, oHashes := map[hashableMove]bool{}, map[hashableMove]bool{}
+	for _, m := range t {
+		tHashes[m.hash()] = true
+	}
+	for _, m := range o {
+		oHashes[m.hash()] = true
+	}
+	return reflect.DeepEqual(tHashes, oHashes)
 }
 
 func (t Turn) String() string {
@@ -44,8 +63,13 @@ func (t Turn) String() string {
 }
 
 func (t Turn) isValid() bool {
+	var p *Player
+	if len(t) > 0 {
+		p = t[0].Requestor
+	}
+
 	for _, m := range t {
-		if !m.isValid() {
+		if !m.isValid() || m.Requestor != p {
 			return false
 		}
 	}
