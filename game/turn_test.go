@@ -2,8 +2,44 @@ package game
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 )
+
+type stringSet map[string]bool
+
+func newStringSet(strs []string) stringSet {
+	out := stringSet{}
+	for _, s := range strs {
+		out[s] = true
+	}
+	return out
+}
+
+func (ss stringSet) copy() stringSet {
+	out := stringSet{}
+	for s := range ss {
+		out[s] = true
+	}
+	return out
+}
+
+func (ss stringSet) values() []string {
+	var out []string
+	for s := range ss {
+		out = append(out, s)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func (ss stringSet) subtract(o stringSet) stringSet {
+	orig := ss.copy()
+	for s := range o {
+		delete(orig, s)
+	}
+	return orig
+}
 
 func TestTurnEquals(t *testing.T) {
 	cases := []struct {
@@ -106,13 +142,28 @@ func TestTurnPerms(t *testing.T) {
 				"s4;q5",
 			},
 		},
+		{
+			// This behavior is incorrect. TODO: fix.
+			PCC, Roll{5, 5},
+			[]string{
+				//"l5;l5;l5;l5", // 0 q5
+				"l5;l5;l5;q5", // 1 q5
+				//"l5;l5;q5;l5",
+				//"l5;q5;l5;l5",
+				//"q5;l5;l5;l5",
+				//"q5;q5;l5;l5", // 2 q5
+				//"l5;q5;q5;l5",
+				"l5;l5;q5;q5",
+				"q5;l5;l5;q5",
+				"l5;q5;l5;q5",
+				"l5;q5;q5;q5", // 3 q5
+				"q5;l5;q5;q5",
+				"q5;q5;l5;q5",
+				"q5;q5;q5;l5",
+			},
+		},
 	}
 	for _, c := range cases {
-		wants := map[string]bool{}
-		for _, permString := range c.want {
-			wants[permString] = true
-		}
-
 		b := &Board{}
 		b.setUp()
 		/*
@@ -137,13 +188,17 @@ func TestTurnPerms(t *testing.T) {
 		    a  b  c  d  e  f     g  h  i  j  k  l
 		*/
 
-		perms, permStrings := TurnPerms(b, &c.roll, c.player), map[string]bool{}
+		wants := newStringSet(c.want)
+		perms := TurnPerms(b, &c.roll, c.player)
+		gots := stringSet{}
 		for _, p := range perms {
-			permStrings[p.String()] = true
+			gots[p.String()] = true
 		}
 
-		if !reflect.DeepEqual(permStrings, wants) {
-			t.Errorf("TestTurnPerms bug for roll %v and player %s. expected %v got %v", c.roll, *c.player, wants, permStrings)
+		if !reflect.DeepEqual(gots, wants) {
+			extraWants := wants.subtract(gots).values()
+			missingWants := gots.subtract(wants).values()
+			t.Errorf("TestTurnPerms bug for roll %v and player %s.\nwants is missing %v,\nwants has extra %v", c.roll, *c.player, missingWants, extraWants)
 		}
 	}
 }
