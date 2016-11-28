@@ -25,12 +25,6 @@ const (
 	BLANK_SPACE                         = "   "
 )
 
-var num2Alpha = map[uint8]string{
-	0: "a", 1: "b", 2: "c", 3: "d", 4: "e", 5: "f", 6: "g", 7: "h", 8: "i", 9: "j",
-	10: "k", 11: "l", 12: "m", 13: "n", 14: "o", 15: "p", 16: "q", 17: "r", 18: "s", 19: "t",
-	20: "u", 21: "v", 22: "w", 23: "x", 24: constants.LETTER_BAR_CC, 25: constants.LETTER_BAR_C,
-}
-
 func PrintBoard(b *game.Board) {
 	var topRows, botRows []string
 
@@ -41,7 +35,7 @@ func PrintBoard(b *game.Board) {
 		if pointIdx == TOP_POINT_TO_THE_RIGHT_OF_MID {
 			prefix = "   " + " "
 		}
-		row += prefix + num2Alpha[pointIdx] + " "
+		row += prefix + constants.Num2Alpha[pointIdx] + " "
 	}
 	topRows = append(topRows, row)
 
@@ -158,7 +152,7 @@ func PrintBoard(b *game.Board) {
 		if pointIdx == BOT_POINT_TO_THE_RIGHT_OF_MID {
 			prefix = "   " + " "
 		}
-		row += prefix + num2Alpha[pointIdx] + " "
+		row += prefix + constants.Num2Alpha[pointIdx] + " "
 	}
 	botRows = append(botRows, row)
 
