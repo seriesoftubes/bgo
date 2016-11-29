@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 
 	"github.com/seriesoftubes/bgo/constants"
 )
@@ -51,15 +52,12 @@ func (t Turn) Equals(o Turn) bool {
 }
 
 func (t Turn) String() string {
-	out := ""
-	for i, m := range t {
-		suffix := moveDelim
-		if i == len(t)-1 {
-			suffix = ""
-		}
-		out += fmt.Sprintf("%s%d%s", m.Letter, m.FowardDistance, suffix)
+	out := make([]string, len(t))
+	for i, mv := range t {
+		out[i] = fmt.Sprintf("%s%d", mv.Letter, mv.FowardDistance)
 	}
-	return out
+	sort.Strings(out)
+	return strings.Join(out, moveDelim)
 }
 
 func (t Turn) isValid() bool {
