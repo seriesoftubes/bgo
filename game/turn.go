@@ -109,7 +109,7 @@ func popSliceUint8(slice []uint8, atIndex int) ([]uint8, error) {
 
 // Generates the set of all valid turns for a player, given a roll and a board.
 // TODO: try using a goto thing in addPerm.
-func TurnPerms(b *Board, r *Roll, p *Player) map[string]Turn {
+func ValidTurns(b *Board, r *Roll, p *Player) map[string]Turn {
 	serializedTurns := map[string]Turn{} // set of serialized Turn strings
 	var bestTotalDist uint8              // placeholder for the max total distance across all potential turns.
 	maybeAddToResultSet := func(t Turn) {

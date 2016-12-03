@@ -111,7 +111,7 @@ func TestSerdeTurn(t *testing.T) {
 	}
 }
 
-func TestTurnPerms(t *testing.T) {
+func TestValidTurns(t *testing.T) {
 	cases := []struct {
 		player *Player
 		roll   Roll
@@ -191,7 +191,7 @@ func TestTurnPerms(t *testing.T) {
 		    a  b  c  d  e  f     g  h  i  j  k  l
 		*/
 		wants := newStringSet(c.want)
-		turns := TurnPerms(b, &c.roll, c.player)
+		turns := ValidTurns(b, &c.roll, c.player)
 		gots := stringSet{}
 		for ts := range turns {
 			gots[ts] = true
