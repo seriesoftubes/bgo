@@ -205,7 +205,7 @@ func TestValidTurns(t *testing.T) {
 	}
 }
 
-func TestValidTurnsBar(t *testing.T) {
+func TestValidTurnsTwoOnTheBar(t *testing.T) {
 	cases := []struct {
 		player *Player
 		roll   Roll
@@ -262,6 +262,93 @@ func TestValidTurnsBar(t *testing.T) {
 
 		   The bar
 		   y X's: XX
+		   z O's: -
+		*/
+		wants := newStringSet(c.want)
+		turns := ValidTurns(b, &c.roll, c.player)
+		gots := stringSet{}
+		for ts := range turns {
+			gots[ts] = true
+		}
+
+		if !reflect.DeepEqual(gots, wants) {
+			extraWants := wants.subtract(gots).values()
+			missingWants := gots.subtract(wants).values()
+			t.Errorf("TestTurnPerms bug for roll %v and player %s.\nwants is missing %v,\nwants has extra %v", c.roll, *c.player, missingWants, extraWants)
+		}
+	}
+}
+
+func TestValidTurnsOneOnTheBar(t *testing.T) {
+	cases := []struct {
+		player *Player
+		roll   Roll
+		want   []string // List of stringified turns
+	}{
+		{
+			PCC, Roll{6, 6}, // Can only land on spaces a-e with 2 on the bar.
+			[]string{},
+		},
+		{
+			PCC, Roll{1, 6},
+			[]string{
+				"X;a6;y1",
+				"X;l6;y1",
+				"X;q6;y1",
+			},
+		},
+		{
+			PCC, Roll{2, 6},
+			[]string{
+				"X;a6;y2",
+				"X;l6;y2",
+				"X;q6;y2",
+			},
+		},
+		{
+			PCC, Roll{2, 3},
+			[]string{
+				"X;a2;y3",
+				"X;a3;y2",
+				"X;b3;y2",
+				"X;c2;y3",
+				"X;l2;y3",
+				"X;l3;y2",
+				"X;q2;y3",
+				"X;q3;y2",
+				"X;s2;y3",
+				"X;s3;y2",
+			},
+		},
+	}
+	for _, c := range cases {
+		b := &Board{}
+		b.setUp()
+		b.Points[alpha2Num["a"]].NumCheckers = 1
+		b.BarCC = 1
+		/*
+		    Board is:
+		    x  w  v  u  t  s     r  q  p  o  n  m
+		   =======================================
+		    O  -  -  -  -  X |m| -  X  -  -  -  O
+		    O              X |m|    X           O
+		                   X |m|    X           O
+		                   X |m|                O
+		                   X |m|                O
+		                     |m|
+
+
+		                     |w|
+		                   O |w|                X
+		                   O |w|                X
+		                   O |w|    O           X
+		                   O |w|    O           X
+		    X  -  -  -  -  O |w| -  O  -  -  -  X
+		   =======================================
+		    a  b  c  d  e  f     g  h  i  j  k  l
+
+		   The bar
+		   y X's: X
 		   z O's: -
 		*/
 		wants := newStringSet(c.want)
