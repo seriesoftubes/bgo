@@ -191,11 +191,7 @@ func TestTurnPerms(t *testing.T) {
 		    a  b  c  d  e  f     g  h  i  j  k  l
 		*/
 		wants := newStringSet(c.want)
-		turns, err := TurnPerms(b, &c.roll, c.player)
-		if err != nil {
-			t.Errorf("error producing turnPerms for roll %v and player %s: %v", c.roll, *c.player, err)
-		}
-
+		turns := TurnPerms(b, &c.roll, c.player)
 		gots := stringSet{}
 		for ts := range turns {
 			gots[ts] = true

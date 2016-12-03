@@ -108,9 +108,8 @@ func popSliceUint8(slice []uint8, atIndex int) ([]uint8, error) {
 }
 
 // Generates the set of all valid turns for a player, given a roll and a board.
-// TODO: panic instead of return error, because serde errors should never happen here.
 // TODO: try using a goto thing in addPerm.
-func TurnPerms(b *Board, r *Roll, p *Player) (map[string]Turn, error) {
+func TurnPerms(b *Board, r *Roll, p *Player) map[string]Turn {
 	serializedTurns := map[string]Turn{} // set of serialized Turn strings
 	var bestTotalDist uint8              // placeholder for the max total distance across all potential turns.
 	maybeAddToResultSet := func(t Turn) {
@@ -171,7 +170,7 @@ func TurnPerms(b *Board, r *Roll, p *Player) (map[string]Turn, error) {
 	addPerm(b.Copy(), r.moveDistances(), Turn{})
 
 	if len(serializedTurns) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	for st, t := range serializedTurns {
@@ -179,5 +178,5 @@ func TurnPerms(b *Board, r *Roll, p *Player) (map[string]Turn, error) {
 			delete(serializedTurns, st)
 		}
 	}
-	return serializedTurns, nil
+	return serializedTurns
 }
