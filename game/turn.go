@@ -108,7 +108,6 @@ func popSliceUint8(slice []uint8, atIndex int) ([]uint8, error) {
 }
 
 // Generates the set of all valid turns for a player, given a roll and a board.
-// TODO: try using a goto thing in addPerm.
 func ValidTurns(b *Board, r *Roll, p *Player) map[string]Turn {
 	serializedTurns := map[string]Turn{} // set of serialized Turn strings
 	var bestTotalDist uint8              // placeholder for the max total distance across all potential turns.
@@ -137,32 +136,26 @@ func ValidTurns(b *Board, r *Roll, p *Player) map[string]Turn {
 			return
 		}
 
-		for distIdx, dist := range remainingDists {
-			cop := bb.Copy()
-			m := &Move{Requestor: p, Letter: barLetter, FowardDistance: dist}
-			if ok := cop.ExecuteMoveIfLegal(m); ok {
-				legitTurn := t.copy()
-				legitTurn.update(*m)
-				maybeAddToResultSet(legitTurn)
-
-				nextRemaining, _ := popSliceUint8(remainingDists, distIdx) // Guaranteed to be no error
-				addPerm(cop.Copy(), nextRemaining, legitTurn)
+		maybeAddMove := func(bcop *Board, m *Move, distIdx int) {
+			if ok := bcop.ExecuteMoveIfLegal(m); !ok {
+				return
 			}
 
+			legitTurn := t.copy()
+			legitTurn.update(*m)
+			maybeAddToResultSet(legitTurn)
+
+			nextRemaining, _ := popSliceUint8(remainingDists, distIdx) // Guaranteed to be no error
+			addPerm(bcop.Copy(), nextRemaining, legitTurn)
+		}
+
+		for distIdx, dist := range remainingDists {
+			// Try a move off the bar
+			maybeAddMove(bb.Copy(), &Move{Requestor: p, Letter: barLetter, FowardDistance: dist}, distIdx)
+			// Try all points on the board owned by the player.
 			for ptIdx, pt := range bb.Points {
-				if pt.Owner != p {
-					continue
-				}
-
-				cop := bb.Copy()
-				m := &Move{Requestor: p, Letter: constants.Num2Alpha[uint8(ptIdx)], FowardDistance: dist}
-				if ok := cop.ExecuteMoveIfLegal(m); ok {
-					legitTurn := t.copy()
-					legitTurn.update(*m)
-					maybeAddToResultSet(legitTurn)
-
-					nextRemaining, _ := popSliceUint8(remainingDists, distIdx) // Guaranteed to be no error
-					addPerm(cop.Copy(), nextRemaining, legitTurn)
+				if pt.Owner == p {
+					maybeAddMove(bb.Copy(), &Move{Requestor: p, Letter: constants.Num2Alpha[uint8(ptIdx)], FowardDistance: dist}, distIdx)
 				}
 			}
 		}
