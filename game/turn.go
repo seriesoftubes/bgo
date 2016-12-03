@@ -159,8 +159,11 @@ func ValidTurns(b *Board, r *Roll, p *Player) map[string]Turn {
 			return
 		}
 
-		nextRemaining, _ := popSliceUint8(remainingDists, distIdx) // Guaranteed to be no error
-		addPerm(bcop.Copy(), nextRemaining, legitTurn)
+		if nextRemaining, err := popSliceUint8(remainingDists, distIdx); err != nil {
+			panic("problem popping a value from a uint8 slice: " + err.Error())
+		} else {
+			addPerm(bcop.Copy(), nextRemaining, legitTurn)
+		}
 	}
 
 	addPerm(b.Copy(), r.moveDistances(), Turn{})
