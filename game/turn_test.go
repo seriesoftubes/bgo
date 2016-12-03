@@ -366,7 +366,7 @@ func TestValidTurnsOneOnTheBar(t *testing.T) {
 	}
 }
 
-// Tests that, even when you start with 1 chex outside your home, you can bear stuff off.
+// Tests that, with all chex in your home, you can bear stuff off.
 func TestValidTurnsBearOff(t *testing.T) {
 	cases := []struct {
 		player *Player
@@ -388,10 +388,10 @@ func TestValidTurnsBearOff(t *testing.T) {
 				"O;f4;f6",
 			},
 		},
-    {
-      PC, Roll{5, 5},
-      []string{"O;e5;e5;e5;e5"},
-    },
+		{
+			PC, Roll{5, 5},
+			[]string{"O;e5;e5;e5;e5"},
+		},
 	}
 	for _, c := range cases {
 		b := &Board{}
@@ -418,6 +418,81 @@ func TestValidTurnsBearOff(t *testing.T) {
 		                O  O |w|                X
 		    X     O  O  O  O |w|                X
 		    X  O  O  O  O  O |w| -  -  -  -  -  X
+		   =======================================
+		    a  b  c  d  e  f     g  h  i  j  k  l
+		*/
+		// PCC == "X", PC = O
+		wants := newStringSet(c.want)
+		turns := ValidTurns(b, &c.roll, c.player)
+		gots := stringSet{}
+		for ts := range turns {
+			gots[ts] = true
+		}
+
+		if !reflect.DeepEqual(gots, wants) {
+			extraWants := wants.subtract(gots).values()
+			missingWants := gots.subtract(wants).values()
+			t.Errorf("TestTurnPerms bug for roll %v and player %s.\nwants is missing %v,\nwants has extra %v", c.roll, *c.player, missingWants, extraWants)
+		}
+	}
+}
+
+// Tests that, even when you start with 1 chex outside your home, you can bear stuff off.
+func TestValidTurnsBearOffStartingFromOutside(t *testing.T) {
+	cases := []struct {
+		player *Player
+		roll   Roll
+		want   []string // List of stringified turns
+	}{
+		{
+			PC, Roll{6, 6},
+			[]string{"O;f6;f6;f6;h6"},
+		},
+		{
+			PC, Roll{6, 5},
+			[]string{
+				"O;e5;h6",
+				"O;f6;h5",
+			},
+		},
+		{
+			PC, Roll{6, 4},
+			[]string{
+				"O;d4;h6",
+				"O;f4;h6",
+				"O;f6;h4",
+			},
+		},
+		{
+			PC, Roll{5, 5},
+			[]string{"O;e5;e5;e5;h5"},
+		},
+	}
+	for _, c := range cases {
+		b := &Board{}
+		b.Points = [NUM_BOARD_POINTS]*BoardPoint{
+			// counter-clockwise player is in bottom-left.
+			{PCC, 2}, {PC, 1}, {PC, 2}, {PC, 2}, {PC, 5}, {PC, 4}, {}, {PC, 1}, {}, {}, {}, {PCC, 5},
+			{}, {}, {}, {}, {PCC, 3}, {}, {PCC, 5}, {}, {}, {}, {}, {},
+			//                                                        clockwise player in top-left.
+		}
+		/* Board looks like:
+		    x  w  v  u  t  s     r  q  p  o  n  m
+		   =======================================
+		    -  -  -  -  -  X |m| -  X  -  -  -  -
+		                   X |m|    X
+		                   X |m|    X
+		                   X |m|
+		                   X |m|
+		                     |m|
+
+
+		                     |w|
+		                O    |w|                X
+		                O  O |w|                X
+		                O  O |w|                X
+		    X     O  O  O  O |w|                X
+		    X  O  O  O  O  O |w| -  O  -  -  -  X
 		   =======================================
 		    a  b  c  d  e  f     g  h  i  j  k  l
 		*/
