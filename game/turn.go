@@ -2,8 +2,8 @@ package game
 
 import (
 	"fmt"
-	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/seriesoftubes/bgo/constants"
@@ -11,66 +11,87 @@ import (
 
 const moveDelim = ";"
 
-// A Turn is an ordered list of moves to execute in that order.
-type (
-	Turn          []Move
-	sortableTurns []Turn
-)
+// A Turn contains the moves to execute during a player's turn and the number of times to make each move.
+type Turn map[Move]uint8
 
-func (s sortableTurns) Len() int      { return len(s) }
-func (s sortableTurns) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
-
-// Less determines whether one turn is less than another, first based on the number of moves, then based on the total move distance.
-func (s sortableTurns) Less(i, j int) bool {
-	return s[i].totalDist() < s[j].totalDist()
-}
-
-func (t Turn) totalDist() uint8 {
-	var out uint8
-	for _, m := range t {
-		out += m.FowardDistance
+func (t Turn) update(m Move) { t[m]++ }
+func (t Turn) copy() Turn {
+	out := Turn{}
+	for m, times := range t {
+		for i := uint8(0); i < times; i++ {
+			out.update(m)
+		}
 	}
 	return out
 }
 
-// Equals returns true if both turns involve the same letter-dist combos
-func (t Turn) Equals(o Turn) bool {
-	if len(t) != len(o) || t.totalDist() != o.totalDist() {
-		return false
-	} else if len(t) == 0 && len(o) == 0 {
-		return true
+func (t Turn) totalDist() uint8 {
+	var out uint8
+	for m, numTimes := range t {
+		out += m.FowardDistance * numTimes
 	}
-
-	tHashes, oHashes := map[hashableMove]bool{}, map[hashableMove]bool{}
-	for _, m := range t {
-		tHashes[m.hash()] = true
-	}
-	for _, m := range o {
-		oHashes[m.hash()] = true
-	}
-	return reflect.DeepEqual(tHashes, oHashes)
+	return out
 }
 
+// String serializes a Turn into a string like "X;a3;a3;b3;d3".
 func (t Turn) String() string {
-	out := make([]string, len(t))
-	for i, mv := range t {
-		out[i] = fmt.Sprintf("%s%d", mv.Letter, mv.FowardDistance)
+	var out []string
+
+	first := true
+	for m, numTimes := range t {
+		if first {
+			out = append(out, string(*m.Requestor))
+			first = false
+		}
+
+		for i := uint8(0); i < numTimes; i++ {
+			out = append(out, fmt.Sprintf("%s%d", m.Letter, m.FowardDistance))
+		}
 	}
+
 	sort.Strings(out)
 	return strings.Join(out, moveDelim)
 }
 
-func (t Turn) isValid() bool {
+// DeserializeTurn creates a Turn from a string like "X;a3;a3;b3;d3".
+func DeserializeTurn(s string) (Turn, error) {
+	out := Turn{}
+
+	moveStrings := strings.Split(s, moveDelim)
+
 	var p *Player
-	if len(t) > 0 {
-		p = t[0].Requestor
+	if Player(moveStrings[0]) == *PCC {
+		p = PCC
+	} else {
+		p = PC
 	}
 
-	for _, m := range t {
+	for _, moveString := range moveStrings[1:len(moveStrings)] {
+		letter := string(moveString[0])
+		dist, err := strconv.Atoi(string(moveString[1]))
+		distUint8 := uint8(dist)
+		if err != nil || distUint8 < minDiceAmt || distUint8 > maxDiceAmt {
+			return nil, fmt.Errorf("invalid distance %v in moveString %v: %v", moveString[1], moveString, err)
+		}
+
+		out.update(Move{p, letter, distUint8})
+	}
+
+	return out, nil
+}
+
+func (t Turn) isValid() bool {
+	var p *Player // Placeholder for the first player listed in the turn's moves.
+	for m := range t {
+		if p == nil {
+			p = m.Requestor
+		}
+
 		if !m.isValid() || m.Requestor != p {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -86,12 +107,18 @@ func popSliceUint8(slice []uint8, atIndex int) ([]uint8, error) {
 	return append(slice[:atIndex], slice[atIndex+1:]...), nil
 }
 
-// Generates all the best permutations of a roll's distances.
-func TurnPerms(b *Board, r *Roll, p *Player) []Turn {
-	var perms sortableTurns
-	appendToPermsIfValid := func(t Turn) {
+// Generates the set of all valid turns for a player, given a roll and a board.
+// TODO: panic instead of return error, because serde errors should never happen here.
+// TODO: try using a goto thing in addPerm.
+func TurnPerms(b *Board, r *Roll, p *Player) ([]Turn, error) {
+	serializedTurns := map[string]bool{} // set of serialized Turn strings
+	var bestTotalDist uint8              // placeholder for the max total distance across all potential turns.
+	maybeAddToResultSet := func(t Turn) {
 		if t.isValid() {
-			perms = append(perms, t)
+			if totalDist := t.totalDist(); totalDist > bestTotalDist {
+				bestTotalDist = totalDist
+			}
+			serializedTurns[t.String()] = true
 		}
 	}
 
@@ -110,8 +137,9 @@ func TurnPerms(b *Board, r *Roll, p *Player) []Turn {
 			cop := bb.Copy()
 			m := &Move{Requestor: p, Letter: barLetter, FowardDistance: dist}
 			if ok := cop.ExecuteMoveIfLegal(m); ok {
-				legitTurn := append(t, *m)
-				appendToPermsIfValid(legitTurn)
+				legitTurn := t.copy()
+				legitTurn.update(*m)
+				maybeAddToResultSet(legitTurn)
 
 				nextRemaining, _ := popSliceUint8(remainingDists, distIdx) // Guaranteed to be no error
 				addPerm(cop.Copy(), nextRemaining, legitTurn)
@@ -125,8 +153,9 @@ func TurnPerms(b *Board, r *Roll, p *Player) []Turn {
 				cop := bb.Copy()
 				m := &Move{Requestor: p, Letter: constants.Num2Alpha[uint8(ptIdx)], FowardDistance: dist}
 				if ok := cop.ExecuteMoveIfLegal(m); ok {
-					legitTurn := append(t, *m)
-					appendToPermsIfValid(legitTurn)
+					legitTurn := t.copy()
+					legitTurn.update(*m)
+					maybeAddToResultSet(legitTurn)
 
 					nextRemaining, _ := popSliceUint8(remainingDists, distIdx) // Guaranteed to be no error
 					addPerm(cop.Copy(), nextRemaining, legitTurn)
@@ -134,20 +163,20 @@ func TurnPerms(b *Board, r *Roll, p *Player) []Turn {
 			}
 		}
 	}
+	addPerm(b.Copy(), r.moveDistances(), Turn{})
 
-	addPerm(b.Copy(), r.moveDistances(), Turn(nil))
-
-	if len(perms) == 0 {
-		return perms
+	if len(serializedTurns) == 0 {
+		return nil, nil
 	}
 
 	var viableTurns []Turn
-	sort.Sort(sort.Reverse(perms))
-	bestDist := perms[0].totalDist()
-	for _, perm := range perms {
-		if perm.totalDist() == bestDist {
-			viableTurns = append(viableTurns, perm)
+	for st := range serializedTurns {
+		t, err := DeserializeTurn(st)
+		if err != nil {
+			return nil, fmt.Errorf("serialized turn %q improperly serialized: %v", st, err)
+		} else if t.totalDist() == bestTotalDist {
+			viableTurns = append(viableTurns, t)
 		}
 	}
-	return viableTurns
+	return viableTurns, nil
 }

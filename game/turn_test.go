@@ -41,74 +41,72 @@ func (ss stringSet) subtract(o stringSet) stringSet {
 	return orig
 }
 
-func TestTurnEquals(t *testing.T) {
+func TestCopyTurn(t *testing.T) {
 	cases := []struct {
-		t1   Turn
-		t2   Turn
-		want bool
+		turn Turn
+		want Turn
 	}{
 		{
-			t1:   Turn{},
-			t2:   Turn{},
-			want: true,
+			Turn{},
+			Turn{},
 		},
 		{
-			t1:   Turn{{PC, "a", 1}},
-			t2:   Turn{},
-			want: false,
+			Turn{Move{PCC, "j", 5}: 1, Move{PCC, "a", 1}: 1},
+			Turn{Move{PCC, "j", 5}: 1, Move{PCC, "a", 1}: 1},
 		},
 		{
-			t1:   Turn{{PCC, "a", 1}, {PCC, "a", 2}},
-			t2:   Turn{{PCC, "a", 1}, {PCC, "a", 2}},
-			want: true,
-		},
-		{
-			t1:   Turn{{PCC, "a", 1}, {PCC, "a", 2}},
-			t2:   Turn{{PCC, "a", 2}, {PCC, "a", 1}},
-			want: true,
-		},
-		{
-			t1:   Turn{{PCC, "a", 1}, {PCC, "b", 2}},
-			t2:   Turn{{PCC, "b", 2}, {PCC, "a", 1}},
-			want: true,
-		},
-		{
-			t1:   Turn{{PCC, "c", 1}, {PCC, "b", 2}},
-			t2:   Turn{{PCC, "b", 2}, {PCC, "a", 1}},
-			want: false,
-		},
-		{
-			t1:   Turn{{PC, "a", 1}, {PC, "b", 2}},
-			t2:   Turn{{PCC, "a", 1}, {PCC, "b", 2}},
-			want: false,
-		},
-		{
-			t1:   Turn{{PC, "a", 1}, {PC, "b", 2}, {PC, "c", 3}},
-			t2:   Turn{{PC, "a", 1}, {PC, "b", 2}},
-			want: false,
-		},
-		{
-			t1:   Turn{{PC, "a", 1}, {PC, "b", 2}, {PC, "c", 3}},
-			t2:   Turn{{PC, "a", 1}, {PC, "b", 2}, {PC, "c", 3}},
-			want: true,
-		},
-		{
-			t1:   Turn{{PC, "a", 1}, {PC, "b", 2}, {PC, "c", 3}},
-			t2:   Turn{{PC, "a", 3}, {PC, "b", 2}, {PC, "c", 1}},
-			want: false,
-		},
-		{
-			t1:   Turn{{PC, "a", 1}, {PC, "b", 2}, {PC, "c", 3}},
-			t2:   Turn{{PC, "c", 3}, {PC, "b", 2}, {PC, "a", 1}},
-			want: true,
+			Turn{Move{PCC, "j", 5}: 2, Move{PCC, "a", 1}: 1},
+			Turn{Move{PCC, "j", 5}: 2, Move{PCC, "a", 1}: 1},
 		},
 	}
 	for _, c := range cases {
-		res1, res2 := c.t1.Equals(c.t2), c.t2.Equals(c.t1)
-		if res1 != c.want {
-			t.Errorf("expected t1 %v == t2 %v to be %v but got %v", c.t1, c.t2, c.want, res1)
-		} else if res2 != c.want {
-			t.Errorf("expected t2 %v == t1 %v to be %v but got %v", c.t2, c.t1, c.want, res2)
+		got := c.turn.copy()
+		if !reflect.DeepEqual(got, c.want) {
+			t.Errorf("expected copying turn %v to produce %v but got %v", c.turn, c.want, got)
+		}
+	}
+}
+
+func TestSerdeTurn(t *testing.T) {
+	cases := []struct {
+		turn Turn
+		want string
+	}{
+		{
+			Turn{},
+			"",
+		},
+		{
+			Turn{Move{PCC, "j", 5}: 1, Move{PCC, "a", 1}: 1},
+			"X;a1;j5",
+		},
+		{
+			Turn{Move{PCC, "j", 1}: 4},
+			"X;j1;j1;j1;j1",
+		},
+		{
+			Turn{Move{PC, "j", 1}: 4},
+			"O;j1;j1;j1;j1",
+		},
+		{
+			Turn{Move{PC, "a", 2}: 2, Move{PC, "b", 2}: 2},
+			"O;a2;a2;b2;b2",
+		},
+		{
+			Turn{Move{PC, "t", 5}: 2, Move{PC, "h", 5}: 2},
+			"O;h5;h5;t5;t5",
+		},
+	}
+	for _, c := range cases {
+		got := c.turn.String()
+		if got != c.want {
+			t.Errorf("turn %v not serialized as %v; got %v", c.turn, c.want, got)
+		}
+
+		if deser, err := DeserializeTurn(got); err != nil {
+			t.Errorf("could not deserialize the serialized turn %s: %v", got, err)
+		} else if !reflect.DeepEqual(deser, c.turn) {
+			t.Errorf("unexpected deserialized turn %v for string %s", deser, got)
 		}
 	}
 }
@@ -122,44 +120,49 @@ func TestTurnPerms(t *testing.T) {
 		{
 			PCC, Roll{5, 4},
 			[]string{
-				"a4;e5",
-				"a4;l5",
-				"a4;q5",
-				"l5;a4", // dupe! how to de-dupe this? or maybe not necessary.
-				"l5;l4",
-				"l5;q4",
-				"l5;s4",
-				"l4;p5",
-				"l4;l5",
-				"l4;q5",
-				"q5;a4",
-				"q5;l4",
-				"q5;q4",
-				"q5;s4",
-				"q4;l5",
-				"q4;q5",
-				"s4;l5",
-				"s4;q5",
+				"X;a4;e5",
+				"X;a4;l5",
+				"X;a4;q5",
+				"X;l5;q4",
+				"X;l5;s4",
+				"X;l4;p5",
+				"X;l4;l5",
+				"X;l4;q5",
+				"X;q5;s4",
+				"X;q4;q5",
 			},
 		},
 		{
-			// This behavior is incorrect. TODO: fix.
+			PCC, Roll{4, 5},
+			[]string{
+				"X;a4;e5",
+				"X;a4;l5",
+				"X;a4;q5",
+				"X;l5;q4",
+				"X;l5;s4",
+				"X;l4;p5",
+				"X;l4;l5",
+				"X;l4;q5",
+				"X;q5;s4",
+				"X;q4;q5",
+			},
+		},
+		{
 			PCC, Roll{5, 5},
 			[]string{
-				//"l5;l5;l5;l5", // 0 q5
-				"l5;l5;l5;q5", // 1 q5
-				//"l5;l5;q5;l5",
-				//"l5;q5;l5;l5",
-				//"q5;l5;l5;l5",
-				//"q5;q5;l5;l5", // 2 q5
-				//"l5;q5;q5;l5",
-				"l5;l5;q5;q5",
-				"q5;l5;l5;q5",
-				"l5;q5;l5;q5",
-				"l5;q5;q5;q5", // 3 q5
-				"q5;l5;q5;q5",
-				"q5;q5;l5;q5",
-				"q5;q5;q5;l5",
+				"X;l5;l5;l5;l5",
+				"X;l5;l5;l5;q5",
+				"X;l5;l5;q5;q5",
+				"X;l5;q5;q5;q5",
+			},
+		},
+		{
+			PC, Roll{5, 5},
+			[]string{
+				"O;m5;m5;m5;m5",
+				"O;h5;h5;h5;m5",
+				"O;h5;h5;m5;m5",
+				"O;h5;m5;m5;m5",
 			},
 		},
 	}
@@ -187,12 +190,15 @@ func TestTurnPerms(t *testing.T) {
 		   =======================================
 		    a  b  c  d  e  f     g  h  i  j  k  l
 		*/
-
 		wants := newStringSet(c.want)
-		perms := TurnPerms(b, &c.roll, c.player)
+		turns, err := TurnPerms(b, &c.roll, c.player)
+		if err != nil {
+			t.Errorf("error producing turnPerms for roll %v and player %s: %v", c.roll, *c.player, err)
+		}
+
 		gots := stringSet{}
-		for _, p := range perms {
-			gots[p.String()] = true
+		for _, t := range turns {
+			gots[t.String()] = true
 		}
 
 		if !reflect.DeepEqual(gots, wants) {
