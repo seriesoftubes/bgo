@@ -18,9 +18,7 @@ func (t Turn) update(m Move) { t[m]++ }
 func (t Turn) copy() Turn {
 	out := make(Turn, len(t))
 	for m, times := range t {
-		for i := uint8(0); i < times; i++ {
-			out.update(m)
-		}
+		out[m] = times
 	}
 	return out
 }
