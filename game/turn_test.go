@@ -204,3 +204,77 @@ func TestValidTurns(t *testing.T) {
 		}
 	}
 }
+
+func TestValidTurnsBar(t *testing.T) {
+  cases := []struct {
+    player *Player
+    roll   Roll
+    want   []string // List of stringified turns
+  }{
+    {
+      PCC, Roll{6, 6},  // Can only land on spaces a-e with 2 on the bar.
+      []string{},
+    },
+    {
+      PCC, Roll{1, 6},
+      []string{
+        "X;y1",
+      },
+    },
+    {
+      PCC, Roll{2, 6},
+      []string{
+        "X;y2",
+      },
+    },
+    {
+      PCC, Roll{2, 3},
+      []string{
+        "X;y2;y3",
+      },
+    },
+  }
+  for _, c := range cases {
+    b := &Board{}
+    b.setUp()
+    b.Points[alpha2Num["a"]].NumCheckers = 0
+    b.BarCC = 2
+    /*
+       Board is:
+       x  w  v  u  t  s     r  q  p  o  n  m
+      =======================================
+       O  -  -  -  -  X |m| -  X  -  -  -  O
+       O              X |m|    X           O
+                      X |m|    X           O
+                      X |m|                O
+                      X |m|                O
+                        |m|
+
+
+                        |w|
+                      O |w|                X
+                      O |w|                X
+                      O |w|    O           X
+                      O |w|    O           X
+       -  -  -  -  -  O |w| -  O  -  -  -  X
+      =======================================
+       a  b  c  d  e  f     g  h  i  j  k  l
+
+      The bar
+      y X's: XX
+      z O's: -
+    */
+    wants := newStringSet(c.want)
+    turns := ValidTurns(b, &c.roll, c.player)
+    gots := stringSet{}
+    for ts := range turns {
+      gots[ts] = true
+    }
+
+    if !reflect.DeepEqual(gots, wants) {
+      extraWants := wants.subtract(gots).values()
+      missingWants := gots.subtract(wants).values()
+      t.Errorf("TestTurnPerms bug for roll %v and player %s.\nwants is missing %v,\nwants has extra %v", c.roll, *c.player, missingWants, extraWants)
+    }
+  }
+}
