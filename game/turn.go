@@ -135,38 +135,39 @@ func ValidTurns(b *Board, r *Roll, p *Player) map[string]Turn {
 	}
 
 	var addPerm func(bb *Board, remainingDists []uint8, t Turn)
+	var maybeAddMove func(bcop *Board, m *Move, distIdx int, t Turn, remainingDists []uint8)
 	addPerm = func(bb *Board, remainingDists []uint8, t Turn) {
 		if remainingDists == nil || len(remainingDists) == 0 {
 			return
 		}
 
-		maybeAddMove := func(bcop *Board, m *Move, distIdx int) {
-			if ok := bcop.ExecuteMoveIfLegal(m); !ok {
-				return
-			}
-
-			legitTurn := t.copy()
-			legitTurn.update(*m)
-			if added := maybeAddToResultSet(legitTurn); !added {
-				return
-			}
-
-			nextRemaining, _ := popSliceUint8(remainingDists, distIdx) // Guaranteed to be no error
-			addPerm(bcop.Copy(), nextRemaining, legitTurn)
-		}
-
 		for distIdx, dist := range remainingDists {
 			if hasChexOnTheBar {
-				maybeAddMove(bb.Copy(), &Move{Requestor: p, Letter: barLetter, FowardDistance: dist}, distIdx)
+				maybeAddMove(bb.Copy(), &Move{Requestor: p, Letter: barLetter, FowardDistance: dist}, distIdx, t, remainingDists)
 			}
 
 			for ptIdx, pt := range bb.Points {
 				if pt.Owner == p {
-					maybeAddMove(bb.Copy(), &Move{Requestor: p, Letter: constants.Num2Alpha[uint8(ptIdx)], FowardDistance: dist}, distIdx)
+					maybeAddMove(bb.Copy(), &Move{Requestor: p, Letter: constants.Num2Alpha[uint8(ptIdx)], FowardDistance: dist}, distIdx, t, remainingDists)
 				}
 			}
 		}
 	}
+	maybeAddMove = func(bcop *Board, m *Move, distIdx int, t Turn, remainingDists []uint8) {
+		if ok := bcop.ExecuteMoveIfLegal(m); !ok {
+			return
+		}
+
+		legitTurn := t.copy()
+		legitTurn.update(*m)
+		if added := maybeAddToResultSet(legitTurn); !added {
+			return
+		}
+
+		nextRemaining, _ := popSliceUint8(remainingDists, distIdx) // Guaranteed to be no error
+		addPerm(bcop.Copy(), nextRemaining, legitTurn)
+	}
+
 	addPerm(b.Copy(), r.moveDistances(), Turn{})
 
 	if len(serializedTurns) == 0 {
