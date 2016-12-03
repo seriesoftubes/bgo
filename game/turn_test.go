@@ -197,8 +197,8 @@ func TestTurnPerms(t *testing.T) {
 		}
 
 		gots := stringSet{}
-		for _, t := range turns {
-			gots[t.String()] = true
+		for ts := range turns {
+			gots[ts] = true
 		}
 
 		if !reflect.DeepEqual(gots, wants) {

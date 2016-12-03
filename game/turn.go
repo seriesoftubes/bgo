@@ -110,15 +110,15 @@ func popSliceUint8(slice []uint8, atIndex int) ([]uint8, error) {
 // Generates the set of all valid turns for a player, given a roll and a board.
 // TODO: panic instead of return error, because serde errors should never happen here.
 // TODO: try using a goto thing in addPerm.
-func TurnPerms(b *Board, r *Roll, p *Player) ([]Turn, error) {
-	serializedTurns := map[string]bool{} // set of serialized Turn strings
+func TurnPerms(b *Board, r *Roll, p *Player) (map[string]Turn, error) {
+	serializedTurns := map[string]Turn{} // set of serialized Turn strings
 	var bestTotalDist uint8              // placeholder for the max total distance across all potential turns.
 	maybeAddToResultSet := func(t Turn) {
 		if t.isValid() {
 			if totalDist := t.totalDist(); totalDist > bestTotalDist {
 				bestTotalDist = totalDist
 			}
-			serializedTurns[t.String()] = true
+			serializedTurns[t.String()] = t
 		}
 	}
 
@@ -169,14 +169,10 @@ func TurnPerms(b *Board, r *Roll, p *Player) ([]Turn, error) {
 		return nil, nil
 	}
 
-	var viableTurns []Turn
-	for st := range serializedTurns {
-		t, err := DeserializeTurn(st)
-		if err != nil {
-			return nil, fmt.Errorf("serialized turn %q improperly serialized: %v", st, err)
-		} else if t.totalDist() == bestTotalDist {
-			viableTurns = append(viableTurns, t)
+	for st, t := range serializedTurns {
+    if t.totalDist() != bestTotalDist {
+			delete(serializedTurns, st)
 		}
 	}
-	return viableTurns, nil
+	return serializedTurns, nil
 }
