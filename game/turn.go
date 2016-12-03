@@ -110,12 +110,9 @@ func ValidTurns(b *Board, r *Roll, p *Player) map[string]Turn {
 	serializedTurns := map[string]Turn{} // set of serialized Turn strings
 	var bestTotalDist uint8              // placeholder for the max total distance across all potential turns.
 	maybeAddToResultSet := func(t Turn) bool {
-		if !t.isValid() {
-			return false
-		}
 		sert := t.String()
-		if _, ok := serializedTurns[sert]; ok {
-			return false // We already processed it.
+		if _, ok := serializedTurns[sert]; ok || !t.isValid() {
+			return false // We already processed it, or it's invalid anyway.
 		}
 
 		if totalDist := t.totalDist(); totalDist > bestTotalDist {
