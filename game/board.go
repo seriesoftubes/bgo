@@ -169,17 +169,29 @@ func (b *Board) incrementBar(p *Player) {
 	}
 }
 
+func (b *Board) decrementBar(p *Player) {
+	if p == PCC {
+		b.BarCC--
+	} else {
+		b.BarC--
+	}
+}
+
+func (b *Board) incrementBearoffZone(p *Player) {
+	if p == PCC {
+		b.OffCC++
+	} else {
+		b.OffC++
+	}
+}
+
 func (b *Board) ExecuteMoveIfLegal(m *Move) bool {
 	if !m.isValid() || !b.isLegalMove(m) {
 		return false
 	}
 
 	if m.isToMoveSomethingOutOfTheBar() {
-		if m.Requestor == PCC {
-			b.BarCC--
-		} else {
-			b.BarC--
-		}
+		b.decrementBar(m.Requestor)
 	} else {
 		fromPt := b.Points[m.pointIdx()]
 		fromPt.NumCheckers--
@@ -190,11 +202,7 @@ func (b *Board) ExecuteMoveIfLegal(m *Move) bool {
 
 	nextPointIdx, nxtPtExists := m.nextPointIdx()
 	if !nxtPtExists {
-		if m.Requestor == PCC {
-			b.OffCC++
-		} else {
-			b.OffC++
-		}
+		b.incrementBearoffZone(m.Requestor)
 		return true
 	}
 
