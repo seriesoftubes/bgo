@@ -149,10 +149,10 @@ func TestLegalMovesBearOff(t *testing.T) {
 		{PCC, 6, []string{"a", "l", "q"}},
 
 		{PC, 1, []string{"c", "d", "e", "f"}},
-		{PC, 2, []string{"d", "e", "f"}},
-		{PC, 3, []string{"e", "f"}},
-		{PC, 4, []string{"f"}},
-		{PC, 5, []string{}},
+		{PC, 2, []string{"b", "d", "e", "f"}},
+		{PC, 3, []string{"c", "e", "f"}},
+		{PC, 4, []string{"d", "f"}},
+		{PC, 5, []string{"e"}},
 		{PC, 6, []string{"f"}},
 	}
 	for _, c := range cases {
@@ -199,18 +199,18 @@ func TestLegalMovesBearOffBoth(t *testing.T) {
 		diceAmt     uint8
 		wantLetters []string
 	}{
-		{PCC, 1, []string{"t", "u", "v", "w"}},
-		{PCC, 2, []string{"t", "u", "v"}},
-		{PCC, 3, []string{"t", "u"}},
-		{PCC, 4, []string{"t"}},
+		{PCC, 1, []string{"t", "u", "v", "w", "x"}},
+		{PCC, 2, []string{"t", "u", "v", "w"}},
+		{PCC, 3, []string{"t", "u", "v"}},
+		{PCC, 4, []string{"t", "u"}},
 		{PCC, 5, []string{"t"}},
 		{PCC, 6, []string{"t"}},
 
 		{PC, 1, []string{"b", "c", "d", "e", "f"}},
-		{PC, 2, []string{"c", "d", "e", "f"}},
-		{PC, 3, []string{"d", "e", "f"}},
-		{PC, 4, []string{"e", "f"}},
-		{PC, 5, []string{"f"}},
+		{PC, 2, []string{"b", "c", "d", "e", "f"}},
+		{PC, 3, []string{"c", "d", "e", "f"}},
+		{PC, 4, []string{"d", "e", "f"}},
+		{PC, 5, []string{"e", "f"}},
 		{PC, 6, []string{"f"}},
 	}
 	for _, c := range cases {

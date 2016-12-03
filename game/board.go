@@ -102,12 +102,12 @@ func (b *Board) isLegalMove(m *Move) bool {
 		if (m.Requestor == PCC && nxtIdx < 0) || (m.Requestor == PC && nxtIdx >= int8(NUM_BOARD_POINTS)) {
 			return false // Must move past the correct finish line.
 		}
-		if b.doesPlayerHaveAnyRemainingCheckersBehindPoint(m.Requestor, m.pointIdx()) {
-			return false // Must have already beared off all chex behind the point.
+		if ((m.Requestor == PCC && nxtIdx > int8(NUM_BOARD_POINTS)) || (m.Requestor == PC && nxtIdx < -1)) && b.doesPlayerHaveAnyRemainingCheckersBehindPoint(m.Requestor, m.pointIdx()) {
+			// IFF the amount on the dice > the point's distance away from 0, then you must have already beared off all chex behind the point.
+			// E.g., if you roll a 6, and you have chex on your 5 and 6 point, you can only bear off the ones on the 6 point (and not the ones on the 5 until all the chex on 6 are gone).
+			return false
 		}
-	}
-
-	if nxtPtExists {
+	} else {
 		if nxtPt := b.Points[nxtIdx]; nxtPt.Owner != m.Requestor && nxtPt.NumCheckers > 1 {
 			return false // Can't move to a point that's controlled (has >1 chex) by the enemy.
 		}
