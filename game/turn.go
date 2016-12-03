@@ -115,10 +115,15 @@ func TurnPerms(b *Board, r *Roll, p *Player) (map[string]Turn, error) {
 	var bestTotalDist uint8              // placeholder for the max total distance across all potential turns.
 	maybeAddToResultSet := func(t Turn) {
 		if t.isValid() {
+			sert := t.String()
+			if _, ok := serializedTurns[sert]; ok {
+				return // We already processed it.
+			}
+
 			if totalDist := t.totalDist(); totalDist > bestTotalDist {
 				bestTotalDist = totalDist
 			}
-			serializedTurns[t.String()] = t
+			serializedTurns[sert] = t
 		}
 	}
 
@@ -170,7 +175,7 @@ func TurnPerms(b *Board, r *Roll, p *Player) (map[string]Turn, error) {
 	}
 
 	for st, t := range serializedTurns {
-    if t.totalDist() != bestTotalDist {
+		if t.totalDist() != bestTotalDist {
 			delete(serializedTurns, st)
 		}
 	}
