@@ -111,18 +111,20 @@ func popSliceUint8(slice []uint8, atIndex int) ([]uint8, error) {
 func ValidTurns(b *Board, r *Roll, p *Player) map[string]Turn {
 	serializedTurns := map[string]Turn{} // set of serialized Turn strings
 	var bestTotalDist uint8              // placeholder for the max total distance across all potential turns.
-	maybeAddToResultSet := func(t Turn) {
-		if t.isValid() {
-			sert := t.String()
-			if _, ok := serializedTurns[sert]; ok {
-				return // We already processed it.
-			}
-
-			if totalDist := t.totalDist(); totalDist > bestTotalDist {
-				bestTotalDist = totalDist
-			}
-			serializedTurns[sert] = t
+	maybeAddToResultSet := func(t Turn) bool {
+		if !t.isValid() {
+			return false
 		}
+		sert := t.String()
+		if _, ok := serializedTurns[sert]; ok {
+			return false // We already processed it.
+		}
+
+		if totalDist := t.totalDist(); totalDist > bestTotalDist {
+			bestTotalDist = totalDist
+		}
+		serializedTurns[sert] = t
+		return true
 	}
 
 	barLetter := constants.LETTER_BAR_CC
@@ -143,7 +145,9 @@ func ValidTurns(b *Board, r *Roll, p *Player) map[string]Turn {
 
 			legitTurn := t.copy()
 			legitTurn.update(*m)
-			maybeAddToResultSet(legitTurn)
+			if added := maybeAddToResultSet(legitTurn); !added {
+				return
+			}
 
 			nextRemaining, _ := popSliceUint8(remainingDists, distIdx) // Guaranteed to be no error
 			addPerm(bcop.Copy(), nextRemaining, legitTurn)
