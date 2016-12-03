@@ -16,7 +16,7 @@ type Turn map[Move]uint8
 
 func (t Turn) update(m Move) { t[m]++ }
 func (t Turn) copy() Turn {
-	out := Turn{}
+	out := make(Turn, len(t))
 	for m, times := range t {
 		for i := uint8(0); i < times; i++ {
 			out.update(m)
