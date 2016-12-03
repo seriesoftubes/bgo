@@ -120,18 +120,13 @@ func (b *Board) doesPlayerHaveAnyRemainingCheckersBehindPoint(p *Player, pointId
 	homeStart, homeEnd := p.homePointIndices()
 
 	if p == PCC {
-		i := pointIdx - 1
-		for true {
+		for i := pointIdx - 1; i >= homeStart; i-- {
 			if pt := b.Points[i]; pt.Owner == p && pt.NumCheckers > 0 {
 				return true
 			}
-			if i == homeStart-1 {
-				break // Prevent bug where the uint goes back to 255 and satisfies loop condition `i >= 0`.
-			}
-			i--
 		}
 	} else {
-		for i := pointIdx + 1; i < homeEnd+1; i++ {
+		for i := pointIdx + 1; i <= homeEnd; i++ {
 			if pt := b.Points[i]; pt.Owner == p && pt.NumCheckers > 0 {
 				return true
 			}
