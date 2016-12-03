@@ -165,10 +165,6 @@ func ValidTurns(b *Board, r *Roll, p *Player) map[string]Turn {
 
 	addPerm(b.Copy(), r.moveDistances(), Turn{})
 
-	if len(serializedTurns) == 0 {
-		return nil
-	}
-
 	for st, t := range serializedTurns {
 		if t.totalDist() != bestTotalDist {
 			delete(serializedTurns, st)
