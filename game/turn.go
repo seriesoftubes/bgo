@@ -128,8 +128,10 @@ func ValidTurns(b *Board, r *Roll, p *Player) map[string]Turn {
 	}
 
 	barLetter := constants.LETTER_BAR_CC
+	hasChexOnTheBar := b.BarCC > 0
 	if p == PC {
 		barLetter = constants.LETTER_BAR_C
+		hasChexOnTheBar = b.BarC > 0
 	}
 
 	var addPerm func(bb *Board, remainingDists []uint8, t Turn)
@@ -154,9 +156,10 @@ func ValidTurns(b *Board, r *Roll, p *Player) map[string]Turn {
 		}
 
 		for distIdx, dist := range remainingDists {
-			// Try a move off the bar
-			maybeAddMove(bb.Copy(), &Move{Requestor: p, Letter: barLetter, FowardDistance: dist}, distIdx)
-			// Try all points on the board owned by the player.
+			if hasChexOnTheBar {
+				maybeAddMove(bb.Copy(), &Move{Requestor: p, Letter: barLetter, FowardDistance: dist}, distIdx)
+			}
+
 			for ptIdx, pt := range bb.Points {
 				if pt.Owner == p {
 					maybeAddMove(bb.Copy(), &Move{Requestor: p, Letter: constants.Num2Alpha[uint8(ptIdx)], FowardDistance: dist}, distIdx)
