@@ -276,21 +276,21 @@ func (b *Board) setUp() {
 	}
 }
 
-func (b *Board) PipCounts() (uint, uint) {
-	var pipC, pipCC uint
+func (b *Board) PipCounts() (uint16, uint16) {
+	var pipC, pipCC uint16
 
 	for i, p := range b.Points {
-		basePips, chex := uint(i)+1, uint(p.NumCheckers)
+		basePips, chex := uint16(i)+1, uint16(p.NumCheckers)
 		if p.Owner == PC {
 			// the clockwise player's closest checker is at points[0].
 			pipC += chex * basePips
 		} else if p.Owner == PCC {
 			// the counter-clockwise player's furthest checker is at points[0].
-			pipCC += chex * (uint(NUM_BOARD_POINTS) - basePips + 1)
+			pipCC += chex * (uint16(NUM_BOARD_POINTS) - basePips + 1)
 		}
 	}
-	pipC += uint(b.BarC) * uint(barPips)
-	pipCC += uint(b.BarCC) * uint(barPips)
+	pipC += uint16(b.BarC) * uint16(barPips)
+	pipCC += uint16(b.BarCC) * uint16(barPips)
 
 	return pipC, pipCC
 }
