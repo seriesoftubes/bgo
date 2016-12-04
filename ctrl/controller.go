@@ -36,11 +36,12 @@ func randomlyChooseValidTurn(validTurns map[string]game.Turn) game.Turn {
 }
 
 type GameController struct {
-	g *game.Game
+	g     *game.Game
+	debug bool
 }
 
-func New(g *game.Game) *GameController {
-  return &GameController{g}
+func New(g *game.Game, debug bool) *GameController {
+	return &GameController{g, debug}
 }
 
 func (gc *GameController) PlayOneGame() (*game.Player, game.WinKind) {
@@ -51,7 +52,7 @@ func (gc *GameController) PlayOneGame() (*game.Player, game.WinKind) {
 		done = gc.playOneTurn()
 	}
 
-	if gc.g.HasAnyHumans() {
+	if gc.g.HasAnyHumans() || gc.debug {
 		render.PrintGame(gc.g)
 		fmt.Println("\tDONE WITH GAME!")
 	}
@@ -60,7 +61,7 @@ func (gc *GameController) PlayOneGame() (*game.Player, game.WinKind) {
 }
 
 func (gc *GameController) maybePrint(s ...interface{}) {
-	if gc.g.HasAnyHumans() {
+	if gc.g.HasAnyHumans() || gc.debug {
 		fmt.Println(s...)
 	}
 }
@@ -77,7 +78,7 @@ func (gc *GameController) chooseTurn(validTurns map[string]game.Turn) game.Turn 
 func (gc *GameController) playOneTurn() bool {
 	g := gc.g
 
-	if g.HasAnyHumans() {
+	if g.HasAnyHumans() || gc.debug {
 		render.PrintGame(g)
 	}
 
@@ -94,7 +95,20 @@ func (gc *GameController) playOneTurn() bool {
 	}
 	gc.maybePrint("\tChose move:", chosenTurn)
 
-	gc.g.Board.MustExecuteTurn(chosenTurn)
+	if gc.debug {
+		defer func() {
+			r := recover()
+			if r == nil {
+				return
+			}
+			fmt.Println("\n\n\n\t\tRecovering in playOneTurn() from", r)
+			fmt.Println("\tWTF move:", chosenTurn)
+			render.PrintGame(g)
+			panic("ok, panic again because this should kill the whole game")
+		}()
+	}
+
+	gc.g.Board.MustExecuteTurn(chosenTurn, gc.debug)
 
 	if gc.g.Board.Winner() != nil {
 		return true

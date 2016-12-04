@@ -87,7 +87,7 @@ func (t Turn) isValid() bool {
 			p = m.Requestor
 		}
 
-		if !m.isValid() || m.Requestor != p {
+		if moveOk, _ := m.isValid(); !moveOk || m.Requestor != p {
 			return false
 		}
 	}
@@ -151,7 +151,7 @@ func ValidTurns(b *Board, r *Roll, p *Player) map[string]Turn {
 		}
 	}
 	maybeAddMove = func(bcop *Board, m *Move, distIdx int, t Turn, remainingDists []uint8) {
-		if ok := bcop.ExecuteMoveIfLegal(m); !ok {
+		if ok, _ := bcop.ExecuteMoveIfLegal(m); !ok {
 			return
 		}
 

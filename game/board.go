@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/seriesoftubes/bgo/constants"
@@ -112,52 +113,51 @@ func (b *Board) chexOnTheBar(p *Player) uint8 {
 	return b.BarCC
 }
 
-func (b *Board) isLegalMove(m *Move) bool {
+func (b *Board) isLegalMove(m *Move) (bool, string) {
 	isForBar := m.Letter == constants.LETTER_BAR_CC || m.Letter == constants.LETTER_BAR_C
 	numOnTheBar := b.chexOnTheBar(m.Requestor)
 	if numOnTheBar > 0 && !isForBar {
-		return false // If you have anything on the bar, you must move those things first
+		return false, "If you have anything on the bar, you must move those things first"
 	}
 	expectedLetter := constants.LETTER_BAR_C
 	if m.Requestor == PCC {
 		expectedLetter = constants.LETTER_BAR_CC
 	}
 	if isForBar && m.Letter != expectedLetter {
-		return false // Can't move the enemy's chex.
+		return false, "Can't move the enemy's chex."
 	}
 
 	numChexOnCurrentPoint := numOnTheBar
 	if !isForBar {
 		fromPt := b.Points[m.pointIdx()]
 		if fromPt.Owner != m.Requestor {
-			return false // Can only move your own checkers.
+			return false, "Can only move your own checkers."
 		}
 		numChexOnCurrentPoint = fromPt.NumCheckers
 	}
 	if numChexOnCurrentPoint == 0 {
-		return false // Cannot move a checker from an empty point
+		return false, "Cannot move a checker from an empty point"
 	}
 
 	nxtIdx, nxtPtExists := m.nextPointIdx()
 	if !nxtPtExists {
 		if !b.doesPlayerHaveAllRemainingCheckersInHomeBoard(m.Requestor) {
-			return false // Can't move past the finish line unless all your remaining checkers are in your home board
+			return false, "Can't move past the finish line unless all your remaining checkers are in your home board"
 		}
 		if (m.Requestor == PCC && nxtIdx < 0) || (m.Requestor == PC && nxtIdx >= int8(NUM_BOARD_POINTS)) {
-			return false // Must move past the correct finish line.
+			return false, "Must move past the correct finish line."
 		}
 		if ((m.Requestor == PCC && nxtIdx > int8(NUM_BOARD_POINTS)) || (m.Requestor == PC && nxtIdx < -1)) && b.doesPlayerHaveAnyRemainingCheckersBehindPoint(m.Requestor, m.pointIdx()) {
-			// If the amount on the dice > the point's distance away from 0, then you must have already beared off all chex behind the point.
 			// E.g., if you roll a 6, and you have chex on your 5 and 6 point, you can only bear off the ones on the 6 point (and not the ones on the 5 until all the chex on 6 are gone).
-			return false
+			return false, "If the amount on the dice > the point's distance away from 0, then you must have already beared off all chex behind the point."
 		}
 	} else {
 		if nxtPt := b.Points[nxtIdx]; nxtPt.Owner != m.Requestor && nxtPt.NumCheckers > 1 {
-			return false // Can't move to a point that's controlled (has >1 chex) by the enemy.
+			return false, "Can't move to a point that's controlled (has >1 chex) by the enemy."
 		}
 	}
 
-	return true
+	return true, ""
 }
 
 func (b *Board) doesPlayerHaveAnyRemainingCheckersBehindPoint(p *Player, pointIdx uint8) bool {
@@ -185,19 +185,19 @@ func (b *Board) LegalMoves(p *Player, diceAmt uint8) []*Move {
 	// Moves off the bar.
 	if p == PCC && b.BarCC > 0 {
 		m := &Move{Requestor: p, Letter: constants.LETTER_BAR_CC, FowardDistance: diceAmt}
-		if b.isLegalMove(m) {
+		if ok, _ := b.isLegalMove(m); ok {
 			out = append(out, m)
 		}
 	} else if p == PC && b.BarC > 0 {
 		m := &Move{Requestor: p, Letter: constants.LETTER_BAR_C, FowardDistance: diceAmt}
-		if b.isLegalMove(m) {
+		if ok, _ := b.isLegalMove(m); ok {
 			out = append(out, m)
 		}
 	}
 
 	for pointIdx := range b.Points {
 		m := &Move{Requestor: p, Letter: string(alphabet[pointIdx]), FowardDistance: diceAmt}
-		if b.isLegalMove(m) {
+		if ok, _ := b.isLegalMove(m); ok {
 			out = append(out, m)
 		}
 	}
@@ -255,17 +255,19 @@ func (smp sortableMotimesPairs) Less(i, j int) bool {
 
 // MustExecuteTurn takes a Turn, and executes its individual moves, in an order that won't explode the game.
 // This is mainly to support the stdin UX of supplying entire, serialized Turns (the UX should be improved to do 1 Move at a time instead of a whole Turn though).
-func (b *Board) MustExecuteTurn(t Turn) {
-	mustExec := func(m Move) {
-		if ok := b.ExecuteMoveIfLegal(&m); !ok {
-			panic("somehow, we couldn't execute a move as part of a valid Turn: " + (&m).String())
+func (b *Board) MustExecuteTurn(t Turn, debug bool) {
+	mustExec := func(m Move, times uint8) {
+		for i := uint8(0); i < times; i++ {
+			if ok, reason := b.ExecuteMoveIfLegal(&m); !ok {
+				panic(fmt.Sprintf("we couldn't execute Move %v for the %d'th time, as part of supposedly-valid Turn %v, because %s", m, i, t, reason))
+			}
 		}
 	}
 
 	var sortable sortableMotimesPairs
 	for move, numTimes := range t {
 		if p := move.Requestor; (p == PCC && move.Letter == constants.LETTER_BAR_CC) || (p == PC && move.Letter == constants.LETTER_BAR_C) {
-			mustExec(move)
+			mustExec(move, numTimes)
 			continue
 		}
 		sortable = append(sortable, motimesPair{move, numTimes})
@@ -273,15 +275,15 @@ func (b *Board) MustExecuteTurn(t Turn) {
 	sort.Sort(sortable)
 
 	for _, mtp := range sortable {
-		for i := uint8(0); i < mtp.times; i++ {
-			mustExec(mtp.mo)
-		}
+		mustExec(mtp.mo, mtp.times)
 	}
 }
 
-func (b *Board) ExecuteMoveIfLegal(m *Move) bool {
-	if !m.isValid() || !b.isLegalMove(m) {
-		return false
+func (b *Board) ExecuteMoveIfLegal(m *Move) (bool, string) {
+	moveOk, moveReason := m.isValid()
+	boardOk, boardReason := b.isLegalMove(m)
+	if !moveOk || !boardOk {
+		return false, moveReason + boardReason
 	}
 
 	if m.isToMoveSomethingOutOfTheBar() {
@@ -297,7 +299,7 @@ func (b *Board) ExecuteMoveIfLegal(m *Move) bool {
 	nextPointIdx, nxtPtExists := m.nextPointIdx()
 	if !nxtPtExists {
 		b.incrementBearoffZone(m.Requestor)
-		return true
+		return true, ""
 	}
 
 	nxtPt := b.Points[nextPointIdx]
@@ -308,7 +310,7 @@ func (b *Board) ExecuteMoveIfLegal(m *Move) bool {
 	nxtPt.NumCheckers++
 	nxtPt.Owner = m.Requestor
 
-	return true
+	return true, ""
 }
 
 func (b *Board) setUp() {

@@ -508,5 +508,70 @@ func TestValidTurnsBearOffStartingFromOutside(t *testing.T) {
 	}
 }
 
+func TestWeirdTurn(t *testing.T) {
+	/*
+		Board
+		  Player: O  Rolled: [2 2]
+
+		   x  w  v  u  t  s     r  q  p  o  n  m
+		  =======================================
+		   X  O  X  O  X  X |m| -  -  -  X  X  O
+		   X     X  O     X |m|
+		         X        X |m|
+		         X        X |m|
+		         X          |m|
+		                    |m|
+
+
+		                    |w|
+		                    |w|
+		                    |w|       O
+		                    |w|       O
+		   O              O |w|       O
+		   O  O  -  X  -  O |w| -  -  O  -  -  -
+		  =======================================
+		   a  b  c  d  e  f     g  h  i  j  k  l
+
+		  The bar
+		  y X's: -
+		  z O's: OO
+	*/
+	b := &Board{}
+	b.Points = [NUM_BOARD_POINTS]*BoardPoint{
+		// counter-clockwise player is in bottom-left.
+		{PC, 2}, {PC, 1}, {}, {PCC, 1}, {}, {PC, 2}, {}, {}, {PC, 4}, {}, {}, {},
+		{PC, 1}, {PCC, 1}, {PCC, 1}, {}, {}, {}, {PCC, 4}, {PCC, 1}, {PC, 2}, {PCC, 5}, {PC, 1}, {PCC, 2},
+		//                                                        clockwise player in top-left.
+	}
+	b.BarC = 2
+
+	wants := newStringSet([]string{
+		"O;d2;f2;z2;z2",
+		"O;f2;f2;z2;z2",
+		"O;f2;i2;z2;z2",
+		"O;f2;m2;z2;z2",
+		"O;f2;w2;z2;z2",
+		"O;g2;i2;z2;z2",
+		"O;i2;i2;z2;z2",
+		"O;i2;m2;z2;z2",
+		"O;i2;w2;z2;z2",
+		"O;k2;m2;z2;z2",
+		"O;m2;w2;z2;z2",
+		"O;w2;w2;z2;z2",
+	})
+	roll := &Roll{2, 2}
+	turns := ValidTurns(b, roll, PC)
+	gots := stringSet{}
+	for ts := range turns {
+		gots[ts] = true
+	}
+
+	if !reflect.DeepEqual(gots, wants) {
+		extraWants := wants.subtract(gots).values()
+		missingWants := gots.subtract(wants).values()
+		t.Errorf("TestTurnPerms bug for roll %v and player %s.\nwants is missing %v,\nwants has extra %v", roll, PC, missingWants, extraWants)
+	}
+}
+
 // test for hitting enemy checker and possibly moving on afterwards
 // test for u can only move 1 dice amt but in different places

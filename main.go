@@ -8,8 +8,8 @@ import (
 )
 
 func main() {
-	g := game.NewGame(1)
-	ctrl := ctrl.New(g)
+	g := game.NewGame(0)
+	ctrl := ctrl.New(g, false)
 	winner, winKind := ctrl.PlayOneGame()
-	fmt.Println(winner, winKind)
+	fmt.Println(*winner, winKind)
 }

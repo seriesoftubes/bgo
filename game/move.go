@@ -23,20 +23,20 @@ func (m *Move) String() string {
 	return fmt.Sprintf("%s: go %d spaces starting with %s", *m.Requestor, m.FowardDistance, m.Letter)
 }
 
-func (m *Move) isValid() bool {
+func (m *Move) isValid() (bool, string) {
 	if m.Requestor == nil {
-		return false // Must have requestor.
+		return false, "Must have requestor."
 	}
 
 	if _, ok := alpha2Num[m.Letter]; !ok {
-		return false // Must be a whitelisted lowercase alpha character.
+		return false, "Must be a whitelisted lowercase alpha character."
 	}
 
 	if m.FowardDistance < minDiceAmt || m.FowardDistance > maxDiceAmt {
-		return false // Distance must be between [1,6]
+		return false, "Distance must be between [1,6]"
 	}
 
-	return true
+	return true, ""
 }
 
 func (m *Move) isToMoveSomethingOutOfTheBar() bool {

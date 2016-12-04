@@ -242,9 +242,9 @@ func TestExecuteMoveIfLegal(t *testing.T) {
 	fromPt, toPt := b.Points[fromIdx], b.Points[toIdx]
 	fromPtChex, toPtChex := fromPt.NumCheckers, toPt.NumCheckers
 
-	ok := b.ExecuteMoveIfLegal(m)
+	ok, reason := b.ExecuteMoveIfLegal(m)
 	if !ok {
-		t.Errorf("Test move was not legal. Change the test!")
+		t.Errorf("Test move was not legal. Change the test! %v", reason)
 	}
 
 	if fromPt.NumCheckers != fromPtChex-1 {
@@ -270,9 +270,9 @@ func TestExecuteMoveIfLegalFromBar(t *testing.T) {
 	toPt := b.Points[toIdx]
 	fromPtChex, toPtChex := b.BarCC, toPt.NumCheckers
 
-	ok := b.ExecuteMoveIfLegal(m)
+	ok, reason := b.ExecuteMoveIfLegal(m)
 	if !ok {
-		t.Errorf("Test move was not legal. Change the test!")
+		t.Errorf("Test move was not legal. Change the test! %v", reason)
 	}
 
 	if b.BarCC != fromPtChex-1 {
@@ -298,9 +298,9 @@ func TestExecuteMoveIfLegalFromBarForPlayerC(t *testing.T) {
 	toPt := b.Points[toIdx]
 	fromPtChex, toPtChex := b.BarC, toPt.NumCheckers
 
-	ok := b.ExecuteMoveIfLegal(m)
+	ok, reason := b.ExecuteMoveIfLegal(m)
 	if !ok {
-		t.Errorf("Test move was not legal. Change the test!")
+		t.Errorf("Test move was not legal. Change the test! %v", reason)
 	}
 
 	if b.BarC != fromPtChex-1 {
@@ -350,9 +350,9 @@ func TestExecuteMoveIfLegalBearOff(t *testing.T) {
 	fromPt := b.Points[fromIdx]
 	fromPtChex, toPtChex := fromPt.NumCheckers, b.OffCC
 
-	ok := b.ExecuteMoveIfLegal(m)
+	ok, reason := b.ExecuteMoveIfLegal(m)
 	if !ok {
-		t.Errorf("Test move was not legal. Change the test!")
+		t.Errorf("Test move was not legal. Change the test! %v", reason)
 	}
 
 	if fromPt.NumCheckers != fromPtChex-1 {
@@ -421,9 +421,9 @@ func TestExecuteMoveIfLegalTakeoverEnemy(t *testing.T) {
 		t.Errorf("thought the owner of the destination was gonna be PC")
 	}
 
-	ok := b.ExecuteMoveIfLegal(m)
+	ok, reason := b.ExecuteMoveIfLegal(m)
 	if !ok {
-		t.Errorf("Test move was not legal. Change the test!")
+		t.Errorf("Test move was not legal. Change the test! %v", reason)
 	}
 
 	if fromPt.Owner != nil {
@@ -482,8 +482,8 @@ func TestExecuteMoveIfLegalWinSingleGame(t *testing.T) {
 		t.Errorf("expected win state to be %v but got %v", WinKindNotWon, boardPC.winKind)
 	}
 
-	if ok := boardPC.ExecuteMoveIfLegal(moveForPC); !ok {
-		t.Errorf("Test move was not legal. Change the test!")
+	if ok, reason := boardPC.ExecuteMoveIfLegal(moveForPC); !ok {
+		t.Errorf("Test move was not legal. Change the test! %v", reason)
 	}
 	if boardPC.winner != PC {
 		t.Errorf("expected winner to be %v but got %v", *PC, *boardPC.winner)
@@ -502,8 +502,8 @@ func TestExecuteMoveIfLegalWinSingleGame(t *testing.T) {
 		t.Errorf("expected win state to be %v but got %v", WinKindNotWon, boardPCC.winKind)
 	}
 
-	if ok := boardPCC.ExecuteMoveIfLegal(moveForPCC); !ok {
-		t.Errorf("Test move was not legal. Change the test!")
+	if ok, reason := boardPCC.ExecuteMoveIfLegal(moveForPCC); !ok {
+		t.Errorf("Test move was not legal. Change the test! %v", reason)
 	}
 	if boardPCC.winner != PCC {
 		t.Errorf("expected winner to be %v but got %v", *PCC, *boardPCC.winner)
@@ -552,8 +552,8 @@ func TestExecuteMoveIfLegalWinGammon(t *testing.T) {
 		t.Errorf("expected win state to be %v but got %v", WinKindNotWon, boardPC.winKind)
 	}
 
-	if ok := boardPC.ExecuteMoveIfLegal(moveForPC); !ok {
-		t.Errorf("Test move was not legal. Change the test!")
+	if ok, reason := boardPC.ExecuteMoveIfLegal(moveForPC); !ok {
+		t.Errorf("Test move was not legal. Change the test! %v", reason)
 	}
 	if boardPC.winner != PC {
 		t.Errorf("expected winner to be %v but got %v", *PC, *boardPC.winner)
@@ -602,8 +602,8 @@ func TestExecuteMoveIfLegalWinBackgammon(t *testing.T) {
 		t.Errorf("expected win state to be %v but got %v", WinKindNotWon, boardPC.winKind)
 	}
 
-	if ok := boardPC.ExecuteMoveIfLegal(moveForPC); !ok {
-		t.Errorf("Test move was not legal. Change the test!")
+	if ok, reason := boardPC.ExecuteMoveIfLegal(moveForPC); !ok {
+		t.Errorf("Test move was not legal. Change the test! %v", reason)
 	}
 	if boardPC.winner != PC {
 		t.Errorf("expected winner to be %v but got %v", *PC, *boardPC.winner)
