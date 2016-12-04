@@ -26,25 +26,23 @@ func readTurnFromStdin(validTurns map[string]game.Turn) game.Turn {
 	}
 }
 
-func main() {
-	g := game.NewGame()
+func twoPlayerLoop(g *game.Game) bool {
 	render.PrintGame(g)
 
 	validTurns := game.ValidTurns(g.Board, g.CurrentRoll, g.CurrentPlayer)
 	var chosenTurn game.Turn
 	if len(validTurns) == 0 {
-		fmt.Println("\tno moves available")
+		fmt.Println("\tno moves available, sorry!")
 	} else if len(validTurns) == 1 {
-		fmt.Println("\tonly 1 move available, forcing")
 		for _, t := range validTurns {
 			chosenTurn = t
 		}
+		fmt.Println("\tonly 1 move available, forcing", chosenTurn)
 	} else {
-		fmt.Println(fmt.Sprintf("\tyour move, chief (aka %q)?:", *g.CurrentPlayer))
+		fmt.Println(fmt.Sprintf("\tyour move, %q:", *g.CurrentPlayer))
 		chosenTurn = readTurnFromStdin(validTurns)
 	}
 
-	fmt.Println("\texecuting move", chosenTurn)
 	for move, numTimes := range chosenTurn {
 		mp := &move
 		for i := uint8(0); i < numTimes; i++ {
@@ -55,10 +53,21 @@ func main() {
 	}
 
 	if g.Board.Winner() != nil {
-		render.PrintGame(g)
-		fmt.Println("\tDONE WITH GAME!")
+		return true
 	} else {
 		g.NextPlayersTurn()
-		render.PrintGame(g)
+		return false
 	}
+}
+
+func main() {
+	g := game.NewGame()
+
+	var done bool
+	for !done {
+		done = twoPlayerLoop(g)
+	}
+
+	render.PrintGame(g)
+	fmt.Println("\tDONE WITH GAME!")
 }
