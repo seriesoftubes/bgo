@@ -10,6 +10,16 @@ type Game struct {
 	CurrentRoll   *Roll
 }
 
+func (g *Game) NextPlayersTurn() {
+	if g.CurrentPlayer == PCC {
+		g.CurrentPlayer = PC
+	} else {
+		g.CurrentPlayer = PCC
+	}
+
+	g.CurrentRoll = newRoll()
+}
+
 func NewGame() *Game {
 	b := &Board{}
 	b.setUp()

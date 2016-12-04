@@ -60,8 +60,10 @@ func DeserializeTurn(s string) (Turn, error) {
 	var p *Player
 	if Player(moveStrings[0]) == *PCC {
 		p = PCC
-	} else {
+	} else if Player(moveStrings[0]) == *PC {
 		p = PC
+	} else {
+		return nil, fmt.Errorf("invalid player in serialized turn %q", s)
 	}
 
 	for _, moveString := range moveStrings[1:len(moveStrings)] {

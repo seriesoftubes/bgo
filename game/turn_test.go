@@ -73,10 +73,6 @@ func TestSerdeTurn(t *testing.T) {
 		want string
 	}{
 		{
-			Turn{},
-			"",
-		},
-		{
 			Turn{Move{PCC, "j", 5}: 1, Move{PCC, "a", 1}: 1},
 			"X;a1;j5",
 		},

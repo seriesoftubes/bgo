@@ -1,6 +1,8 @@
 package game
 
 import (
+	"fmt"
+
 	"github.com/seriesoftubes/bgo/constants"
 )
 
@@ -15,6 +17,10 @@ type Move struct {
 	Requestor      *Player
 	Letter         string
 	FowardDistance uint8 // validate between 1 and 6
+}
+
+func (m *Move) String() string {
+	return fmt.Sprintf("%s: go %d spaces starting with %s", *m.Requestor, m.FowardDistance, m.Letter)
 }
 
 func (m *Move) isValid() bool {
