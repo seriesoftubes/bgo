@@ -56,9 +56,7 @@ type BoardPoint struct {
 	NumCheckers uint8
 }
 
-func (p *BoardPoint) Symbol() string {
-	return p.Owner.Symbol()
-}
+func (p *BoardPoint) Symbol() string { return p.Owner.Symbol() }
 
 type Board struct {
 	Points      [NUM_BOARD_POINTS]*BoardPoint
