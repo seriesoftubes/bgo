@@ -32,25 +32,19 @@ func twoPlayerLoop(g *game.Game) bool {
 	validTurns := game.ValidTurns(g.Board, g.CurrentRoll, g.CurrentPlayer)
 	var chosenTurn game.Turn
 	if len(validTurns) == 0 {
-		fmt.Println("\tno moves available, sorry!")
+		fmt.Println("\tcan't do anything this turn, sorry!")
 	} else if len(validTurns) == 1 {
 		for _, t := range validTurns {
 			chosenTurn = t
 		}
-		fmt.Println("\tonly 1 move available, forcing", chosenTurn)
+		fmt.Println("\tthis turn only has 1 option, forcing!")
 	} else {
-		fmt.Println(fmt.Sprintf("\tyour move, %q:", *g.CurrentPlayer))
+		fmt.Println(fmt.Sprintf("\tYour move, %q:", *g.CurrentPlayer))
 		chosenTurn = readTurnFromStdin(validTurns)
 	}
+	fmt.Println("\tChose move:", chosenTurn)
 
-	for move, numTimes := range chosenTurn {
-		mp := &move
-		for i := uint8(0); i < numTimes; i++ {
-			if ok := g.Board.ExecuteMoveIfLegal(mp); !ok {
-				panic("somehow, even with `validTurns` supplied, we couldn't execute a move: " + mp.String())
-			}
-		}
-	}
+	g.Board.MustExecuteTurn(chosenTurn)
 
 	if g.Board.Winner() != nil {
 		return true

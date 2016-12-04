@@ -1,6 +1,8 @@
 package game
 
 import (
+	"sort"
+
 	"github.com/seriesoftubes/bgo/constants"
 )
 
@@ -229,6 +231,50 @@ func (b *Board) incrementBearoffZone(p *Player) {
 		b.OffC++
 		if b.OffC == numCheckersPerPlayer {
 			b.winner, b.winKind = PC, detectWinKind(b, PC)
+		}
+	}
+}
+
+type (
+	motimesPair struct {
+		mo    Move
+		times uint8
+	}
+	sortableMotimesPairs []motimesPair
+)
+
+func (smp sortableMotimesPairs) Len() int      { return len(smp) }
+func (smp sortableMotimesPairs) Swap(i, j int) { smp[i], smp[j] = smp[j], smp[i] }
+func (smp sortableMotimesPairs) Less(i, j int) bool {
+	if left, right := smp[i], smp[j]; left.mo.Requestor == PCC {
+		return left.mo.Letter < right.mo.Letter // PCC needs to exec lo letters first, then hi ones
+	} else {
+		return left.mo.Letter > right.mo.Letter // PC needs to exec hi letters first, then lo ones
+	}
+}
+
+// MustExecuteTurn takes a Turn, and executes its individual moves, in an order that won't explode the game.
+// This is mainly to support the stdin UX of supplying entire, serialized Turns (the UX should be improved to do 1 Move at a time instead of a whole Turn though).
+func (b *Board) MustExecuteTurn(t Turn) {
+	mustExec := func(m Move) {
+		if ok := b.ExecuteMoveIfLegal(&m); !ok {
+			panic("somehow, we couldn't execute a move as part of a valid Turn: " + (&m).String())
+		}
+	}
+
+	var sortable sortableMotimesPairs
+	for move, numTimes := range t {
+		if p := move.Requestor; (p == PCC && move.Letter == constants.LETTER_BAR_CC) || (p == PC && move.Letter == constants.LETTER_BAR_C) {
+			mustExec(move)
+			continue
+		}
+		sortable = append(sortable, motimesPair{move, numTimes})
+	}
+	sort.Sort(sortable)
+
+	for _, mtp := range sortable {
+		for i := uint8(0); i < mtp.times; i++ {
+			mustExec(mtp.mo)
 		}
 	}
 }
