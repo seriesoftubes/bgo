@@ -443,6 +443,177 @@ func TestExecuteMoveIfLegalTakeoverEnemy(t *testing.T) {
 	}
 }
 
+// Tests that a proper winner is set on a SingleGame game-winning move and not before then.
+func TestExecuteMoveIfLegalWinSingleGame(t *testing.T) {
+	b := Board{}
+	b.OffCC = 14
+	b.OffC = 14
+	b.Points = [NUM_BOARD_POINTS]*BoardPoint{
+		{}, {PC, 1}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
+		{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {PCC, 1},
+	}
+
+	/* Board looks like:
+	 x  w  v  u  t  s     r  q  p  o  n  m
+	=======================================
+	 X  -  -  -  -  - |m| -  -  -  -  -  -
+	                  |m|
+	                  |m|
+	                  |m|
+	                  |m|
+	                  |m|
+
+
+	                  |w|
+	                  |w|
+	                  |w|
+	                  |w|
+	                  |w|
+	 -  O  -  -  -  - |w| -  -  -  -  -  -
+	=======================================
+	 a  b  c  d  e  f     g  h  i  j  k  l
+	*/
+	boardPC := b.Copy()
+	moveForPC := &Move{Requestor: PC, Letter: "b", FowardDistance: 6}
+
+	if boardPC.winner != nil {
+		t.Errorf("expected no winner to be set but got %v", *boardPC.winner)
+	} else if boardPC.winKind != WinKindNotWon {
+		t.Errorf("expected win state to be %v but got %v", WinKindNotWon, boardPC.winKind)
+	}
+
+	if ok := boardPC.ExecuteMoveIfLegal(moveForPC); !ok {
+		t.Errorf("Test move was not legal. Change the test!")
+	}
+	if boardPC.winner != PC {
+		t.Errorf("expected winner to be %v but got %v", *PC, *boardPC.winner)
+	} else if boardPC.winKind != WinKindSingleGame {
+		t.Errorf("expected win state to be %v but got %v", WinKindSingleGame, boardPC.winKind)
+	} else if boardPC.OffC != numCheckersPerPlayer {
+		t.Errorf("expected %d chex to be beared off, but got %v", numCheckersPerPlayer, boardPC.OffC)
+	}
+
+	boardPCC := b.Copy()
+	moveForPCC := &Move{Requestor: PCC, Letter: "x", FowardDistance: 1}
+
+	if boardPCC.winner != nil {
+		t.Errorf("expected no winner to be set but got %v", *boardPCC.winner)
+	} else if boardPCC.winKind != WinKindNotWon {
+		t.Errorf("expected win state to be %v but got %v", WinKindNotWon, boardPCC.winKind)
+	}
+
+	if ok := boardPCC.ExecuteMoveIfLegal(moveForPCC); !ok {
+		t.Errorf("Test move was not legal. Change the test!")
+	}
+	if boardPCC.winner != PCC {
+		t.Errorf("expected winner to be %v but got %v", *PCC, *boardPCC.winner)
+	} else if boardPCC.winKind != WinKindSingleGame {
+		t.Errorf("expected win state to be %v but got %v", WinKindSingleGame, boardPCC.winKind)
+	} else if boardPCC.OffCC != numCheckersPerPlayer {
+		t.Errorf("expected %d chex to be beared off, but got %v", numCheckersPerPlayer, boardPCC.OffCC)
+	}
+}
+
+// Tests that a proper winner is set on a Gammon game-winning move and not before then.
+func TestExecuteMoveIfLegalWinGammon(t *testing.T) {
+	b := Board{}
+	b.OffC = 14
+	b.Points = [NUM_BOARD_POINTS]*BoardPoint{
+		{}, {PC, 1}, {}, {}, {}, {}, {}, {PCC, 15}, {}, {}, {}, {},
+		{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
+	}
+
+	/* Board looks like:
+	 x  w  v  u  t  s     r  q  p  o  n  m
+	=======================================
+	 -  -  -  -  -  - |m| -  -  -  -  -  -
+	                  |m|
+	                  |m|
+	                  |m|
+	                  |m|
+	                  |m|
+
+
+	                  |w|   15
+	                  |w|    X
+	                  |w|    X
+	                  |w|    X
+	                  |w|    X
+	 -  O  -  -  -  - |w| -  X  -  -  -  -
+	=======================================
+	 a  b  c  d  e  f     g  h  i  j  k  l
+	*/
+	boardPC := b.Copy()
+	moveForPC := &Move{Requestor: PC, Letter: "b", FowardDistance: 2}
+
+	if boardPC.winner != nil {
+		t.Errorf("expected no winner to be set but got %v", *boardPC.winner)
+	} else if boardPC.winKind != WinKindNotWon {
+		t.Errorf("expected win state to be %v but got %v", WinKindNotWon, boardPC.winKind)
+	}
+
+	if ok := boardPC.ExecuteMoveIfLegal(moveForPC); !ok {
+		t.Errorf("Test move was not legal. Change the test!")
+	}
+	if boardPC.winner != PC {
+		t.Errorf("expected winner to be %v but got %v", *PC, *boardPC.winner)
+	} else if boardPC.winKind != WinKindGammon {
+		t.Errorf("expected win state to be %v but got %v", WinKindGammon, boardPC.winKind)
+	} else if boardPC.OffC != numCheckersPerPlayer {
+		t.Errorf("expected %d chex to be beared off, but got %v", numCheckersPerPlayer, boardPC.OffC)
+	}
+}
+
+// Tests that a proper winner is set on a Backgammon game-winning move and not before then.
+func TestExecuteMoveIfLegalWinBackgammon(t *testing.T) {
+	b := Board{}
+	b.OffC = 14
+	b.Points = [NUM_BOARD_POINTS]*BoardPoint{
+		{}, {PC, 1}, {}, {}, {}, {PCC, 1}, {}, {PCC, 14}, {}, {}, {}, {},
+		{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
+	}
+
+	/* Board looks like: (notice how X has 1 left in enemy's home)
+	 x  w  v  u  t  s     r  q  p  o  n  m
+	=======================================
+	 -  -  -  -  -  - |m| -  -  -  -  -  -
+	                  |m|
+	                  |m|
+	                  |m|
+	                  |m|
+	                  |m|
+
+
+	                  |w|   14
+	                  |w|    X
+	                  |w|    X
+	                  |w|    X
+	                  |w|    X
+	 -  O  -  -  -  X |w| -  X  -  -  -  -
+	=======================================
+	 a  b  c  d  e  f     g  h  i  j  k  l
+	*/
+	boardPC := b.Copy()
+	moveForPC := &Move{Requestor: PC, Letter: "b", FowardDistance: 2}
+
+	if boardPC.winner != nil {
+		t.Errorf("expected no winner to be set but got %v", *boardPC.winner)
+	} else if boardPC.winKind != WinKindNotWon {
+		t.Errorf("expected win state to be %v but got %v", WinKindNotWon, boardPC.winKind)
+	}
+
+	if ok := boardPC.ExecuteMoveIfLegal(moveForPC); !ok {
+		t.Errorf("Test move was not legal. Change the test!")
+	}
+	if boardPC.winner != PC {
+		t.Errorf("expected winner to be %v but got %v", *PC, *boardPC.winner)
+	} else if boardPC.winKind != WinKindBackgammon {
+		t.Errorf("expected win state to be %v but got %v", WinKindBackgammon, boardPC.winKind)
+	} else if boardPC.OffC != numCheckersPerPlayer {
+		t.Errorf("expected %d chex to be beared off, but got %v", numCheckersPerPlayer, boardPC.OffC)
+	}
+}
+
 func strSlicesEqual(a, b []string) bool {
 	if len(a) == 0 || len(b) == 0 {
 		return len(a) == len(b)

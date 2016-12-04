@@ -11,6 +11,46 @@ const (
 	alphabet                   = "abcdefghijklmnopqrstuvwxyz"
 )
 
+type WinKind uint8
+
+const (
+	WinKindNotWon     WinKind = 0
+	WinKindSingleGame WinKind = 1
+	WinKindGammon     WinKind = 2
+	WinKindBackgammon WinKind = 3
+)
+
+func detectWinKind(b *Board, p *Player) WinKind {
+	otherPlayer := PC
+	numOtherPlayerHasBearedOff := b.OffC
+
+	if p == PCC {
+		if b.OffCC != numCheckersPerPlayer {
+			return WinKindNotWon
+		}
+	} else {
+		if b.OffC != numCheckersPerPlayer {
+			return WinKindNotWon
+		}
+
+		otherPlayer = PCC
+		numOtherPlayerHasBearedOff = b.OffCC
+	}
+
+	if numOtherPlayerHasBearedOff > 0 {
+		return WinKindSingleGame
+	}
+
+	homeStart, homeEnd := p.homePointIndices()
+	for i := homeStart; i <= homeEnd; i++ {
+		if pt := b.Points[i]; pt.Owner == otherPlayer {
+			return WinKindBackgammon
+		}
+	}
+
+	return WinKindGammon
+}
+
 type BoardPoint struct {
 	Owner       *Player
 	NumCheckers uint8
@@ -24,6 +64,9 @@ type Board struct {
 	Points      [NUM_BOARD_POINTS]*BoardPoint
 	BarCC, BarC uint8 // # of checkers on each player's bar
 	OffCC, OffC uint8 // # of checkers that each player has beared off
+	// These win-related fields must only be set by the board itself.
+	winner  *Player
+	winKind WinKind
 }
 
 // Copy returns a pointer to a deepcopy of a Board.
@@ -38,9 +81,13 @@ func (b *Board) Copy() *Board {
 	}
 	cop.BarC, cop.BarCC = b.BarC, b.BarCC
 	cop.OffC, cop.OffCC = b.OffC, b.OffCC
+	cop.winner, cop.winKind = b.winner, b.winKind
 
 	return cop
 }
+
+func (b *Board) Winner() *Player  { return b.winner }
+func (b *Board) WinKind() WinKind { return b.winKind }
 
 func (b *Board) doesPlayerHaveAllRemainingCheckersInHomeBoard(p *Player) bool {
 	totalChexInHomeOrBearedOff := b.OffC
@@ -177,8 +224,14 @@ func (b *Board) decrementBar(p *Player) {
 func (b *Board) incrementBearoffZone(p *Player) {
 	if p == PCC {
 		b.OffCC++
+		if b.OffCC == numCheckersPerPlayer {
+			b.winner, b.winKind = PCC, detectWinKind(b, PCC)
+		}
 	} else {
 		b.OffC++
+		if b.OffC == numCheckersPerPlayer {
+			b.winner, b.winKind = PC, detectWinKind(b, PC)
+		}
 	}
 }
 
