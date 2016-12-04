@@ -5,9 +5,10 @@ import (
 )
 
 type Game struct {
-	Board         *Board
-	CurrentPlayer *Player
-	CurrentRoll   *Roll
+	Board           *Board
+	CurrentPlayer   *Player
+	CurrentRoll     *Roll
+	numHumanPlayers uint8
 }
 
 func (g *Game) NextPlayersTurn() {
@@ -20,7 +21,18 @@ func (g *Game) NextPlayersTurn() {
 	g.CurrentRoll = newRoll()
 }
 
-func NewGame() *Game {
+func (g *Game) HasAnyHumans() bool { return g.numHumanPlayers > 0 }
+func (g *Game) IsCurrentPlayerHuman() bool {
+	if g.numHumanPlayers == 2 {
+		return true
+	} else if g.numHumanPlayers == 1 {
+		return g.CurrentPlayer != PC // The `PC` player is always the computer
+	} else {
+		return false
+	}
+}
+
+func NewGame(numHumanPlayers uint8) *Game {
 	b := &Board{}
 	b.setUp()
 
@@ -29,5 +41,5 @@ func NewGame() *Game {
 		player = PC
 	}
 
-	return &Game{b, player, newRoll()}
+	return &Game{b, player, newRoll(), numHumanPlayers}
 }
