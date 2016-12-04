@@ -26,6 +26,10 @@ const (
 )
 
 func PrintBoard(b *game.Board) {
+	if winner := b.Winner(); winner != nil {
+		fmt.Println(fmt.Sprintf("\n\n\t\tWINNER: %q (won %d points)", *winner, b.WinKind()))
+	}
+
 	var topRows, botRows []string
 
 	// Letters above the top border
