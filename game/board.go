@@ -66,9 +66,6 @@ func (b *Board) chexOnTheBar(p *Player) uint8 {
 }
 
 func (b *Board) isLegalMove(m *Move) bool {
-	// The player must have no legal moves left, or have used 2 moves, by the end of their turn.
-	// TODO: in input parser, parse the whole turn and reject if it doesn't do this
-
 	isForBar := m.Letter == constants.LETTER_BAR_CC || m.Letter == constants.LETTER_BAR_C
 	numOnTheBar := b.chexOnTheBar(m.Requestor)
 	if numOnTheBar > 0 && !isForBar {
@@ -103,7 +100,7 @@ func (b *Board) isLegalMove(m *Move) bool {
 			return false // Must move past the correct finish line.
 		}
 		if ((m.Requestor == PCC && nxtIdx > int8(NUM_BOARD_POINTS)) || (m.Requestor == PC && nxtIdx < -1)) && b.doesPlayerHaveAnyRemainingCheckersBehindPoint(m.Requestor, m.pointIdx()) {
-			// IFF the amount on the dice > the point's distance away from 0, then you must have already beared off all chex behind the point.
+			// If the amount on the dice > the point's distance away from 0, then you must have already beared off all chex behind the point.
 			// E.g., if you roll a 6, and you have chex on your 5 and 6 point, you can only bear off the ones on the 6 point (and not the ones on the 5 until all the chex on 6 are gone).
 			return false
 		}
@@ -216,12 +213,6 @@ func (b *Board) ExecuteMoveIfLegal(m *Move) bool {
 
 	return true
 }
-
-// receive moves like "j1;k3" or "j18;m6". show a preview (with a command + exit command)
-// record the move entered so we can undo them. actually just show a preview and
-// you can accept the preview, like Y. or no. if yes, update the board's points.
-// or just apply the move to the non-copy of it (have a executeMove method, that relies on a
-// series of QA checks for whether the move is legit).
 
 func (b *Board) setUp() {
 	b.Points = [NUM_BOARD_POINTS]*BoardPoint{
