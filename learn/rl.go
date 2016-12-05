@@ -9,7 +9,7 @@ import (
 	"github.com/seriesoftubes/bgo/game"
 )
 
-const maxChexToConsider uint8 = 9
+const maxChexToConsider uint8 = 7
 
 type SerializedTurnsCache struct {
 	sync.Mutex
