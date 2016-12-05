@@ -44,24 +44,21 @@ type GameController struct {
 	action string
 }
 
-func New(debug bool) *GameController { return &GameController{debug: debug} }
+func New(qs *learn.QContainer, stc *learn.SerializedTurnsCache, debug bool) *GameController {
+	learningRateAkaAlpha := 0.1
+	rewardsDiscountRateAkaGamma := 0.1
+	initialExplorationRateAkaEpsilon := 1.0
+	agent := learn.NewAgent(qs, stc, learningRateAkaAlpha, rewardsDiscountRateAkaGamma, initialExplorationRateAkaEpsilon)
+	return &GameController{agent: agent, debug: debug}
+}
 
 func (gc *GameController) PlayOneGame(numHumanPlayers uint8, stopLearning bool) (*game.Player, game.WinKind) {
 	gc.g = game.NewGame(numHumanPlayers)
 
-	if gc.g.HasAnyComputers() && gc.agent == nil {
-		learningRateAkaAlpha := 0.1
-		rewardsDiscountRateAkaGamma := 0.1
-		initialExplorationRateAkaEpsilon := 1.0
-		gc.agent = learn.NewAgent(learningRateAkaAlpha, rewardsDiscountRateAkaGamma, initialExplorationRateAkaEpsilon)
+	if stopLearning {
+		gc.agent.StopLearning()
 	}
-
-	if gc.agent != nil {
-		if stopLearning {
-			gc.agent.StopLearning()
-		}
-		gc.agent.SetGame(gc.g)
-	}
+	gc.agent.SetGame(gc.g)
 
 	gc.maybePrint("Welcome to backgammon. Good luck and have fun!")
 	var done bool
