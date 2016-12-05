@@ -19,12 +19,12 @@ func (r *Roll) moveDistances() []uint8 {
 	}
 }
 
-func (r *Roll) uniqueAmounts() map[uint8]bool {
-	out := map[uint8]bool{}
-	for _, amt := range r {
-		out[amt] = true
+func (r *Roll) Sorted() Roll {
+	if first, second := r[0], r[1]; first <= second {
+		return *r
+	} else {
+		return *(r.reverse())
 	}
-	return out
 }
 
 func (r *Roll) reverse() *Roll {

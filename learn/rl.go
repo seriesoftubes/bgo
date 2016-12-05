@@ -171,7 +171,7 @@ func (a *Agent) DetectState() State {
 
 	out := State{}
 
-	out.myRoll = *a.game.CurrentRoll
+	out.myRoll = a.game.CurrentRoll.Sorted()
 
 	if a.player == game.PCC {
 		out.numOnMyBar = a.game.Board.BarCC
