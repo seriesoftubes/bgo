@@ -5,11 +5,15 @@ import (
 )
 
 type Game struct {
-	Board           *Board
-	CurrentPlayer   *Player
-	CurrentRoll     *Roll
-	numHumanPlayers uint8
+	Board             *Board
+	CurrentPlayer     *Player
+	CurrentRoll       *Roll
+	numHumanPlayers   uint8
+	currentValidTurns map[string]Turn
 }
+
+func (g *Game) ValidTurns() map[string]Turn      { return g.currentValidTurns }
+func (g *Game) SetValidTurns(vt map[string]Turn) { g.currentValidTurns = vt }
 
 func (g *Game) NextPlayersTurn() {
 	if g.CurrentPlayer == PCC {
@@ -21,7 +25,8 @@ func (g *Game) NextPlayersTurn() {
 	g.CurrentRoll = newRoll()
 }
 
-func (g *Game) HasAnyHumans() bool { return g.numHumanPlayers > 0 }
+func (g *Game) HasAnyHumans() bool    { return g.numHumanPlayers > 0 }
+func (g *Game) HasAnyComputers() bool { return g.numHumanPlayers < 2 }
 func (g *Game) IsCurrentPlayerHuman() bool {
 	if g.numHumanPlayers == 2 {
 		return true
@@ -41,5 +46,5 @@ func NewGame(numHumanPlayers uint8) *Game {
 		player = PC
 	}
 
-	return &Game{b, player, newRoll(), numHumanPlayers}
+	return &Game{Board: b, CurrentPlayer: player, CurrentRoll: newRoll(), numHumanPlayers: numHumanPlayers}
 }

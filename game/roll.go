@@ -1,16 +1,13 @@
 package game
 
 import (
-	"math/rand"
-	"time"
+	"github.com/seriesoftubes/bgo/constants"
 )
 
 const (
 	minDiceAmt = 1
 	maxDiceAmt = 6
 )
-
-var rnd = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 type Roll [2]uint8
 
@@ -35,7 +32,7 @@ func (r *Roll) reverse() *Roll {
 	return r
 }
 
-func randBetween(min, max int) uint8 { return uint8(rnd.Intn(max-min+1) + min) }
+func randBetween(min, max int) uint8 { return uint8(constants.Rand.Intn(max-min+1) + min) }
 func newRoll() *Roll {
 	return &Roll{randBetween(minDiceAmt, maxDiceAmt), randBetween(minDiceAmt, maxDiceAmt)}
 }

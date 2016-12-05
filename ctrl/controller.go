@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/seriesoftubes/bgo/game"
+	"github.com/seriesoftubes/bgo/learn"
 	"github.com/seriesoftubes/bgo/render"
 )
 
@@ -36,17 +37,33 @@ func randomlyChooseValidTurn(validTurns map[string]game.Turn) game.Turn {
 }
 
 type GameController struct {
-	g     *game.Game
-	debug bool
+	g      *game.Game
+	debug  bool
+	agent  *learn.Agent
+	state1 learn.State
+	action string
 }
 
-func New(g *game.Game, debug bool) *GameController {
-	return &GameController{g, debug}
-}
+func New(debug bool) *GameController { return &GameController{debug: debug} }
 
-func (gc *GameController) PlayOneGame() (*game.Player, game.WinKind) {
+func (gc *GameController) PlayOneGame(numHumanPlayers uint8, stopLearning bool) (*game.Player, game.WinKind) {
+	gc.g = game.NewGame(numHumanPlayers)
+
+	if gc.g.HasAnyComputers() && gc.agent == nil {
+		learningRateAkaAlpha := 0.1
+		rewardsDiscountRateAkaGamma := 0.1
+		initialExplorationRateAkaEpsilon := 1.0
+		gc.agent = learn.NewAgent(learningRateAkaAlpha, rewardsDiscountRateAkaGamma, initialExplorationRateAkaEpsilon)
+	}
+
+	if gc.agent != nil {
+		if stopLearning {
+			gc.agent.StopLearning()
+		}
+		gc.agent.SetGame(gc.g)
+	}
+
 	gc.maybePrint("Welcome to backgammon. Good luck and have fun!")
-
 	var done bool
 	for !done {
 		done = gc.playOneTurn()
@@ -66,11 +83,15 @@ func (gc *GameController) maybePrint(s ...interface{}) {
 	}
 }
 
-func (gc *GameController) chooseTurn(validTurns map[string]game.Turn) game.Turn {
+func (gc *GameController) chooseTurn(validTurns map[string]game.Turn) (game.Turn, bool) {
 	if gc.g.IsCurrentPlayerHuman() {
-		return readTurnFromStdin(validTurns)
+		return readTurnFromStdin(validTurns), false
 	} else {
-		return randomlyChooseValidTurn(validTurns)
+		gc.agent.SetPlayer(gc.g.CurrentPlayer)
+		gc.state1 = gc.agent.DetectState()
+		var turn game.Turn
+		gc.action, turn = gc.agent.EpsilonGreedyAction(gc.state1)
+		return turn, true
 	}
 }
 
@@ -83,6 +104,9 @@ func (gc *GameController) playOneTurn() bool {
 	}
 
 	validTurns := game.ValidTurns(g.Board, g.CurrentRoll, g.CurrentPlayer)
+	g.SetValidTurns(validTurns) // IMPORTANT: this must be set for the current turn, always!
+
+	var wasTurnPickedByAI bool
 	var chosenTurn game.Turn
 	if len(validTurns) == 0 {
 		gc.maybePrint("\tcan't do anything this turn, sorry!")
@@ -91,7 +115,7 @@ func (gc *GameController) playOneTurn() bool {
 		chosenTurn = randomlyChooseValidTurn(validTurns)
 	} else {
 		gc.maybePrint(fmt.Sprintf("\tYour move, %q:", *g.CurrentPlayer))
-		chosenTurn = gc.chooseTurn(validTurns)
+		chosenTurn, wasTurnPickedByAI = gc.chooseTurn(validTurns)
 	}
 	gc.maybePrint("\tChose move:", chosenTurn)
 
@@ -109,8 +133,13 @@ func (gc *GameController) playOneTurn() bool {
 	}
 
 	gc.g.Board.MustExecuteTurn(chosenTurn, gc.debug)
+	winner, winAmt := gc.g.Board.Winner(), gc.g.Board.WinKind()
 
-	if gc.g.Board.Winner() != nil {
+	if wasTurnPickedByAI {
+		gc.agent.Learn(gc.state1, gc.action, gc.agent.DetectState(), winAmt)
+	}
+
+	if winner != nil {
 		return true
 	} else {
 		gc.g.NextPlayersTurn()
