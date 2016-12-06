@@ -124,23 +124,25 @@ func (a *Agent) DetectState() State {
 	isPCC := a.player == game.PCC
 	if isPCC {
 		out.numOnMyBar = a.game.Board.BarCC
+		out.numOnEnemyBar = a.game.Board.BarC
 	} else {
 		out.numOnMyBar = a.game.Board.BarC
+		out.numOnEnemyBar = a.game.Board.BarCC
 	}
 
 	out.boardPoints = [game.NUM_BOARD_POINTS]boardPointState{}
 	lastPointIndex := int(game.NUM_BOARD_POINTS - 1)
-	for i, p := range a.game.Board.Points {
-		chex := p.NumCheckers
+	for ptIdx, pt := range a.game.Board.Points {
+		chex := pt.NumCheckers
 		if chex > maxChexToConsider {
 			chex = maxChexToConsider
 		}
 		// fill them in order of distance from enemy home. so PCC starts as normal
-		idx := lastPointIndex - i
+		translatedPtIdx := lastPointIndex - ptIdx
 		if isPCC {
-			idx = i
+			translatedPtIdx = ptIdx
 		}
-		out.boardPoints[idx] = boardPointState{p.Owner == a.player, chex}
+		out.boardPoints[translatedPtIdx] = boardPointState{pt.Owner == a.player, chex}
 	}
 
 	return out
