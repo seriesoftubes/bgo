@@ -44,11 +44,11 @@ type GameController struct {
 	action string
 }
 
-func New(qs *learn.QContainer, stc *learn.SerializedTurnsCache, debug bool) *GameController {
+func New(qs *learn.QContainer, debug bool) *GameController {
 	learningRateAkaAlpha := 0.1
 	rewardsDiscountRateAkaGamma := 0.1
 	initialExplorationRateAkaEpsilon := 1.0
-	agent := learn.NewAgent(qs, stc, learningRateAkaAlpha, rewardsDiscountRateAkaGamma, initialExplorationRateAkaEpsilon)
+	agent := learn.NewAgent(qs, learningRateAkaAlpha, rewardsDiscountRateAkaGamma, initialExplorationRateAkaEpsilon)
 	return &GameController{agent: agent, debug: debug}
 }
 
@@ -87,7 +87,11 @@ func (gc *GameController) chooseTurn(validTurns map[string]game.Turn) (game.Turn
 		gc.agent.SetPlayer(gc.g.CurrentPlayer)
 		gc.state1 = gc.agent.DetectState()
 		var turn game.Turn
-		gc.action, turn = gc.agent.EpsilonGreedyAction(gc.state1)
+		gc.action = gc.agent.EpsilonGreedyAction(gc.state1)
+		turn, err := game.DeserializeTurn(gc.action)
+		if err != nil {
+			panic(fmt.Sprintf("could not DeserializeTurn %s: %s", gc.action, err.Error()))
+		}
 		return turn, true
 	}
 }

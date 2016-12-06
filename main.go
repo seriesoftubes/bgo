@@ -15,8 +15,6 @@ const trainings = 250500
 func main() {
 	// Shared resources across all goroutines.
 	qs := learn.NewQContainer()
-	stc := learn.NewSerializedTurnsCache()
-
 	start := time.Now()
 	gamesPlayed := uint64(0)
 	var wg sync.WaitGroup
@@ -24,7 +22,7 @@ func main() {
 	for i := 0; i < 8; i++ {
 		wg.Add(1)
 		go func() {
-			mgr := ctrl.New(qs, stc, false)
+			mgr := ctrl.New(qs, false)
 			for i := 0; i < trainings; i++ {
 				mgr.PlayOneGame(0, false) // Play 1 game with 0 humans and don't stop learning!
 
@@ -40,6 +38,6 @@ func main() {
 
 	fmt.Println("trained", trainings, "times in", time.Since(start))
 
-	mgr := ctrl.New(qs, stc, false)
+	mgr := ctrl.New(qs, false)
 	mgr.PlayOneGame(1 /* stopLearning=true */, true)
 }

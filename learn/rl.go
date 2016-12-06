@@ -11,27 +11,6 @@ import (
 
 const maxChexToConsider uint8 = 7
 
-type SerializedTurnsCache struct {
-	sync.Mutex
-	cache map[string]game.Turn
-}
-
-func NewSerializedTurnsCache() *SerializedTurnsCache {
-	return &SerializedTurnsCache{cache: make(map[string]game.Turn, 193000)}
-}
-
-func (stc *SerializedTurnsCache) Get(s string) game.Turn {
-	defer stc.Unlock()
-	stc.Lock()
-	return stc.cache[s]
-}
-
-func (stc *SerializedTurnsCache) Set(s string, t game.Turn) {
-	defer stc.Unlock()
-	stc.Lock()
-	stc.cache[s] = t
-}
-
 type QContainer struct {
 	sync.Mutex
 	qvals map[StateActionPair]float64
@@ -39,13 +18,6 @@ type QContainer struct {
 
 func NewQContainer() *QContainer {
 	return &QContainer{qvals: make(map[StateActionPair]float64, 12888444)}
-}
-
-func (qc *QContainer) GetQ(sa StateActionPair) (float64, bool) {
-	defer qc.Unlock()
-	qc.Lock()
-	q, ok := qc.qvals[sa]
-	return q, ok
 }
 
 type Agent struct {
@@ -57,17 +29,13 @@ type Agent struct {
 	game                  *game.Game
 	player                *game.Player
 	numObservations       uint64
-	deserializedActions   *SerializedTurnsCache
 	qs                    *QContainer
 }
 
 func (a *Agent) SetPlayer(p *game.Player) { a.player = p }
 func (a *Agent) SetGame(g *game.Game)     { a.game = g }
-func NewAgent(qvals *QContainer, stc *SerializedTurnsCache, alpha, gamma, epsilon float64) *Agent {
-	out := &Agent{alpha: alpha, gamma: gamma, epsilon: epsilon}
-	out.deserializedActions = stc
-	out.qs = qvals
-	return out
+func NewAgent(qvals *QContainer, alpha, gamma, epsilon float64) *Agent {
+	return &Agent{alpha: alpha, gamma: gamma, epsilon: epsilon, qs: qvals}
 }
 
 type boardPointState struct {
@@ -89,32 +57,11 @@ type (
 	}
 )
 
-func (a *Agent) updateQValueFromSars(state1 State, action string, state2 State, reward uint8) {
-	defer a.qs.Unlock()
-	a.qs.Lock()
-
-	var oldQ float64 // By default, assume Q is zero.
-	sa := StateActionPair{state1, action}
-	if q, ok := a.qs.qvals[sa]; ok {
-		oldQ = q
-	}
-
-	var bestPossibleFutureQ float64
-	for serializedTurn := range a.game.ValidTurns() {
-		if q, ok := a.qs.qvals[StateActionPair{state1, serializedTurn}]; ok && q > bestPossibleFutureQ {
-			bestPossibleFutureQ = q
-		}
-	}
-
-	a.qs.qvals[sa] = oldQ + a.alpha*(float64(reward)+(a.gamma*bestPossibleFutureQ)-oldQ)
-}
-
 // Choose an action that helps with training
-func (a *Agent) EpsilonGreedyAction(state State) (string, game.Turn) {
+func (a *Agent) EpsilonGreedyAction(state State) string {
 	validTurns := a.game.ValidTurns()
 	possibleActions := make([]string, 0, len(validTurns))
-	for svt, t := range validTurns {
-		a.deserializedActions.Set(svt, t)
+	for svt := range validTurns {
 		possibleActions = append(possibleActions, svt)
 	}
 
@@ -124,8 +71,10 @@ func (a *Agent) EpsilonGreedyAction(state State) (string, game.Turn) {
 	} else {
 		var bestQ float64
 		var bestQIndices []int
+		defer a.qs.Unlock()
+		a.qs.Lock()
 		for idx, action := range possibleActions {
-			if q, ok := a.qs.GetQ(StateActionPair{state, action}); ok && q >= bestQ {
+			if q, ok := a.qs.qvals[StateActionPair{state, action}]; ok && q >= bestQ {
 				bestQ = q
 				bestQIndices = append(bestQIndices, idx)
 			}
@@ -138,30 +87,29 @@ func (a *Agent) EpsilonGreedyAction(state State) (string, game.Turn) {
 		}
 	}
 
-	action := possibleActions[idx]
-	return action, a.deserializedActions.Get(action)
+	return possibleActions[idx]
 }
 
 // Use after training
-func (a *Agent) BestAction() (string, game.Turn) {
+func (a *Agent) BestAction() string {
 	validTurns := a.game.ValidTurns()
 	if len(validTurns) == 0 {
-		return "", nil
+		return ""
 	}
 
 	state := a.DetectState()
 
 	bestQ := math.Inf(-1)
 	var bestAction string
-	for serializedTurn, turn := range validTurns {
-		a.deserializedActions.Set(serializedTurn, turn)
-
-		if q, ok := a.qs.GetQ(StateActionPair{state, serializedTurn}); ok && q > bestQ {
+	defer a.qs.Unlock()
+	a.qs.Lock()
+	for serializedTurn := range validTurns {
+		if q, ok := a.qs.qvals[StateActionPair{state, serializedTurn}]; ok && q > bestQ {
 			bestQ, bestAction = q, serializedTurn
 		}
 	}
 
-	return bestAction, a.deserializedActions.Get(bestAction)
+	return bestAction
 }
 
 func (a *Agent) DetectState() State {
@@ -193,22 +141,35 @@ func (a *Agent) DetectState() State {
 
 func (a *Agent) StopLearning() { a.epsilon = 0 }
 func (a *Agent) Learn(state1 State, action string, state2 State, reward game.WinKind) {
-	a.updateQValueFromSars(state1, action, state2, uint8(reward))
+	defer a.qs.Unlock()
+	a.qs.Lock()
+	var oldQ float64 // By default, assume Q is zero.
+	sa := StateActionPair{state1, action}
+	if q, ok := a.qs.qvals[sa]; ok {
+		oldQ = q
+	}
+	var bestPossibleFutureQ float64
+	for serializedTurn := range a.game.ValidTurns() {
+		if q, ok := a.qs.qvals[StateActionPair{state1, serializedTurn}]; ok && q > bestPossibleFutureQ {
+			bestPossibleFutureQ = q
+		}
+	}
+	a.qs.qvals[sa] = oldQ + a.alpha*(float64(reward)+(a.gamma*bestPossibleFutureQ)-oldQ)
 
 	a.numObservations++
-	if obs := a.numObservations; obs == 800 && a.epsilon > 0.6 {
+	if obs := a.numObservations; obs == 80000 && a.epsilon > 0.6 {
 		a.epsilon = 0.6
-	} else if obs == 2000 && a.epsilon > 0.5 {
+	} else if obs == 200000 && a.epsilon > 0.5 {
 		a.epsilon = 0.5
-	} else if obs == 5000 && a.epsilon > 0.4 {
+	} else if obs == 500000 && a.epsilon > 0.4 {
 		a.epsilon = 0.4
-	} else if obs == 15000 && a.epsilon > 0.3 {
+	} else if obs == 1500800 && a.epsilon > 0.3 {
 		a.epsilon = 0.3
-	} else if obs == 50000 && a.epsilon > 0.2 {
+	} else if obs == 5200800 && a.epsilon > 0.2 {
 		a.epsilon = 0.2
-	} else if obs == 150000 && a.epsilon > 0.1 {
+	} else if obs == 15300500 && a.epsilon > 0.1 {
 		a.epsilon = 0.1
-	} else if obs == 550500 && a.epsilon > 0.01 {
+	} else if obs == 50300800 && a.epsilon > 0.01 {
 		a.epsilon = 0.01
 	}
 }
