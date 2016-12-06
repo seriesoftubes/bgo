@@ -5,8 +5,8 @@ import (
 	"math"
 	"sync"
 
-	"github.com/seriesoftubes/bgo/constants"
 	"github.com/seriesoftubes/bgo/game"
+	"github.com/seriesoftubes/bgo/random"
 )
 
 const maxChexToConsider uint8 = 7
@@ -66,8 +66,8 @@ func (a *Agent) EpsilonGreedyAction(state State) string {
 	}
 
 	var idx int
-	if constants.Rand.Float64() < a.epsilon {
-		idx = constants.Rand.Intn(len(possibleActions))
+	if random.Float64() < a.epsilon {
+		idx = random.IntBetween(0, len(possibleActions)-1)
 	} else {
 		var bestQ float64
 		var bestQIndices []int
@@ -80,10 +80,10 @@ func (a *Agent) EpsilonGreedyAction(state State) string {
 			}
 		}
 		if len(bestQIndices) > 0 {
-			idxWithinBestQIndices := constants.Rand.Intn(len(bestQIndices))
+			idxWithinBestQIndices := random.IntUpTo(len(bestQIndices))
 			idx = bestQIndices[idxWithinBestQIndices]
 		} else {
-			idx = constants.Rand.Intn(len(possibleActions))
+			idx = random.IntUpTo(len(possibleActions))
 		}
 	}
 
