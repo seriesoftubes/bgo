@@ -23,7 +23,7 @@ func (r *Roll) Sorted() Roll {
 	if first, second := r[0], r[1]; first <= second {
 		return *r
 	} else {
-		return *(r.reverse())
+		return Roll{second, first}
 	}
 }
 
