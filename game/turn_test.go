@@ -391,7 +391,7 @@ func TestValidTurnsBearOff(t *testing.T) {
 	}
 	for _, c := range cases {
 		b := &Board{}
-		b.Points = [NUM_BOARD_POINTS]*BoardPoint{
+		b.Points = &[NUM_BOARD_POINTS]*BoardPoint{
 			// counter-clockwise player is in bottom-left.
 			{PCC, 2}, {PC, 1}, {PC, 2}, {PC, 2}, {PC, 5}, {PC, 5}, {}, {}, {}, {}, {}, {PCC, 5},
 			{}, {}, {}, {}, {PCC, 3}, {}, {PCC, 5}, {}, {}, {}, {}, {},
@@ -466,7 +466,7 @@ func TestValidTurnsBearOffStartingFromOutside(t *testing.T) {
 	}
 	for _, c := range cases {
 		b := &Board{}
-		b.Points = [NUM_BOARD_POINTS]*BoardPoint{
+		b.Points = &[NUM_BOARD_POINTS]*BoardPoint{
 			// counter-clockwise player is in bottom-left.
 			{PCC, 2}, {PC, 1}, {PC, 2}, {PC, 2}, {PC, 5}, {PC, 4}, {}, {PC, 1}, {}, {}, {}, {PCC, 5},
 			{}, {}, {}, {}, {PCC, 3}, {}, {PCC, 5}, {}, {}, {}, {}, {},
@@ -537,7 +537,7 @@ func TestWeirdTurn(t *testing.T) {
 		  z O's: OO
 	*/
 	b := &Board{}
-	b.Points = [NUM_BOARD_POINTS]*BoardPoint{
+	b.Points = &[NUM_BOARD_POINTS]*BoardPoint{
 		// counter-clockwise player is in bottom-left.
 		{PC, 2}, {PC, 1}, {}, {PCC, 1}, {}, {PC, 2}, {}, {}, {PC, 4}, {}, {}, {},
 		{PC, 1}, {PCC, 1}, {PCC, 1}, {}, {}, {}, {PCC, 4}, {PCC, 1}, {PC, 2}, {PCC, 5}, {PC, 1}, {PCC, 2},

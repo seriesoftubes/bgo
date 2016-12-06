@@ -99,7 +99,7 @@ func TestLegalMovesTakeOverEnemy(t *testing.T) {
 	}
 	for _, c := range cases {
 		b := Board{}
-		b.Points = [NUM_BOARD_POINTS]*BoardPoint{
+		b.Points = &[NUM_BOARD_POINTS]*BoardPoint{
 			// counter-clockwise player is in bottom-left.
 			{PCC, 2}, {}, {}, {PC, 2}, {PC, 2}, {PC, 1}, {PC, 1}, {PC, 2}, {}, {}, {}, {PCC, 5},
 			{PC, 5}, {}, {}, {}, {PCC, 3}, {}, {PCC, 5}, {}, {}, {}, {}, {PC, 2},
@@ -157,7 +157,7 @@ func TestLegalMovesBearOff(t *testing.T) {
 	}
 	for _, c := range cases {
 		b := Board{}
-		b.Points = [NUM_BOARD_POINTS]*BoardPoint{
+		b.Points = &[NUM_BOARD_POINTS]*BoardPoint{
 			// counter-clockwise player is in bottom-left.
 			{PCC, 2}, {PC, 1}, {PC, 2}, {PC, 2}, {PC, 5}, {PC, 5}, {}, {}, {}, {}, {}, {PCC, 5},
 			{}, {}, {}, {}, {PCC, 3}, {}, {PCC, 5}, {}, {}, {}, {}, {},
@@ -216,7 +216,7 @@ func TestLegalMovesBearOffBoth(t *testing.T) {
 	for _, c := range cases {
 		b := Board{}
 		b.OffCC = 5
-		b.Points = [NUM_BOARD_POINTS]*BoardPoint{
+		b.Points = &[NUM_BOARD_POINTS]*BoardPoint{
 			// counter-clockwise player is in bottom-left.
 			{}, {PC, 1}, {PC, 2}, {PC, 2}, {PC, 5}, {PC, 5}, {}, {}, {}, {}, {}, {},
 			{}, {}, {}, {}, {}, {}, {}, {PCC, 1}, {PCC, 1}, {PCC, 2}, {PCC, 1}, {PCC, 5},
@@ -316,7 +316,7 @@ func TestExecuteMoveIfLegalBearOff(t *testing.T) {
 	b := Board{}
 	b.setUp()
 	b.OffCC = 5
-	b.Points = [NUM_BOARD_POINTS]*BoardPoint{
+	b.Points = &[NUM_BOARD_POINTS]*BoardPoint{
 		// counter-clockwise player is in bottom-left.
 		{}, {PC, 1}, {PC, 2}, {PC, 2}, {PC, 5}, {PC, 5}, {}, {}, {}, {}, {}, {},
 		{}, {}, {}, {}, {}, {}, {}, {PCC, 1}, {PCC, 1}, {PCC, 2}, {PCC, 1}, {PCC, 5},
@@ -385,7 +385,7 @@ func TestExecuteMoveIfLegalTakeoverEnemy(t *testing.T) {
 	 a  b  c  d  e  f     g  h  i  j  k  l
 	*/
 	b := Board{}
-	b.Points = [NUM_BOARD_POINTS]*BoardPoint{
+	b.Points = &[NUM_BOARD_POINTS]*BoardPoint{
 		// counter-clockwise player is in bottom-left.
 		{PCC, 1}, {}, {}, {PC, 2}, {PC, 2}, {PC, 1}, {PC, 1}, {PC, 2}, {}, {}, {}, {PCC, 5},
 		{PC, 5}, {}, {}, {}, {PCC, 4}, {}, {PCC, 5}, {}, {}, {}, {}, {PC, 2},
@@ -448,7 +448,7 @@ func TestExecuteMoveIfLegalWinSingleGame(t *testing.T) {
 	b := Board{}
 	b.OffCC = 14
 	b.OffC = 14
-	b.Points = [NUM_BOARD_POINTS]*BoardPoint{
+	b.Points = &[NUM_BOARD_POINTS]*BoardPoint{
 		{}, {PC, 1}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
 		{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {PCC, 1},
 	}
@@ -518,7 +518,7 @@ func TestExecuteMoveIfLegalWinSingleGame(t *testing.T) {
 func TestExecuteMoveIfLegalWinGammon(t *testing.T) {
 	b := Board{}
 	b.OffC = 14
-	b.Points = [NUM_BOARD_POINTS]*BoardPoint{
+	b.Points = &[NUM_BOARD_POINTS]*BoardPoint{
 		{}, {PC, 1}, {}, {}, {}, {}, {}, {PCC, 15}, {}, {}, {}, {},
 		{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
 	}
@@ -568,7 +568,7 @@ func TestExecuteMoveIfLegalWinGammon(t *testing.T) {
 func TestExecuteMoveIfLegalWinBackgammon(t *testing.T) {
 	b := Board{}
 	b.OffC = 14
-	b.Points = [NUM_BOARD_POINTS]*BoardPoint{
+	b.Points = &[NUM_BOARD_POINTS]*BoardPoint{
 		{}, {PC, 1}, {}, {}, {}, {PCC, 1}, {}, {PCC, 14}, {}, {}, {}, {},
 		{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {},
 	}

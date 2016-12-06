@@ -62,7 +62,7 @@ type BoardPoint struct {
 func (p *BoardPoint) Symbol() string { return p.Owner.Symbol() }
 
 type Board struct {
-	Points      [NUM_BOARD_POINTS]*BoardPoint
+	Points      *[NUM_BOARD_POINTS]*BoardPoint
 	BarCC, BarC uint8 // # of checkers on each player's bar
 	OffCC, OffC uint8 // # of checkers that each player has beared off
 	// These win-related fields must only be set by the board itself.
@@ -73,13 +73,34 @@ type Board struct {
 // Copy returns a pointer to a deepcopy of a Board.
 func (b *Board) Copy() *Board {
 	cop := &Board{}
-	cop.setUp()
-
-	for i, pt := range b.Points {
-		copPt := cop.Points[i]
-		copPt.Owner = pt.Owner
-		copPt.NumCheckers = pt.NumCheckers
+	pts := b.Points
+	cop.Points = &[NUM_BOARD_POINTS]*BoardPoint{
+		{pts[0].Owner, pts[0].NumCheckers},
+		{pts[1].Owner, pts[1].NumCheckers},
+		{pts[2].Owner, pts[2].NumCheckers},
+		{pts[3].Owner, pts[3].NumCheckers},
+		{pts[4].Owner, pts[4].NumCheckers},
+		{pts[5].Owner, pts[5].NumCheckers},
+		{pts[6].Owner, pts[6].NumCheckers},
+		{pts[7].Owner, pts[7].NumCheckers},
+		{pts[8].Owner, pts[8].NumCheckers},
+		{pts[9].Owner, pts[9].NumCheckers},
+		{pts[10].Owner, pts[10].NumCheckers},
+		{pts[11].Owner, pts[11].NumCheckers},
+		{pts[12].Owner, pts[12].NumCheckers},
+		{pts[13].Owner, pts[13].NumCheckers},
+		{pts[14].Owner, pts[14].NumCheckers},
+		{pts[15].Owner, pts[15].NumCheckers},
+		{pts[16].Owner, pts[16].NumCheckers},
+		{pts[17].Owner, pts[17].NumCheckers},
+		{pts[18].Owner, pts[18].NumCheckers},
+		{pts[19].Owner, pts[19].NumCheckers},
+		{pts[20].Owner, pts[20].NumCheckers},
+		{pts[21].Owner, pts[21].NumCheckers},
+		{pts[22].Owner, pts[22].NumCheckers},
+		{pts[23].Owner, pts[23].NumCheckers},
 	}
+
 	cop.BarC, cop.BarCC = b.BarC, b.BarCC
 	cop.OffC, cop.OffCC = b.OffC, b.OffCC
 	cop.winner, cop.winKind = b.winner, b.winKind
@@ -314,7 +335,7 @@ func (b *Board) ExecuteMoveIfLegal(m *Move) (bool, string) {
 }
 
 func (b *Board) setUp() {
-	b.Points = [NUM_BOARD_POINTS]*BoardPoint{
+	b.Points = &[NUM_BOARD_POINTS]*BoardPoint{
 		// counter-clockwise player is in bottom-left.
 		{PCC, 2}, {}, {}, {}, {}, {PC, 5}, {}, {PC, 3}, {}, {}, {}, {PCC, 5},
 		{PC, 5}, {}, {}, {}, {PCC, 3}, {}, {PCC, 5}, {}, {}, {}, {}, {PC, 2},

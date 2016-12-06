@@ -31,23 +31,40 @@ func (t Turn) totalDist() uint8 {
 	return out
 }
 
+type sortableMoves []Move
+
+func (sm sortableMoves) Len() int      { return len(sm) }
+func (sm sortableMoves) Swap(i, j int) { sm[j], sm[i] = sm[i], sm[j] }
+func (sm sortableMoves) Less(i, j int) bool {
+	if left, right := sm[i], sm[j]; left.Letter < right.Letter {
+		return true
+	} else if left.Letter > right.Letter {
+		return false
+	} else {
+		return left.FowardDistance < right.FowardDistance
+	}
+}
+
 // String serializes a Turn into a string like "X;a3;a3;b3;d3".
 func (t Turn) String() string {
 	var out []string
 
-	first := true
-	for m, numTimes := range t {
-		if first {
-			out = append(out, string(*m.Requestor))
-			first = false
-		}
+	smoves := make(sortableMoves, 0, len(t))
+	for m := range t {
+		smoves = append(smoves, m)
+	}
+	sort.Sort(smoves)
+	out = append(out, string(*smoves[0].Requestor))
 
-		for i := uint8(0); i < numTimes; i++ {
-			out = append(out, fmt.Sprintf("%s%d", m.Letter, m.FowardDistance))
+	for _, mov := range smoves {
+		if numTimes := int(t[mov]); numTimes == 1 {
+			out = append(out, fmt.Sprintf("%s%d", mov.Letter, mov.FowardDistance))
+		} else {
+			reps := strings.Repeat(fmt.Sprintf("%s%d;", mov.Letter, mov.FowardDistance), numTimes)
+			out = append(out, reps[0:len(reps)-1])
 		}
 	}
 
-	sort.Strings(out)
 	return strings.Join(out, moveDelim)
 }
 
