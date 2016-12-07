@@ -7,6 +7,7 @@ import (
 	"github.com/seriesoftubes/bgo/game"
 	"github.com/seriesoftubes/bgo/learn"
 	"github.com/seriesoftubes/bgo/render"
+	"github.com/seriesoftubes/bgo/state"
 )
 
 func readTurnFromStdin(validTurns map[string]game.Turn) game.Turn {
@@ -40,7 +41,7 @@ type GameController struct {
 	g      *game.Game
 	debug  bool
 	agent  *learn.Agent
-	state1 learn.State
+	state1 state.State
 	action string
 }
 

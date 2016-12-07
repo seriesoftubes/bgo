@@ -7,6 +7,7 @@ import (
 
 	"github.com/seriesoftubes/bgo/game"
 	"github.com/seriesoftubes/bgo/random"
+	"github.com/seriesoftubes/bgo/state"
 )
 
 const maxChexToConsider uint8 = 7
@@ -38,27 +39,13 @@ func NewAgent(qvals *QContainer, alpha, gamma, epsilon float64) *Agent {
 	return &Agent{alpha: alpha, gamma: gamma, epsilon: epsilon, qs: qvals}
 }
 
-type boardPointState struct {
-	isOwnedByMe bool
-	numChex     uint8
+type StateActionPair struct {
+	state  state.State
+	action string // serialized, valid Turn
 }
 
-// State which must be hashable.
-type (
-	State struct {
-		boardPoints               [game.NUM_BOARD_POINTS]boardPointState
-		numOnMyBar, numOnEnemyBar uint8
-		myRoll                    game.Roll
-	}
-
-	StateActionPair struct {
-		state  State
-		action string // serialized, valid Turn
-	}
-)
-
 // Choose an action that helps with training
-func (a *Agent) EpsilonGreedyAction(state State) string {
+func (a *Agent) EpsilonGreedyAction(st state.State) string {
 	validTurns := a.game.ValidTurns()
 	possibleActions := make([]string, 0, len(validTurns))
 	for svt := range validTurns {
@@ -74,7 +61,7 @@ func (a *Agent) EpsilonGreedyAction(state State) string {
 		defer a.qs.Unlock()
 		a.qs.Lock()
 		for idx, action := range possibleActions {
-			if q, ok := a.qs.qvals[StateActionPair{state, action}]; ok && q >= bestQ {
+			if q, ok := a.qs.qvals[StateActionPair{st, action}]; ok && q >= bestQ {
 				bestQ = q
 				bestQIndices = append(bestQIndices, idx)
 			}
@@ -112,48 +99,16 @@ func (a *Agent) BestAction() string {
 	return bestAction
 }
 
-func uint8Ceiling(x, max uint8) uint8 {
-	if x > max {
-		return max
-	}
-	return x
-}
-
-func (a *Agent) DetectState() State {
+func (a *Agent) DetectState() state.State {
 	if a.game.CurrentPlayer != a.player {
 		panic("shouldn't be detecting the state outside of the agent's own turn.")
 	}
-
-	out := State{}
-
-	out.myRoll = a.game.CurrentRoll.Sorted()
-
-	isPCC := a.player == game.PCC
-	if isPCC {
-		out.numOnMyBar = uint8Ceiling(a.game.Board.BarCC, maxChexToConsider)
-		out.numOnEnemyBar = uint8Ceiling(a.game.Board.BarC, maxChexToConsider)
-	} else {
-		out.numOnMyBar = uint8Ceiling(a.game.Board.BarC, maxChexToConsider)
-		out.numOnEnemyBar = uint8Ceiling(a.game.Board.BarCC, maxChexToConsider)
-	}
-
-	out.boardPoints = [game.NUM_BOARD_POINTS]boardPointState{}
-	lastPointIndex := int(game.NUM_BOARD_POINTS - 1)
-	for ptIdx, pt := range a.game.Board.Points {
-		chex := uint8Ceiling(pt.NumCheckers, maxChexToConsider)
-		// fill them in order of distance from enemy home. so PCC starts as normal
-		translatedPtIdx := lastPointIndex - ptIdx
-		if isPCC {
-			translatedPtIdx = ptIdx
-		}
-		out.boardPoints[translatedPtIdx] = boardPointState{pt.Owner == a.player, chex}
-	}
-
-	return out
+	s, _ := state.DetectState(a.player, a.game, maxChexToConsider)
+	return s
 }
 
 func (a *Agent) StopLearning() { a.epsilon = 0 }
-func (a *Agent) Learn(state1 State, action string, state2 State, reward game.WinKind) {
+func (a *Agent) Learn(state1 state.State, action string, state2 state.State, reward game.WinKind) {
 	defer a.qs.Unlock()
 	a.qs.Lock()
 	var oldQ float64 // By default, assume Q is zero.
