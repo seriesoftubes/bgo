@@ -170,19 +170,19 @@ func (a *Agent) Learn(state1 State, action string, state2 State, reward game.Win
 	a.qs.qvals[sa] = oldQ + a.alpha*(float64(reward)+(a.gamma*bestPossibleFutureQ)-oldQ)
 
 	a.numObservations++
-	if obs := a.numObservations; obs == 80000 && a.epsilon > 0.6 {
+	if obs := a.numObservations; obs == 80100 && a.epsilon > 0.6 {
 		a.epsilon = 0.6
-	} else if obs == 200000 && a.epsilon > 0.5 {
+	} else if obs == 200100 && a.epsilon > 0.5 {
 		a.epsilon = 0.5
-	} else if obs == 500000 && a.epsilon > 0.4 {
+	} else if obs == 500100 && a.epsilon > 0.4 {
 		a.epsilon = 0.4
-	} else if obs == 1500800 && a.epsilon > 0.3 {
+	} else if obs == 1200100 && a.epsilon > 0.3 {
 		a.epsilon = 0.3
-	} else if obs == 5200800 && a.epsilon > 0.2 {
+	} else if obs == 5200100 && a.epsilon > 0.2 {
 		a.epsilon = 0.2
-	} else if obs == 15300500 && a.epsilon > 0.1 {
+	} else if obs == 15200100 && a.epsilon > 0.1 {
 		a.epsilon = 0.1
-	} else if obs == 50300800 && a.epsilon > 0.01 {
+	} else if obs == 55200100 && a.epsilon > 0.01 {
 		a.epsilon = 0.01
 	}
 }
