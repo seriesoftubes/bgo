@@ -112,6 +112,13 @@ func (a *Agent) BestAction() string {
 	return bestAction
 }
 
+func uint8Ceiling(x, max uint8) uint8 {
+	if x > max {
+		return max
+	}
+	return x
+}
+
 func (a *Agent) DetectState() State {
 	if a.game.CurrentPlayer != a.player {
 		panic("shouldn't be detecting the state outside of the agent's own turn.")
@@ -123,20 +130,17 @@ func (a *Agent) DetectState() State {
 
 	isPCC := a.player == game.PCC
 	if isPCC {
-		out.numOnMyBar = a.game.Board.BarCC
-		out.numOnEnemyBar = a.game.Board.BarC
+		out.numOnMyBar = uint8Ceiling(a.game.Board.BarCC, maxChexToConsider)
+		out.numOnEnemyBar = uint8Ceiling(a.game.Board.BarC, maxChexToConsider)
 	} else {
-		out.numOnMyBar = a.game.Board.BarC
-		out.numOnEnemyBar = a.game.Board.BarCC
+		out.numOnMyBar = uint8Ceiling(a.game.Board.BarC, maxChexToConsider)
+		out.numOnEnemyBar = uint8Ceiling(a.game.Board.BarCC, maxChexToConsider)
 	}
 
 	out.boardPoints = [game.NUM_BOARD_POINTS]boardPointState{}
 	lastPointIndex := int(game.NUM_BOARD_POINTS - 1)
 	for ptIdx, pt := range a.game.Board.Points {
-		chex := pt.NumCheckers
-		if chex > maxChexToConsider {
-			chex = maxChexToConsider
-		}
+		chex := uint8Ceiling(pt.NumCheckers, maxChexToConsider)
 		// fill them in order of distance from enemy home. so PCC starts as normal
 		translatedPtIdx := lastPointIndex - ptIdx
 		if isPCC {
