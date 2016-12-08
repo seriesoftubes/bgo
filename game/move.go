@@ -61,13 +61,13 @@ func (m *Move) nextPointIdx() (int8, bool) {
 		if m.Requestor == PCC {
 			nxtIdx = int8(m.FowardDistance) - 1
 		} else {
-			nxtIdx = int8(NUM_BOARD_POINTS - m.FowardDistance)
+			nxtIdx = int8(constants.NUM_BOARD_POINTS - m.FowardDistance)
 		}
 	} else {
 		nxtIdx = int8(int(m.pointIdx()) + m.distCC())
 	}
 
-	return nxtIdx, nxtIdx >= 0 && nxtIdx < int8(NUM_BOARD_POINTS)
+	return nxtIdx, nxtIdx >= 0 && nxtIdx < int8(constants.NUM_BOARD_POINTS)
 }
 
 // distCC gets the counter-clockwise distance (meaning, moving in a positive direction thru the BoardPoint indices).

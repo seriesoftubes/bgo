@@ -1,6 +1,7 @@
 package state
 
 import (
+	"github.com/seriesoftubes/bgo/constants"
 	"github.com/seriesoftubes/bgo/game"
 )
 
@@ -12,7 +13,7 @@ type (
 
 	State struct {
 		// points on the board, indexed with 0 being the furthest away from the current player's home
-		boardPoints               [game.NUM_BOARD_POINTS]boardPointState
+		boardPoints               [constants.NUM_BOARD_POINTS]boardPointState
 		numOnMyBar, numOnEnemyBar uint8
 		myRoll                    game.Roll
 	}
@@ -39,8 +40,8 @@ func DetectState(p *game.Player, g *game.Game, maxChexToConsider uint8) (State, 
 		out.numOnEnemyBar = uint8Ceiling(g.Board.BarCC, maxChexToConsider)
 	}
 
-	out.boardPoints = [game.NUM_BOARD_POINTS]boardPointState{}
-	lastPointIndex := int(game.NUM_BOARD_POINTS - 1)
+	out.boardPoints = [constants.NUM_BOARD_POINTS]boardPointState{}
+	lastPointIndex := int(constants.NUM_BOARD_POINTS - 1)
 	for ptIdx, pt := range g.Board.Points {
 		chex := uint8Ceiling(pt.NumCheckers, maxChexToConsider)
 		// fill them in order of distance from enemy home. so PCC starts as normal

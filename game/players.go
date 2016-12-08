@@ -16,7 +16,7 @@ func playerPointer(p Player) *Player { return &p }
 func (p *Player) homePointIndices() (uint8, uint8) {
 	endIdx := constants.NUM_POINTS_IN_HOME_BOARD - 1
 	if p == PCC {
-		endIdx = NUM_BOARD_POINTS - 1
+		endIdx = constants.NUM_BOARD_POINTS - 1
 	}
 	startIdx := endIdx - constants.NUM_POINTS_IN_HOME_BOARD + 1
 	return startIdx, endIdx

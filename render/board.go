@@ -13,7 +13,7 @@ import (
 const (
 	MAX_CHECKERS_TO_PRINT         uint8 = 5 // E.g., "OOOOO"
 	BOT_LEFT_POINT_IDX            uint8 = 0
-	TOP_LEFT_POINT_IDX            uint8 = game.NUM_BOARD_POINTS - 1
+	TOP_LEFT_POINT_IDX            uint8 = constants.NUM_BOARD_POINTS - 1
 	BOT_RIGHT_POINT_IDX           uint8 = 11
 	TOP_RIGHT_POINT_IDX           uint8 = 12
 	TOP_POINT_TO_THE_RIGHT_OF_MID uint8 = 17

@@ -9,8 +9,7 @@ import (
 
 const (
 	numCheckersPerPlayer uint8 = 15
-	NUM_BOARD_POINTS     uint8 = 24
-	barPips              uint8 = NUM_BOARD_POINTS + 1
+	barPips              uint8 = constants.NUM_BOARD_POINTS + 1
 	alphabet                   = "abcdefghijklmnopqrstuvwxyz"
 )
 
@@ -62,7 +61,7 @@ type BoardPoint struct {
 func (p *BoardPoint) Symbol() string { return p.Owner.Symbol() }
 
 type Board struct {
-	Points      *[NUM_BOARD_POINTS]*BoardPoint
+	Points      *[constants.NUM_BOARD_POINTS]*BoardPoint
 	BarCC, BarC uint8 // # of checkers on each player's bar
 	OffCC, OffC uint8 // # of checkers that each player has beared off
 	// These win-related fields must only be set by the board itself.
@@ -74,7 +73,7 @@ type Board struct {
 func (b *Board) Copy() *Board {
 	cop := &Board{}
 	pts := b.Points
-	cop.Points = &[NUM_BOARD_POINTS]*BoardPoint{
+	cop.Points = &[constants.NUM_BOARD_POINTS]*BoardPoint{
 		{pts[0].Owner, pts[0].NumCheckers},
 		{pts[1].Owner, pts[1].NumCheckers},
 		{pts[2].Owner, pts[2].NumCheckers},
@@ -165,10 +164,10 @@ func (b *Board) isLegalMove(m *Move) (bool, string) {
 		if !b.doesPlayerHaveAllRemainingCheckersInHomeBoard(m.Requestor) {
 			return false, "Can't move past the finish line unless all your remaining checkers are in your home board"
 		}
-		if (m.Requestor == PCC && nxtIdx < 0) || (m.Requestor == PC && nxtIdx >= int8(NUM_BOARD_POINTS)) {
+		if (m.Requestor == PCC && nxtIdx < 0) || (m.Requestor == PC && nxtIdx >= int8(constants.NUM_BOARD_POINTS)) {
 			return false, "Must move past the correct finish line."
 		}
-		if ((m.Requestor == PCC && nxtIdx > int8(NUM_BOARD_POINTS)) || (m.Requestor == PC && nxtIdx < -1)) && b.doesPlayerHaveAnyRemainingCheckersBehindPoint(m.Requestor, m.pointIdx()) {
+		if ((m.Requestor == PCC && nxtIdx > int8(constants.NUM_BOARD_POINTS)) || (m.Requestor == PC && nxtIdx < -1)) && b.doesPlayerHaveAnyRemainingCheckersBehindPoint(m.Requestor, m.pointIdx()) {
 			// E.g., if you roll a 6, and you have chex on your 5 and 6 point, you can only bear off the ones on the 6 point (and not the ones on the 5 until all the chex on 6 are gone).
 			return false, "If the amount on the dice > the point's distance away from 0, then you must have already beared off all chex behind the point."
 		}
@@ -335,7 +334,7 @@ func (b *Board) ExecuteMoveIfLegal(m *Move) (bool, string) {
 }
 
 func (b *Board) setUp() {
-	b.Points = &[NUM_BOARD_POINTS]*BoardPoint{
+	b.Points = &[constants.NUM_BOARD_POINTS]*BoardPoint{
 		// counter-clockwise player is in bottom-left.
 		{PCC, 2}, {}, {}, {}, {}, {PC, 5}, {}, {PC, 3}, {}, {}, {}, {PCC, 5},
 		{PC, 5}, {}, {}, {}, {PCC, 3}, {}, {PCC, 5}, {}, {}, {}, {}, {PC, 2},
@@ -353,7 +352,7 @@ func (b *Board) PipCounts() (uint16, uint16) {
 			pipC += chex * basePips
 		} else if p.Owner == PCC {
 			// the counter-clockwise player's furthest checker is at points[0].
-			pipCC += chex * (uint16(NUM_BOARD_POINTS) - basePips + 1)
+			pipCC += chex * (uint16(constants.NUM_BOARD_POINTS) - basePips + 1)
 		}
 	}
 	pipC += uint16(b.BarC) * uint16(barPips)
