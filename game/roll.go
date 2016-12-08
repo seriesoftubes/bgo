@@ -1,12 +1,8 @@
 package game
 
 import (
+	"github.com/seriesoftubes/bgo/constants"
 	"github.com/seriesoftubes/bgo/random"
-)
-
-const (
-	minDiceAmt = 1
-	maxDiceAmt = 6
 )
 
 type Roll [2]uint8
@@ -28,5 +24,5 @@ func (r *Roll) Sorted() Roll {
 }
 
 func newRoll() *Roll {
-	return &Roll{random.Uint8Between(minDiceAmt, maxDiceAmt), random.Uint8Between(minDiceAmt, maxDiceAmt)}
+	return &Roll{random.Uint8Between(constants.MIN_DICE_AMT, constants.MAX_DICE_AMT), random.Uint8Between(constants.MIN_DICE_AMT, constants.MAX_DICE_AMT)}
 }

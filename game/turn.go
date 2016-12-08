@@ -87,7 +87,7 @@ func DeserializeTurn(s string) (Turn, error) {
 		letter := string(moveString[0])
 		dist, err := strconv.Atoi(string(moveString[1]))
 		distUint8 := uint8(dist)
-		if err != nil || distUint8 < minDiceAmt || distUint8 > maxDiceAmt {
+		if err != nil || distUint8 < constants.MIN_DICE_AMT || distUint8 > constants.MAX_DICE_AMT {
 			return nil, fmt.Errorf("invalid distance %v in moveString %v: %v", moveString[1], moveString, err)
 		}
 

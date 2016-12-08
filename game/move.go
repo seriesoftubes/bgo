@@ -26,7 +26,7 @@ func (m *Move) isValid() (bool, string) {
 		return false, "Must be a whitelisted lowercase alpha character."
 	}
 
-	if m.FowardDistance < minDiceAmt || m.FowardDistance > maxDiceAmt {
+	if m.FowardDistance < constants.MIN_DICE_AMT || m.FowardDistance > constants.MAX_DICE_AMT {
 		return false, "Distance must be between [1,6]"
 	}
 
