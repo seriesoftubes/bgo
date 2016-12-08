@@ -8,9 +8,8 @@ import (
 )
 
 const (
-	numCheckersPerPlayer uint8 = 15
-	barPips              uint8 = constants.NUM_BOARD_POINTS + 1
-	alphabet                   = "abcdefghijklmnopqrstuvwxyz"
+	barPips  uint8 = constants.NUM_BOARD_POINTS + 1
+	alphabet       = "abcdefghijklmnopqrstuvwxyz"
 )
 
 type WinKind uint8
@@ -27,11 +26,11 @@ func detectWinKind(b *Board, p *Player) WinKind {
 	numOtherPlayerHasBearedOff := b.OffC
 
 	if p == PCC {
-		if b.OffCC != numCheckersPerPlayer {
+		if b.OffCC != constants.NUM_CHECKERS_PER_PLAYER {
 			return WinKindNotWon
 		}
 	} else {
-		if b.OffC != numCheckersPerPlayer {
+		if b.OffC != constants.NUM_CHECKERS_PER_PLAYER {
 			return WinKindNotWon
 		}
 
@@ -123,7 +122,7 @@ func (b *Board) doesPlayerHaveAllRemainingCheckersInHomeBoard(p *Player) bool {
 		}
 	}
 
-	return totalChexInHomeOrBearedOff == numCheckersPerPlayer
+	return totalChexInHomeOrBearedOff == constants.NUM_CHECKERS_PER_PLAYER
 }
 
 func (b *Board) chexOnTheBar(p *Player) uint8 {
@@ -244,12 +243,12 @@ func (b *Board) decrementBar(p *Player) {
 func (b *Board) incrementBearoffZone(p *Player) {
 	if p == PCC {
 		b.OffCC++
-		if b.OffCC == numCheckersPerPlayer {
+		if b.OffCC == constants.NUM_CHECKERS_PER_PLAYER {
 			b.winner, b.winKind = PCC, detectWinKind(b, PCC)
 		}
 	} else {
 		b.OffC++
-		if b.OffC == numCheckersPerPlayer {
+		if b.OffC == constants.NUM_CHECKERS_PER_PLAYER {
 			b.winner, b.winKind = PC, detectWinKind(b, PC)
 		}
 	}

@@ -489,8 +489,8 @@ func TestExecuteMoveIfLegalWinSingleGame(t *testing.T) {
 		t.Errorf("expected winner to be %v but got %v", *PC, *boardPC.winner)
 	} else if boardPC.winKind != WinKindSingleGame {
 		t.Errorf("expected win state to be %v but got %v", WinKindSingleGame, boardPC.winKind)
-	} else if boardPC.OffC != numCheckersPerPlayer {
-		t.Errorf("expected %d chex to be beared off, but got %v", numCheckersPerPlayer, boardPC.OffC)
+	} else if boardPC.OffC != constants.NUM_CHECKERS_PER_PLAYER {
+		t.Errorf("expected %d chex to be beared off, but got %v", constants.NUM_CHECKERS_PER_PLAYER, boardPC.OffC)
 	}
 
 	boardPCC := b.Copy()
@@ -509,8 +509,8 @@ func TestExecuteMoveIfLegalWinSingleGame(t *testing.T) {
 		t.Errorf("expected winner to be %v but got %v", *PCC, *boardPCC.winner)
 	} else if boardPCC.winKind != WinKindSingleGame {
 		t.Errorf("expected win state to be %v but got %v", WinKindSingleGame, boardPCC.winKind)
-	} else if boardPCC.OffCC != numCheckersPerPlayer {
-		t.Errorf("expected %d chex to be beared off, but got %v", numCheckersPerPlayer, boardPCC.OffCC)
+	} else if boardPCC.OffCC != constants.NUM_CHECKERS_PER_PLAYER {
+		t.Errorf("expected %d chex to be beared off, but got %v", constants.NUM_CHECKERS_PER_PLAYER, boardPCC.OffCC)
 	}
 }
 
@@ -559,8 +559,8 @@ func TestExecuteMoveIfLegalWinGammon(t *testing.T) {
 		t.Errorf("expected winner to be %v but got %v", *PC, *boardPC.winner)
 	} else if boardPC.winKind != WinKindGammon {
 		t.Errorf("expected win state to be %v but got %v", WinKindGammon, boardPC.winKind)
-	} else if boardPC.OffC != numCheckersPerPlayer {
-		t.Errorf("expected %d chex to be beared off, but got %v", numCheckersPerPlayer, boardPC.OffC)
+	} else if boardPC.OffC != constants.NUM_CHECKERS_PER_PLAYER {
+		t.Errorf("expected %d chex to be beared off, but got %v", constants.NUM_CHECKERS_PER_PLAYER, boardPC.OffC)
 	}
 }
 
@@ -609,8 +609,8 @@ func TestExecuteMoveIfLegalWinBackgammon(t *testing.T) {
 		t.Errorf("expected winner to be %v but got %v", *PC, *boardPC.winner)
 	} else if boardPC.winKind != WinKindBackgammon {
 		t.Errorf("expected win state to be %v but got %v", WinKindBackgammon, boardPC.winKind)
-	} else if boardPC.OffC != numCheckersPerPlayer {
-		t.Errorf("expected %d chex to be beared off, but got %v", numCheckersPerPlayer, boardPC.OffC)
+	} else if boardPC.OffC != constants.NUM_CHECKERS_PER_PLAYER {
+		t.Errorf("expected %d chex to be beared off, but got %v", constants.NUM_CHECKERS_PER_PLAYER, boardPC.OffC)
 	}
 }
 
