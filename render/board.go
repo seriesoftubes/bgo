@@ -11,18 +11,18 @@ import (
 )
 
 const (
-	MAX_CHECKERS_TO_PRINT         uint8 = 5 // E.g., "OOOOO"
-	BOT_LEFT_POINT_IDX            uint8 = 0
-	TOP_LEFT_POINT_IDX            uint8 = constants.NUM_BOARD_POINTS - 1
-	BOT_RIGHT_POINT_IDX           uint8 = 11
-	TOP_RIGHT_POINT_IDX           uint8 = 12
-	TOP_POINT_TO_THE_RIGHT_OF_MID uint8 = 17
-	BOT_POINT_TO_THE_RIGHT_OF_MID uint8 = 6
-	BORDER                              = "==="
-	TOP_MID_BORDER                      = "|m|"
-	BOT_MID_BORDER                      = "|w|"
-	EMPTY_CHECKERS                      = " - "
-	BLANK_SPACE                         = "   "
+	maxCheckersToPrint      uint8 = 5 // E.g., "OOOOO"
+	botLeftPointIdx         uint8 = 0
+	topLeftPointIdx         uint8 = constants.NUM_BOARD_POINTS - 1
+	botRightPointIdx        uint8 = 11
+	topRightPointIdx        uint8 = 12
+	topPointToTheRightOfMid uint8 = 17
+	botPointToTheRightOfMid uint8 = 6
+	border                        = "==="
+	topMidBorder                  = "|m|"
+	botMidBorder                  = "|w|"
+	emptyCheckers                 = " - "
+	blankSpace                    = "   "
 )
 
 func PrintBoard(b *game.Board) {
@@ -34,9 +34,9 @@ func PrintBoard(b *game.Board) {
 
 	// Letters above the top border
 	row := ""
-	for pointIdx := TOP_LEFT_POINT_IDX; pointIdx >= TOP_RIGHT_POINT_IDX; pointIdx-- {
+	for pointIdx := topLeftPointIdx; pointIdx >= topRightPointIdx; pointIdx-- {
 		prefix := " "
-		if pointIdx == TOP_POINT_TO_THE_RIGHT_OF_MID {
+		if pointIdx == topPointToTheRightOfMid {
 			prefix = "   " + " "
 		}
 		row += prefix + constants.Num2Alpha[pointIdx] + " "
@@ -45,44 +45,44 @@ func PrintBoard(b *game.Board) {
 
 	// Top border
 	row = ""
-	for pointIdx := TOP_LEFT_POINT_IDX + 1; pointIdx >= TOP_RIGHT_POINT_IDX; pointIdx-- {
-		row += BORDER
+	for pointIdx := topLeftPointIdx + 1; pointIdx >= topRightPointIdx; pointIdx-- {
+		row += border
 	}
 	topRows = append(topRows, row)
 
 	// Checkers, up to the max height.
-	for height := uint8(0); height < MAX_CHECKERS_TO_PRINT; height++ {
+	for height := uint8(0); height < maxCheckersToPrint; height++ {
 		row = ""
-		for pointIdx := TOP_LEFT_POINT_IDX; pointIdx >= TOP_RIGHT_POINT_IDX; pointIdx-- {
+		for pointIdx := topLeftPointIdx; pointIdx >= topRightPointIdx; pointIdx-- {
 			prefix := ""
-			if pointIdx == TOP_POINT_TO_THE_RIGHT_OF_MID {
-				prefix = TOP_MID_BORDER
+			if pointIdx == topPointToTheRightOfMid {
+				prefix = topMidBorder
 			}
 
 			p := b.Points[pointIdx]
 			if height == 0 && p.NumCheckers == 0 {
-				row += prefix + EMPTY_CHECKERS
+				row += prefix + emptyCheckers
 			} else {
 				if p.NumCheckers > height {
 					row += prefix + " " + p.Symbol() + " "
 				} else {
-					row += prefix + BLANK_SPACE
+					row += prefix + blankSpace
 				}
 			}
 		}
 		topRows = append(topRows, row)
 	}
 
-	// Bottom row of the top: a number, if NumCheckers > MAX_CHECKERS_TO_PRINT
+	// Bottom row of the top: a number, if NumCheckers > maxCheckersToPrint
 	row = ""
-	for pointIdx := TOP_LEFT_POINT_IDX; pointIdx >= TOP_RIGHT_POINT_IDX; pointIdx-- {
+	for pointIdx := topLeftPointIdx; pointIdx >= topRightPointIdx; pointIdx-- {
 		p := b.Points[pointIdx]
 		prefix := ""
-		if pointIdx == TOP_POINT_TO_THE_RIGHT_OF_MID {
-			prefix = TOP_MID_BORDER
+		if pointIdx == topPointToTheRightOfMid {
+			prefix = topMidBorder
 		}
 
-		if p.NumCheckers > MAX_CHECKERS_TO_PRINT {
+		if p.NumCheckers > maxCheckersToPrint {
 			pads := " "
 			spaces := " "
 			if p.NumCheckers > 9 {
@@ -91,21 +91,21 @@ func PrintBoard(b *game.Board) {
 			}
 			row += prefix + pads + strconv.Itoa(int(p.NumCheckers)) + spaces
 		} else {
-			row += prefix + BLANK_SPACE
+			row += prefix + blankSpace
 		}
 	}
 	topRows = append(topRows, row)
 
-	// Top row of the bottom: a number, if NumCheckers > MAX_CHECKERS_TO_PRINT
+	// Top row of the bottom: a number, if NumCheckers > maxCheckersToPrint
 	row = ""
-	for pointIdx := BOT_LEFT_POINT_IDX; pointIdx <= BOT_RIGHT_POINT_IDX; pointIdx++ {
+	for pointIdx := botLeftPointIdx; pointIdx <= botRightPointIdx; pointIdx++ {
 		p := b.Points[pointIdx]
 		prefix := ""
-		if pointIdx == BOT_POINT_TO_THE_RIGHT_OF_MID {
-			prefix = BOT_MID_BORDER
+		if pointIdx == botPointToTheRightOfMid {
+			prefix = botMidBorder
 		}
 
-		if p.NumCheckers > MAX_CHECKERS_TO_PRINT {
+		if p.NumCheckers > maxCheckersToPrint {
 			pads := " "
 			spaces := " "
 			if p.NumCheckers > 9 {
@@ -114,28 +114,28 @@ func PrintBoard(b *game.Board) {
 			}
 			row += prefix + pads + strconv.Itoa(int(p.NumCheckers)) + spaces
 		} else {
-			row += prefix + BLANK_SPACE
+			row += prefix + blankSpace
 		}
 	}
 	botRows = append(botRows, row)
 
 	// Checkers, from the max height, down to 0.
-	for height := MAX_CHECKERS_TO_PRINT; height > uint8(0); height-- {
+	for height := maxCheckersToPrint; height > uint8(0); height-- {
 		row = ""
-		for pointIdx := BOT_LEFT_POINT_IDX; pointIdx <= BOT_RIGHT_POINT_IDX; pointIdx++ {
+		for pointIdx := botLeftPointIdx; pointIdx <= botRightPointIdx; pointIdx++ {
 			prefix := ""
-			if pointIdx == BOT_POINT_TO_THE_RIGHT_OF_MID {
-				prefix = BOT_MID_BORDER
+			if pointIdx == botPointToTheRightOfMid {
+				prefix = botMidBorder
 			}
 
 			p := b.Points[pointIdx]
 			if height == 1 && p.NumCheckers == 0 {
-				row += prefix + EMPTY_CHECKERS
+				row += prefix + emptyCheckers
 			} else {
 				if p.NumCheckers >= height {
 					row += prefix + " " + p.Symbol() + " "
 				} else {
-					row += prefix + BLANK_SPACE
+					row += prefix + blankSpace
 				}
 			}
 		}
@@ -144,16 +144,16 @@ func PrintBoard(b *game.Board) {
 
 	// Bottom border.
 	row = ""
-	for pointIdx := BOT_LEFT_POINT_IDX; pointIdx <= BOT_RIGHT_POINT_IDX+1; pointIdx++ {
-		row += BORDER
+	for pointIdx := botLeftPointIdx; pointIdx <= botRightPointIdx+1; pointIdx++ {
+		row += border
 	}
 	botRows = append(botRows, row)
 
 	// Letters below the bottom border.
 	row = ""
-	for pointIdx := BOT_LEFT_POINT_IDX; pointIdx <= BOT_RIGHT_POINT_IDX; pointIdx++ {
+	for pointIdx := botLeftPointIdx; pointIdx <= botRightPointIdx; pointIdx++ {
 		prefix := " "
-		if pointIdx == BOT_POINT_TO_THE_RIGHT_OF_MID {
+		if pointIdx == botPointToTheRightOfMid {
 			prefix = "   " + " "
 		}
 		row += prefix + constants.Num2Alpha[pointIdx] + " "
@@ -185,12 +185,12 @@ func PrintBoard(b *game.Board) {
 
 func renderBar(p *game.Player, numOnBar uint8) string {
 	bar := fmt.Sprintf("%s's: ", p.Symbol())
-	for i := uint8(0); i < numOnBar && i < MAX_CHECKERS_TO_PRINT; i++ {
+	for i := uint8(0); i < numOnBar && i < maxCheckersToPrint; i++ {
 		bar += p.Symbol()
 	}
 	if numOnBar == 0 {
-		bar += strings.TrimSpace(EMPTY_CHECKERS)
-	} else if numOnBar > MAX_CHECKERS_TO_PRINT {
+		bar += strings.TrimSpace(emptyCheckers)
+	} else if numOnBar > maxCheckersToPrint {
 		bar += " " + strconv.Itoa(int(numOnBar))
 	}
 	return bar
