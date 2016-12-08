@@ -237,8 +237,8 @@ func TestExecuteMoveIfLegal(t *testing.T) {
 	m := &Move{Requestor: PCC, Letter: "a", FowardDistance: 6}
 
 	// Original state
-	fromIdx := alpha2Num[m.Letter]
-	toIdx, _ := alpha2Num["g"]
+	fromIdx := constants.Alpha2Num[m.Letter]
+	toIdx, _ := constants.Alpha2Num["g"]
 	fromPt, toPt := b.Points[fromIdx], b.Points[toIdx]
 	fromPtChex, toPtChex := fromPt.NumCheckers, toPt.NumCheckers
 
@@ -266,7 +266,7 @@ func TestExecuteMoveIfLegalFromBar(t *testing.T) {
 	m := &Move{Requestor: PCC, Letter: "y", FowardDistance: 1}
 
 	// Original state
-	toIdx, _ := alpha2Num["a"]
+	toIdx, _ := constants.Alpha2Num["a"]
 	toPt := b.Points[toIdx]
 	fromPtChex, toPtChex := b.BarCC, toPt.NumCheckers
 
@@ -288,13 +288,13 @@ func TestExecuteMoveIfLegalFromBarForPlayerC(t *testing.T) {
 	b := Board{}
 	b.setUp()
 	// Simulate having 1 chex on the bar for PCC.
-	b.Points[alpha2Num["x"]].NumCheckers--
+	b.Points[constants.Alpha2Num["x"]].NumCheckers--
 	b.BarC = 1
 
 	m := &Move{Requestor: PC, Letter: "z", FowardDistance: 2}
 
 	// Original state
-	toIdx, _ := alpha2Num["w"]
+	toIdx, _ := constants.Alpha2Num["w"]
 	toPt := b.Points[toIdx]
 	fromPtChex, toPtChex := b.BarC, toPt.NumCheckers
 
@@ -346,7 +346,7 @@ func TestExecuteMoveIfLegalBearOff(t *testing.T) {
 	m := &Move{Requestor: PCC, Letter: "t", FowardDistance: 6}
 
 	// Original state
-	fromIdx, _ := alpha2Num[m.Letter]
+	fromIdx, _ := constants.Alpha2Num[m.Letter]
 	fromPt := b.Points[fromIdx]
 	fromPtChex, toPtChex := fromPt.NumCheckers, b.OffCC
 
@@ -404,8 +404,8 @@ func TestExecuteMoveIfLegalTakeoverEnemy(t *testing.T) {
 		t.Errorf("thought there were 0 on bar C to begin with, got %v", originalBarC)
 	}
 
-	fromIdx, _ := alpha2Num[m.Letter]
-	toIdx := alpha2Num["f"]
+	fromIdx, _ := constants.Alpha2Num[m.Letter]
+	toIdx := constants.Alpha2Num["f"]
 	fromPt, toPt := b.Points[fromIdx], b.Points[toIdx]
 	fromPtOwner, toPtOwner := fromPt.Owner, toPt.Owner
 	fromPtChex, toPtChex := fromPt.NumCheckers, toPt.NumCheckers

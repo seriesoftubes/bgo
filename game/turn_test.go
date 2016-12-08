@@ -235,7 +235,7 @@ func TestValidTurnsTwoOnTheBar(t *testing.T) {
 	for _, c := range cases {
 		b := &Board{}
 		b.setUp()
-		b.Points[alpha2Num["a"]].NumCheckers = 0
+		b.Points[constants.Alpha2Num["a"]].NumCheckers = 0
 		b.BarCC = 2
 		/*
 		    Board is:
@@ -322,7 +322,7 @@ func TestValidTurnsOneOnTheBar(t *testing.T) {
 	for _, c := range cases {
 		b := &Board{}
 		b.setUp()
-		b.Points[alpha2Num["a"]].NumCheckers = 1
+		b.Points[constants.Alpha2Num["a"]].NumCheckers = 1
 		b.BarCC = 1
 		/*
 		    Board is:

@@ -6,12 +6,6 @@ import (
 	"github.com/seriesoftubes/bgo/constants"
 )
 
-var alpha2Num = map[string]uint8{
-	"a": 0, "b": 1, "c": 2, "d": 3, "e": 4, "f": 5, "g": 6, "h": 7, "i": 8, "j": 9,
-	"k": 10, "l": 11, "m": 12, "n": 13, "o": 14, "p": 15, "q": 16, "r": 17, "s": 18, "t": 19,
-	"u": 20, "v": 21, "w": 22, "x": 23, constants.LETTER_BAR_CC: 24, constants.LETTER_BAR_C: 25,
-}
-
 // A move being requested by the current player
 type Move struct {
 	Requestor      *Player
@@ -28,7 +22,7 @@ func (m *Move) isValid() (bool, string) {
 		return false, "Must have requestor."
 	}
 
-	if _, ok := alpha2Num[m.Letter]; !ok {
+	if _, ok := constants.Alpha2Num[m.Letter]; !ok {
 		return false, "Must be a whitelisted lowercase alpha character."
 	}
 
@@ -48,7 +42,7 @@ func (m *Move) pointIdx() uint8 {
 		panic("no point index available for the bar letters (those arent stored in board.Points)")
 	}
 
-	return alpha2Num[m.Letter]
+	return constants.Alpha2Num[m.Letter]
 }
 
 // TODO: MoveSet struct, or execute each command, 1 at a time, until the player is out of moves.
