@@ -206,14 +206,24 @@ func (b *Board) LegalMoves(p *plyr.Player, diceAmt uint8) []*turn.Move {
 		if ok, _ := b.isLegalMove(m); ok {
 			out = append(out, m)
 		}
+		if b.BarCC > 1 {
+			return out
+		}
 	} else if p == plyr.PC && b.BarC > 0 {
 		m := &turn.Move{Requestor: p, Letter: constants.LETTER_BAR_C, FowardDistance: diceAmt}
 		if ok, _ := b.isLegalMove(m); ok {
 			out = append(out, m)
 		}
+		if b.BarC > 1 {
+			return out
+		}
 	}
 
-	for pointIdx := range b.Points {
+	for pointIdx, pt := range b.Points {
+		if pt.Owner != p {
+			continue
+		}
+
 		m := &turn.Move{Requestor: p, Letter: string(constants.Num2Alpha[uint8(pointIdx)]), FowardDistance: diceAmt}
 		if ok, _ := b.isLegalMove(m); ok {
 			out = append(out, m)
@@ -274,10 +284,19 @@ func (smp sortableMotimesPairs) Less(i, j int) bool {
 // MustExecuteTurn takes a Turn, and executes its individual moves, in an order that won't explode the game.
 // This is mainly to support the stdin UX of supplying entire, serialized Turns (the UX should be improved to do 1 Move at a time instead of a whole Turn though).
 func (b *Board) MustExecuteTurn(t turn.Turn, debug bool) {
-	mustExec := func(m turn.Move, times uint8) {
-		for i := uint8(0); i < times; i++ {
-			if ok, reason := b.ExecuteMoveIfLegal(&m); !ok {
-				panic(fmt.Sprintf("we couldn't execute Move %v for the %d'th time, as part of supposedly-valid Turn %v, because %s", m, i, t, reason))
+	var mustExec func(m turn.Move, times uint8)
+	if debug {
+		mustExec = func(m turn.Move, times uint8) {
+			for i := uint8(0); i < times; i++ {
+				if ok, reason := b.ExecuteMoveIfLegal(&m); !ok {
+					panic(fmt.Sprintf("we couldn't execute Move %v for the %d'th time, as part of supposedly-valid Turn %v, because %s", m, i, t, reason))
+				}
+			}
+		}
+	} else {
+		mustExec = func(m turn.Move, times uint8) {
+			for i := uint8(0); i < times; i++ {
+				b.ExecuteMoveUnsafe(&m)
 			}
 		}
 	}
@@ -297,13 +316,7 @@ func (b *Board) MustExecuteTurn(t turn.Turn, debug bool) {
 	}
 }
 
-func (b *Board) ExecuteMoveIfLegal(m *turn.Move) (bool, string) {
-	moveOk, moveReason := m.IsValid()
-	boardOk, boardReason := b.isLegalMove(m)
-	if !moveOk || !boardOk {
-		return false, moveReason + boardReason
-	}
-
+func (b *Board) ExecuteMoveUnsafe(m *turn.Move) {
 	if m.IsToMoveSomethingOutOfTheBar() {
 		b.decrementBar(m.Requestor)
 	} else {
@@ -317,7 +330,7 @@ func (b *Board) ExecuteMoveIfLegal(m *turn.Move) (bool, string) {
 	nextPointIdx, nxtPtExists := m.NextPointIdx()
 	if !nxtPtExists {
 		b.incrementBearoffZone(m.Requestor)
-		return true, ""
+		return
 	}
 
 	nxtPt := b.Points[nextPointIdx]
@@ -327,7 +340,16 @@ func (b *Board) ExecuteMoveIfLegal(m *turn.Move) (bool, string) {
 	}
 	nxtPt.NumCheckers++
 	nxtPt.Owner = m.Requestor
+}
 
+func (b *Board) ExecuteMoveIfLegal(m *turn.Move) (bool, string) {
+	moveOk, moveReason := m.IsValid()
+	boardOk, boardReason := b.isLegalMove(m)
+	if !moveOk || !boardOk {
+		return false, moveReason + boardReason
+	}
+
+	b.ExecuteMoveUnsafe(m)
 	return true, ""
 }
 

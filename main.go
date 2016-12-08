@@ -38,6 +38,6 @@ func main() {
 
 	fmt.Println("trained", trainings, "times in", time.Since(start))
 
-	mgr := ctrl.New(qs, false)
+	mgr := ctrl.New(qs, true)
 	mgr.PlayOneGame(1 /* stopLearning=true */, true)
 }

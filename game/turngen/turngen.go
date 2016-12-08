@@ -4,7 +4,6 @@ package turngen
 import (
 	"fmt"
 
-	"github.com/seriesoftubes/bgo/constants"
 	"github.com/seriesoftubes/bgo/game"
 	"github.com/seriesoftubes/bgo/game/plyr"
 	"github.com/seriesoftubes/bgo/game/turn"
@@ -39,50 +38,31 @@ func ValidTurns(b *game.Board, r *game.Roll, p *plyr.Player) map[string]turn.Tur
 		return true
 	}
 
-	barLetter := constants.LETTER_BAR_CC
-	hasChexOnTheBar := b.BarCC > 0
-	if p == plyr.PC {
-		barLetter = constants.LETTER_BAR_C
-		hasChexOnTheBar = b.BarC > 0
-	}
-
 	var addPerm func(bb *game.Board, remainingDists []uint8, t turn.Turn)
-	var maybeAddMove func(bcop *game.Board, m *turn.Move, distIdx int, t turn.Turn, remainingDists []uint8)
 	addPerm = func(bb *game.Board, remainingDists []uint8, t turn.Turn) {
 		if remainingDists == nil || len(remainingDists) == 0 {
 			return
 		}
 
 		for distIdx, dist := range remainingDists {
-			if hasChexOnTheBar {
-				maybeAddMove(bb.Copy(), &turn.Move{Requestor: p, Letter: barLetter, FowardDistance: dist}, distIdx, t, remainingDists)
-			}
+			for _, mv := range bb.LegalMoves(p, dist) {
+				bcop := bb.Copy()
+				bcop.ExecuteMoveUnsafe(mv) // We already know the move is legal, so it's safe to do it.
 
-			for ptIdx, pt := range bb.Points {
-				if pt.Owner == p {
-					maybeAddMove(bb.Copy(), &turn.Move{Requestor: p, Letter: constants.Num2Alpha[uint8(ptIdx)], FowardDistance: dist}, distIdx, t, remainingDists)
+				legitTurn := t.Copy()
+				legitTurn.Update(*mv)
+				if !maybeAddToResultSet(legitTurn) {
+					continue
+				}
+
+				if nextRemaining, err := popSliceUint8(remainingDists, distIdx); err != nil {
+					panic("problem popping a value from a uint8 slice: " + err.Error())
+				} else {
+					addPerm(bcop.Copy(), nextRemaining, legitTurn)
 				}
 			}
 		}
 	}
-	maybeAddMove = func(bcop *game.Board, m *turn.Move, distIdx int, t turn.Turn, remainingDists []uint8) {
-		if ok, _ := bcop.ExecuteMoveIfLegal(m); !ok {
-			return
-		}
-
-		legitTurn := t.Copy()
-		legitTurn.Update(*m)
-		if added := maybeAddToResultSet(legitTurn); !added {
-			return
-		}
-
-		if nextRemaining, err := popSliceUint8(remainingDists, distIdx); err != nil {
-			panic("problem popping a value from a uint8 slice: " + err.Error())
-		} else {
-			addPerm(bcop.Copy(), nextRemaining, legitTurn)
-		}
-	}
-
 	addPerm(b.Copy(), r.MoveDistances(), turn.Turn{})
 
 	for st, t := range serializedTurns {
