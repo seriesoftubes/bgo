@@ -8,6 +8,7 @@ import (
 
 	"github.com/seriesoftubes/bgo/constants"
 	"github.com/seriesoftubes/bgo/game"
+	"github.com/seriesoftubes/bgo/game/plyr"
 )
 
 const (
@@ -172,18 +173,18 @@ func PrintBoard(b *game.Board) {
 	}
 	fmt.Println(prefix + "\n")
 	fmt.Println(prefix + "The bar")
-	fmt.Println(prefix + constants.LETTER_BAR_CC + "\t" + renderBar(game.PCC, b.BarCC))
-	fmt.Println(prefix + constants.LETTER_BAR_C + "\t" + renderBar(game.PC, b.BarC))
+	fmt.Println(prefix + constants.LETTER_BAR_CC + "\t" + renderBar(plyr.PCC, b.BarCC))
+	fmt.Println(prefix + constants.LETTER_BAR_C + "\t" + renderBar(plyr.PC, b.BarC))
 	fmt.Println(prefix)
 	fmt.Println(prefix + "Beared off")
-	fmt.Println(prefix + fmt.Sprintf("\t%s's: %d\t\t%s's: %d", game.PCC.Symbol(), b.OffCC, game.PC.Symbol(), b.OffC))
+	fmt.Println(prefix + fmt.Sprintf("\t%s's: %d\t\t%s's: %d", plyr.PCC.Symbol(), b.OffCC, plyr.PC.Symbol(), b.OffC))
 	fmt.Println(prefix + "Pipcounts")
 	pipC, pipCC := b.PipCounts()
-	fmt.Println(prefix + fmt.Sprintf("\t%s's: %d\t%s's: %d", game.PCC.Symbol(), pipCC, game.PC.Symbol(), pipC))
+	fmt.Println(prefix + fmt.Sprintf("\t%s's: %d\t%s's: %d", plyr.PCC.Symbol(), pipCC, plyr.PC.Symbol(), pipC))
 	fmt.Println(prefix + "\n")
 }
 
-func renderBar(p *game.Player, numOnBar uint8) string {
+func renderBar(p *plyr.Player, numOnBar uint8) string {
 	bar := fmt.Sprintf("%s's: ", p.Symbol())
 	for i := uint8(0); i < numOnBar && i < maxCheckersToPrint; i++ {
 		bar += p.Symbol()

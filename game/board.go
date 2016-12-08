@@ -5,6 +5,8 @@ import (
 	"sort"
 
 	"github.com/seriesoftubes/bgo/constants"
+	"github.com/seriesoftubes/bgo/game/plyr"
+	"github.com/seriesoftubes/bgo/game/turn"
 )
 
 const barPips uint8 = constants.NUM_BOARD_POINTS + 1
@@ -18,11 +20,11 @@ const (
 	WinKindBackgammon WinKind = 3
 )
 
-func detectWinKind(b *Board, p *Player) WinKind {
-	otherPlayer := PC
+func detectWinKind(b *Board, p *plyr.Player) WinKind {
+	otherPlayer := plyr.PC
 	numOtherPlayerHasBearedOff := b.OffC
 
-	if p == PCC {
+	if p == plyr.PCC {
 		if b.OffCC != constants.NUM_CHECKERS_PER_PLAYER {
 			return WinKindNotWon
 		}
@@ -31,7 +33,7 @@ func detectWinKind(b *Board, p *Player) WinKind {
 			return WinKindNotWon
 		}
 
-		otherPlayer = PCC
+		otherPlayer = plyr.PCC
 		numOtherPlayerHasBearedOff = b.OffCC
 	}
 
@@ -39,7 +41,7 @@ func detectWinKind(b *Board, p *Player) WinKind {
 		return WinKindSingleGame
 	}
 
-	homeStart, homeEnd := p.homePointIndices()
+	homeStart, homeEnd := p.HomePointIndices()
 	for i := homeStart; i <= homeEnd; i++ {
 		if pt := b.Points[i]; pt.Owner == otherPlayer {
 			return WinKindBackgammon
@@ -50,7 +52,7 @@ func detectWinKind(b *Board, p *Player) WinKind {
 }
 
 type BoardPoint struct {
-	Owner       *Player
+	Owner       *plyr.Player
 	NumCheckers uint8
 }
 
@@ -61,7 +63,7 @@ type Board struct {
 	BarCC, BarC uint8 // # of checkers on each player's bar
 	OffCC, OffC uint8 // # of checkers that each player has beared off
 	// These win-related fields must only be set by the board itself.
-	winner  *Player
+	winner  *plyr.Player
 	winKind WinKind
 }
 
@@ -103,16 +105,16 @@ func (b *Board) Copy() *Board {
 	return cop
 }
 
-func (b *Board) Winner() *Player  { return b.winner }
-func (b *Board) WinKind() WinKind { return b.winKind }
+func (b *Board) Winner() *plyr.Player { return b.winner }
+func (b *Board) WinKind() WinKind     { return b.winKind }
 
-func (b *Board) doesPlayerHaveAllRemainingCheckersInHomeBoard(p *Player) bool {
+func (b *Board) doesPlayerHaveAllRemainingCheckersInHomeBoard(p *plyr.Player) bool {
 	totalChexInHomeOrBearedOff := b.OffC
-	if p == PCC {
+	if p == plyr.PCC {
 		totalChexInHomeOrBearedOff = b.OffCC
 	}
 
-	homeStart, homeEnd := p.homePointIndices()
+	homeStart, homeEnd := p.HomePointIndices()
 	for i := homeStart; i <= homeEnd; i++ {
 		if pt := b.Points[i]; pt.Owner == p {
 			totalChexInHomeOrBearedOff += pt.NumCheckers
@@ -122,21 +124,21 @@ func (b *Board) doesPlayerHaveAllRemainingCheckersInHomeBoard(p *Player) bool {
 	return totalChexInHomeOrBearedOff == constants.NUM_CHECKERS_PER_PLAYER
 }
 
-func (b *Board) chexOnTheBar(p *Player) uint8 {
-	if p == PC {
+func (b *Board) chexOnTheBar(p *plyr.Player) uint8 {
+	if p == plyr.PC {
 		return b.BarC
 	}
 	return b.BarCC
 }
 
-func (b *Board) isLegalMove(m *Move) (bool, string) {
+func (b *Board) isLegalMove(m *turn.Move) (bool, string) {
 	isForBar := m.Letter == constants.LETTER_BAR_CC || m.Letter == constants.LETTER_BAR_C
 	numOnTheBar := b.chexOnTheBar(m.Requestor)
 	if numOnTheBar > 0 && !isForBar {
 		return false, "If you have anything on the bar, you must move those things first"
 	}
 	expectedLetter := constants.LETTER_BAR_C
-	if m.Requestor == PCC {
+	if m.Requestor == plyr.PCC {
 		expectedLetter = constants.LETTER_BAR_CC
 	}
 	if isForBar && m.Letter != expectedLetter {
@@ -145,7 +147,7 @@ func (b *Board) isLegalMove(m *Move) (bool, string) {
 
 	numChexOnCurrentPoint := numOnTheBar
 	if !isForBar {
-		fromPt := b.Points[m.pointIdx()]
+		fromPt := b.Points[m.PointIdx()]
 		if fromPt.Owner != m.Requestor {
 			return false, "Can only move your own checkers."
 		}
@@ -155,15 +157,15 @@ func (b *Board) isLegalMove(m *Move) (bool, string) {
 		return false, "Cannot move a checker from an empty point"
 	}
 
-	nxtIdx, nxtPtExists := m.nextPointIdx()
+	nxtIdx, nxtPtExists := m.NextPointIdx()
 	if !nxtPtExists {
 		if !b.doesPlayerHaveAllRemainingCheckersInHomeBoard(m.Requestor) {
 			return false, "Can't move past the finish line unless all your remaining checkers are in your home board"
 		}
-		if (m.Requestor == PCC && nxtIdx < 0) || (m.Requestor == PC && nxtIdx >= int8(constants.NUM_BOARD_POINTS)) {
+		if (m.Requestor == plyr.PCC && nxtIdx < 0) || (m.Requestor == plyr.PC && nxtIdx >= int8(constants.NUM_BOARD_POINTS)) {
 			return false, "Must move past the correct finish line."
 		}
-		if ((m.Requestor == PCC && nxtIdx > int8(constants.NUM_BOARD_POINTS)) || (m.Requestor == PC && nxtIdx < -1)) && b.doesPlayerHaveAnyRemainingCheckersBehindPoint(m.Requestor, m.pointIdx()) {
+		if ((m.Requestor == plyr.PCC && nxtIdx > int8(constants.NUM_BOARD_POINTS)) || (m.Requestor == plyr.PC && nxtIdx < -1)) && b.doesPlayerHaveAnyRemainingCheckersBehindPoint(m.Requestor, m.PointIdx()) {
 			// E.g., if you roll a 6, and you have chex on your 5 and 6 point, you can only bear off the ones on the 6 point (and not the ones on the 5 until all the chex on 6 are gone).
 			return false, "If the amount on the dice > the point's distance away from 0, then you must have already beared off all chex behind the point."
 		}
@@ -176,10 +178,10 @@ func (b *Board) isLegalMove(m *Move) (bool, string) {
 	return true, ""
 }
 
-func (b *Board) doesPlayerHaveAnyRemainingCheckersBehindPoint(p *Player, pointIdx uint8) bool {
-	homeStart, homeEnd := p.homePointIndices()
+func (b *Board) doesPlayerHaveAnyRemainingCheckersBehindPoint(p *plyr.Player, pointIdx uint8) bool {
+	homeStart, homeEnd := p.HomePointIndices()
 
-	if p == PCC {
+	if p == plyr.PCC {
 		for i := pointIdx - 1; i >= homeStart; i-- {
 			if pt := b.Points[i]; pt.Owner == p && pt.NumCheckers > 0 {
 				return true
@@ -195,24 +197,24 @@ func (b *Board) doesPlayerHaveAnyRemainingCheckersBehindPoint(p *Player, pointId
 	return false
 }
 
-func (b *Board) LegalMoves(p *Player, diceAmt uint8) []*Move {
-	var out []*Move
+func (b *Board) LegalMoves(p *plyr.Player, diceAmt uint8) []*turn.Move {
+	var out []*turn.Move
 
 	// Moves off the bar.
-	if p == PCC && b.BarCC > 0 {
-		m := &Move{Requestor: p, Letter: constants.LETTER_BAR_CC, FowardDistance: diceAmt}
+	if p == plyr.PCC && b.BarCC > 0 {
+		m := &turn.Move{Requestor: p, Letter: constants.LETTER_BAR_CC, FowardDistance: diceAmt}
 		if ok, _ := b.isLegalMove(m); ok {
 			out = append(out, m)
 		}
-	} else if p == PC && b.BarC > 0 {
-		m := &Move{Requestor: p, Letter: constants.LETTER_BAR_C, FowardDistance: diceAmt}
+	} else if p == plyr.PC && b.BarC > 0 {
+		m := &turn.Move{Requestor: p, Letter: constants.LETTER_BAR_C, FowardDistance: diceAmt}
 		if ok, _ := b.isLegalMove(m); ok {
 			out = append(out, m)
 		}
 	}
 
 	for pointIdx := range b.Points {
-		m := &Move{Requestor: p, Letter: string(constants.Num2Alpha[uint8(pointIdx)]), FowardDistance: diceAmt}
+		m := &turn.Move{Requestor: p, Letter: string(constants.Num2Alpha[uint8(pointIdx)]), FowardDistance: diceAmt}
 		if ok, _ := b.isLegalMove(m); ok {
 			out = append(out, m)
 		}
@@ -221,39 +223,39 @@ func (b *Board) LegalMoves(p *Player, diceAmt uint8) []*Move {
 	return out
 }
 
-func (b *Board) incrementBar(p *Player) {
-	if p == PCC {
+func (b *Board) incrementBar(p *plyr.Player) {
+	if p == plyr.PCC {
 		b.BarCC++
 	} else {
 		b.BarC++
 	}
 }
 
-func (b *Board) decrementBar(p *Player) {
-	if p == PCC {
+func (b *Board) decrementBar(p *plyr.Player) {
+	if p == plyr.PCC {
 		b.BarCC--
 	} else {
 		b.BarC--
 	}
 }
 
-func (b *Board) incrementBearoffZone(p *Player) {
-	if p == PCC {
+func (b *Board) incrementBearoffZone(p *plyr.Player) {
+	if p == plyr.PCC {
 		b.OffCC++
 		if b.OffCC == constants.NUM_CHECKERS_PER_PLAYER {
-			b.winner, b.winKind = PCC, detectWinKind(b, PCC)
+			b.winner, b.winKind = plyr.PCC, detectWinKind(b, plyr.PCC)
 		}
 	} else {
 		b.OffC++
 		if b.OffC == constants.NUM_CHECKERS_PER_PLAYER {
-			b.winner, b.winKind = PC, detectWinKind(b, PC)
+			b.winner, b.winKind = plyr.PC, detectWinKind(b, plyr.PC)
 		}
 	}
 }
 
 type (
 	motimesPair struct {
-		mo    Move
+		mo    turn.Move
 		times uint8
 	}
 	sortableMotimesPairs []motimesPair
@@ -262,7 +264,7 @@ type (
 func (smp sortableMotimesPairs) Len() int      { return len(smp) }
 func (smp sortableMotimesPairs) Swap(i, j int) { smp[i], smp[j] = smp[j], smp[i] }
 func (smp sortableMotimesPairs) Less(i, j int) bool {
-	if left, right := smp[i], smp[j]; left.mo.Requestor == PCC {
+	if left, right := smp[i], smp[j]; left.mo.Requestor == plyr.PCC {
 		return left.mo.Letter < right.mo.Letter // PCC needs to exec lo letters first, then hi ones
 	} else {
 		return left.mo.Letter > right.mo.Letter // PC needs to exec hi letters first, then lo ones
@@ -271,8 +273,8 @@ func (smp sortableMotimesPairs) Less(i, j int) bool {
 
 // MustExecuteTurn takes a Turn, and executes its individual moves, in an order that won't explode the game.
 // This is mainly to support the stdin UX of supplying entire, serialized Turns (the UX should be improved to do 1 Move at a time instead of a whole Turn though).
-func (b *Board) MustExecuteTurn(t Turn, debug bool) {
-	mustExec := func(m Move, times uint8) {
+func (b *Board) MustExecuteTurn(t turn.Turn, debug bool) {
+	mustExec := func(m turn.Move, times uint8) {
 		for i := uint8(0); i < times; i++ {
 			if ok, reason := b.ExecuteMoveIfLegal(&m); !ok {
 				panic(fmt.Sprintf("we couldn't execute Move %v for the %d'th time, as part of supposedly-valid Turn %v, because %s", m, i, t, reason))
@@ -282,7 +284,7 @@ func (b *Board) MustExecuteTurn(t Turn, debug bool) {
 
 	var sortable sortableMotimesPairs
 	for move, numTimes := range t {
-		if p := move.Requestor; (p == PCC && move.Letter == constants.LETTER_BAR_CC) || (p == PC && move.Letter == constants.LETTER_BAR_C) {
+		if p := move.Requestor; (p == plyr.PCC && move.Letter == constants.LETTER_BAR_CC) || (p == plyr.PC && move.Letter == constants.LETTER_BAR_C) {
 			mustExec(move, numTimes)
 			continue
 		}
@@ -295,24 +297,24 @@ func (b *Board) MustExecuteTurn(t Turn, debug bool) {
 	}
 }
 
-func (b *Board) ExecuteMoveIfLegal(m *Move) (bool, string) {
-	moveOk, moveReason := m.isValid()
+func (b *Board) ExecuteMoveIfLegal(m *turn.Move) (bool, string) {
+	moveOk, moveReason := m.IsValid()
 	boardOk, boardReason := b.isLegalMove(m)
 	if !moveOk || !boardOk {
 		return false, moveReason + boardReason
 	}
 
-	if m.isToMoveSomethingOutOfTheBar() {
+	if m.IsToMoveSomethingOutOfTheBar() {
 		b.decrementBar(m.Requestor)
 	} else {
-		fromPt := b.Points[m.pointIdx()]
+		fromPt := b.Points[m.PointIdx()]
 		fromPt.NumCheckers--
 		if fromPt.NumCheckers == 0 {
 			fromPt.Owner = nil
 		}
 	}
 
-	nextPointIdx, nxtPtExists := m.nextPointIdx()
+	nextPointIdx, nxtPtExists := m.NextPointIdx()
 	if !nxtPtExists {
 		b.incrementBearoffZone(m.Requestor)
 		return true, ""
@@ -329,11 +331,11 @@ func (b *Board) ExecuteMoveIfLegal(m *Move) (bool, string) {
 	return true, ""
 }
 
-func (b *Board) setUp() {
+func (b *Board) SetUp() {
 	b.Points = &[constants.NUM_BOARD_POINTS]*BoardPoint{
 		// counter-clockwise player is in bottom-left.
-		{PCC, 2}, {}, {}, {}, {}, {PC, 5}, {}, {PC, 3}, {}, {}, {}, {PCC, 5},
-		{PC, 5}, {}, {}, {}, {PCC, 3}, {}, {PCC, 5}, {}, {}, {}, {}, {PC, 2},
+		{plyr.PCC, 2}, {}, {}, {}, {}, {plyr.PC, 5}, {}, {plyr.PC, 3}, {}, {}, {}, {plyr.PCC, 5},
+		{plyr.PC, 5}, {}, {}, {}, {plyr.PCC, 3}, {}, {plyr.PCC, 5}, {}, {}, {}, {}, {plyr.PC, 2},
 		//                                                        clockwise player in top-left.
 	}
 }
@@ -343,10 +345,10 @@ func (b *Board) PipCounts() (uint16, uint16) {
 
 	for i, p := range b.Points {
 		basePips, chex := uint16(i)+1, uint16(p.NumCheckers)
-		if p.Owner == PC {
+		if p.Owner == plyr.PC {
 			// the clockwise player's closest checker is at points[0].
 			pipC += chex * basePips
-		} else if p.Owner == PCC {
+		} else if p.Owner == plyr.PCC {
 			// the counter-clockwise player's furthest checker is at points[0].
 			pipCC += chex * (uint16(constants.NUM_BOARD_POINTS) - basePips + 1)
 		}

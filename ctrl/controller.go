@@ -5,17 +5,20 @@ import (
 	"fmt"
 
 	"github.com/seriesoftubes/bgo/game"
+	"github.com/seriesoftubes/bgo/game/plyr"
+	"github.com/seriesoftubes/bgo/game/turn"
+	"github.com/seriesoftubes/bgo/game/turngen"
 	"github.com/seriesoftubes/bgo/learn"
 	"github.com/seriesoftubes/bgo/render"
 	"github.com/seriesoftubes/bgo/state"
 )
 
-func readTurnFromStdin(validTurns map[string]game.Turn) game.Turn {
+func readTurnFromStdin(validTurns map[string]turn.Turn) turn.Turn {
 	for {
 		var supposedlySerializedTurn string
 		fmt.Scanln(&supposedlySerializedTurn)
 
-		t, err := game.DeserializeTurn(supposedlySerializedTurn)
+		t, err := turn.DeserializeTurn(supposedlySerializedTurn)
 		if err != nil {
 			fmt.Println("could not read your instructions, please try again: " + err.Error())
 			continue
@@ -30,7 +33,7 @@ func readTurnFromStdin(validTurns map[string]game.Turn) game.Turn {
 }
 
 // The best AI ever built.
-func randomlyChooseValidTurn(validTurns map[string]game.Turn) game.Turn {
+func randomlyChooseValidTurn(validTurns map[string]turn.Turn) turn.Turn {
 	for _, t := range validTurns {
 		return t
 	}
@@ -53,7 +56,7 @@ func New(qs *learn.QContainer, debug bool) *GameController {
 	return &GameController{agent: agent, debug: debug}
 }
 
-func (gc *GameController) PlayOneGame(numHumanPlayers uint8, stopLearning bool) (*game.Player, game.WinKind) {
+func (gc *GameController) PlayOneGame(numHumanPlayers uint8, stopLearning bool) (*plyr.Player, game.WinKind) {
 	gc.g = game.NewGame(numHumanPlayers)
 
 	if stopLearning {
@@ -81,19 +84,19 @@ func (gc *GameController) maybePrint(s ...interface{}) {
 	}
 }
 
-func (gc *GameController) chooseTurn(validTurns map[string]game.Turn) (game.Turn, bool) {
+func (gc *GameController) chooseTurn(validTurns map[string]turn.Turn) (turn.Turn, bool) {
 	if gc.g.IsCurrentPlayerHuman() {
 		return readTurnFromStdin(validTurns), false
 	} else {
 		gc.agent.SetPlayer(gc.g.CurrentPlayer)
 		gc.state1 = gc.agent.DetectState()
-		var turn game.Turn
+		var t turn.Turn
 		gc.action = gc.agent.EpsilonGreedyAction(gc.state1)
-		turn, err := game.DeserializeTurn(gc.action)
+		t, err := turn.DeserializeTurn(gc.action)
 		if err != nil {
 			panic(fmt.Sprintf("could not DeserializeTurn %s: %s", gc.action, err.Error()))
 		}
-		return turn, true
+		return t, true
 	}
 }
 
@@ -105,11 +108,11 @@ func (gc *GameController) playOneTurn() bool {
 		render.PrintGame(g)
 	}
 
-	validTurns := game.ValidTurns(g.Board, g.CurrentRoll, g.CurrentPlayer)
+	validTurns := turngen.ValidTurns(g.Board, g.CurrentRoll, g.CurrentPlayer)
 	g.SetValidTurns(validTurns) // IMPORTANT: this must be set for the current turn, always!
 
 	var wasTurnPickedByAI bool
-	var chosenTurn game.Turn
+	var chosenTurn turn.Turn
 	if len(validTurns) == 0 {
 		gc.maybePrint("\tcan't do anything this turn, sorry!")
 	} else if len(validTurns) == 1 {

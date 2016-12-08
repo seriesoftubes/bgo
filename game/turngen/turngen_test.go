@@ -1,4 +1,4 @@
-package game
+package turngen
 
 import (
 	"reflect"
@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/seriesoftubes/bgo/constants"
+	"github.com/seriesoftubes/bgo/game"
+	"github.com/seriesoftubes/bgo/game/plyr"
 )
 
 type stringSet map[string]bool
@@ -43,80 +45,14 @@ func (ss stringSet) subtract(o stringSet) stringSet {
 	return orig
 }
 
-func TestCopyTurn(t *testing.T) {
-	cases := []struct {
-		turn Turn
-		want Turn
-	}{
-		{
-			Turn{},
-			Turn{},
-		},
-		{
-			Turn{Move{PCC, "j", 5}: 1, Move{PCC, "a", 1}: 1},
-			Turn{Move{PCC, "j", 5}: 1, Move{PCC, "a", 1}: 1},
-		},
-		{
-			Turn{Move{PCC, "j", 5}: 2, Move{PCC, "a", 1}: 1},
-			Turn{Move{PCC, "j", 5}: 2, Move{PCC, "a", 1}: 1},
-		},
-	}
-	for _, c := range cases {
-		got := c.turn.copy()
-		if !reflect.DeepEqual(got, c.want) {
-			t.Errorf("expected copying turn %v to produce %v but got %v", c.turn, c.want, got)
-		}
-	}
-}
-
-func TestSerdeTurn(t *testing.T) {
-	cases := []struct {
-		turn Turn
-		want string
-	}{
-		{
-			Turn{Move{PCC, "j", 5}: 1, Move{PCC, "a", 1}: 1},
-			"X;a1;j5",
-		},
-		{
-			Turn{Move{PCC, "j", 1}: 4},
-			"X;j1;j1;j1;j1",
-		},
-		{
-			Turn{Move{PC, "j", 1}: 4},
-			"O;j1;j1;j1;j1",
-		},
-		{
-			Turn{Move{PC, "a", 2}: 2, Move{PC, "b", 2}: 2},
-			"O;a2;a2;b2;b2",
-		},
-		{
-			Turn{Move{PC, "t", 5}: 2, Move{PC, "h", 5}: 2},
-			"O;h5;h5;t5;t5",
-		},
-	}
-	for _, c := range cases {
-		got := c.turn.String()
-		if got != c.want {
-			t.Errorf("turn %v not serialized as %v; got %v", c.turn, c.want, got)
-		}
-
-		if deser, err := DeserializeTurn(got); err != nil {
-			t.Errorf("could not deserialize the serialized turn %s: %v", got, err)
-		} else if !reflect.DeepEqual(deser, c.turn) {
-			t.Errorf("unexpected deserialized turn %v for string %s", deser, got)
-		}
-	}
-}
-
 func TestValidTurns(t *testing.T) {
 	cases := []struct {
-		player *Player
-		roll   Roll
+		player *plyr.Player
+		roll   game.Roll
 		want   []string // List of stringified turns
 	}{
 		{
-			PCC, Roll{5, 4},
+			plyr.PCC, game.Roll{5, 4},
 			[]string{
 				"X;a4;e5",
 				"X;a4;l5",
@@ -131,7 +67,7 @@ func TestValidTurns(t *testing.T) {
 			},
 		},
 		{
-			PCC, Roll{4, 5},
+			plyr.PCC, game.Roll{4, 5},
 			[]string{
 				"X;a4;e5",
 				"X;a4;l5",
@@ -146,7 +82,7 @@ func TestValidTurns(t *testing.T) {
 			},
 		},
 		{
-			PCC, Roll{5, 5},
+			plyr.PCC, game.Roll{5, 5},
 			[]string{
 				"X;l5;l5;l5;l5",
 				"X;l5;l5;l5;q5",
@@ -155,7 +91,7 @@ func TestValidTurns(t *testing.T) {
 			},
 		},
 		{
-			PC, Roll{5, 5},
+			plyr.PC, game.Roll{5, 5},
 			[]string{
 				"O;m5;m5;m5;m5",
 				"O;h5;h5;h5;m5",
@@ -165,10 +101,10 @@ func TestValidTurns(t *testing.T) {
 		},
 	}
 	for _, c := range cases {
-		b := &Board{}
-		b.setUp()
+		b := &game.Board{}
+		b.SetUp()
 		/*
-		   Board is:
+		   game.Board is:
 		    x  w  v  u  t  s     r  q  p  o  n  m
 		   =======================================
 		    O  -  -  -  -  X |m| -  X  -  -  -  O
@@ -205,40 +141,40 @@ func TestValidTurns(t *testing.T) {
 
 func TestValidTurnsTwoOnTheBar(t *testing.T) {
 	cases := []struct {
-		player *Player
-		roll   Roll
+		player *plyr.Player
+		roll   game.Roll
 		want   []string // List of stringified turns
 	}{
 		{
-			PCC, Roll{6, 6}, // Can only land on spaces a-e with 2 on the bar.
+			plyr.PCC, game.Roll{6, 6}, // Can only land on spaces a-e with 2 on the bar.
 			[]string{},
 		},
 		{
-			PCC, Roll{1, 6},
+			plyr.PCC, game.Roll{1, 6},
 			[]string{
 				"X;y1",
 			},
 		},
 		{
-			PCC, Roll{2, 6},
+			plyr.PCC, game.Roll{2, 6},
 			[]string{
 				"X;y2",
 			},
 		},
 		{
-			PCC, Roll{2, 3},
+			plyr.PCC, game.Roll{2, 3},
 			[]string{
 				"X;y2;y3",
 			},
 		},
 	}
 	for _, c := range cases {
-		b := &Board{}
-		b.setUp()
+		b := &game.Board{}
+		b.SetUp()
 		b.Points[constants.Alpha2Num["a"]].NumCheckers = 0
 		b.BarCC = 2
 		/*
-		    Board is:
+		    game.Board is:
 		    x  w  v  u  t  s     r  q  p  o  n  m
 		   =======================================
 		    O  -  -  -  -  X |m| -  X  -  -  -  O
@@ -279,16 +215,16 @@ func TestValidTurnsTwoOnTheBar(t *testing.T) {
 
 func TestValidTurnsOneOnTheBar(t *testing.T) {
 	cases := []struct {
-		player *Player
-		roll   Roll
+		player *plyr.Player
+		roll   game.Roll
 		want   []string // List of stringified turns
 	}{
 		{
-			PCC, Roll{6, 6}, // Can only land on spaces a-e.
+			plyr.PCC, game.Roll{6, 6}, // Can only land on spaces a-e.
 			[]string{},
 		},
 		{
-			PCC, Roll{1, 6},
+			plyr.PCC, game.Roll{1, 6},
 			[]string{
 				"X;a6;y1",
 				"X;l6;y1",
@@ -296,7 +232,7 @@ func TestValidTurnsOneOnTheBar(t *testing.T) {
 			},
 		},
 		{
-			PCC, Roll{2, 6},
+			plyr.PCC, game.Roll{2, 6},
 			[]string{
 				"X;a6;y2",
 				"X;l6;y2",
@@ -304,7 +240,7 @@ func TestValidTurnsOneOnTheBar(t *testing.T) {
 			},
 		},
 		{
-			PCC, Roll{2, 3},
+			plyr.PCC, game.Roll{2, 3},
 			[]string{
 				"X;a2;y3",
 				"X;a3;y2",
@@ -320,12 +256,12 @@ func TestValidTurnsOneOnTheBar(t *testing.T) {
 		},
 	}
 	for _, c := range cases {
-		b := &Board{}
-		b.setUp()
+		b := &game.Board{}
+		b.SetUp()
 		b.Points[constants.Alpha2Num["a"]].NumCheckers = 1
 		b.BarCC = 1
 		/*
-		    Board is:
+		    game.Board is:
 		    x  w  v  u  t  s     r  q  p  o  n  m
 		   =======================================
 		    O  -  -  -  -  X |m| -  X  -  -  -  O
@@ -367,39 +303,39 @@ func TestValidTurnsOneOnTheBar(t *testing.T) {
 // Tests that, with all chex in your home, you can bear stuff off.
 func TestValidTurnsBearOff(t *testing.T) {
 	cases := []struct {
-		player *Player
-		roll   Roll
+		player *plyr.Player
+		roll   game.Roll
 		want   []string // List of stringified turns
 	}{
 		{
-			PC, Roll{6, 6},
+			plyr.PC, game.Roll{6, 6},
 			[]string{"O;f6;f6;f6;f6"},
 		},
 		{
-			PC, Roll{6, 5},
+			plyr.PC, game.Roll{6, 5},
 			[]string{"O;e5;f6"},
 		},
 		{
-			PC, Roll{6, 4},
+			plyr.PC, game.Roll{6, 4},
 			[]string{
 				"O;d4;f6",
 				"O;f4;f6",
 			},
 		},
 		{
-			PC, Roll{5, 5},
+			plyr.PC, game.Roll{5, 5},
 			[]string{"O;e5;e5;e5;e5"},
 		},
 	}
 	for _, c := range cases {
-		b := &Board{}
-		b.Points = &[constants.NUM_BOARD_POINTS]*BoardPoint{
+		b := &game.Board{}
+		b.Points = &[constants.NUM_BOARD_POINTS]*game.BoardPoint{
 			// counter-clockwise player is in bottom-left.
-			{PCC, 2}, {PC, 1}, {PC, 2}, {PC, 2}, {PC, 5}, {PC, 5}, {}, {}, {}, {}, {}, {PCC, 5},
-			{}, {}, {}, {}, {PCC, 3}, {}, {PCC, 5}, {}, {}, {}, {}, {},
+			{plyr.PCC, 2}, {plyr.PC, 1}, {plyr.PC, 2}, {plyr.PC, 2}, {plyr.PC, 5}, {plyr.PC, 5}, {}, {}, {}, {}, {}, {plyr.PCC, 5},
+			{}, {}, {}, {}, {plyr.PCC, 3}, {}, {plyr.PCC, 5}, {}, {}, {}, {}, {},
 			//                                                        clockwise player in top-left.
 		}
-		/* Board looks like:
+		/* game.Board looks like:
 		    x  w  v  u  t  s     r  q  p  o  n  m
 		   =======================================
 		    -  -  -  -  -  X |m| -  X  -  -  -  -
@@ -419,7 +355,7 @@ func TestValidTurnsBearOff(t *testing.T) {
 		   =======================================
 		    a  b  c  d  e  f     g  h  i  j  k  l
 		*/
-		// PCC == "X", PC = O
+		// plyr.PCC == "X", plyr.PC = O
 		wants := newStringSet(c.want)
 		turns := ValidTurns(b, &c.roll, c.player)
 		gots := stringSet{}
@@ -438,23 +374,23 @@ func TestValidTurnsBearOff(t *testing.T) {
 // Tests that, even when you start with 1 chex outside your home, you can bear stuff off.
 func TestValidTurnsBearOffStartingFromOutside(t *testing.T) {
 	cases := []struct {
-		player *Player
-		roll   Roll
+		player *plyr.Player
+		roll   game.Roll
 		want   []string // List of stringified turns
 	}{
 		{
-			PC, Roll{6, 6},
+			plyr.PC, game.Roll{6, 6},
 			[]string{"O;f6;f6;f6;h6"},
 		},
 		{
-			PC, Roll{6, 5},
+			plyr.PC, game.Roll{6, 5},
 			[]string{
 				"O;e5;h6",
 				"O;f6;h5",
 			},
 		},
 		{
-			PC, Roll{6, 4},
+			plyr.PC, game.Roll{6, 4},
 			[]string{
 				"O;d4;h6",
 				"O;f4;h6",
@@ -462,19 +398,19 @@ func TestValidTurnsBearOffStartingFromOutside(t *testing.T) {
 			},
 		},
 		{
-			PC, Roll{5, 5},
+			plyr.PC, game.Roll{5, 5},
 			[]string{"O;e5;e5;e5;h5"},
 		},
 	}
 	for _, c := range cases {
-		b := &Board{}
-		b.Points = &[constants.NUM_BOARD_POINTS]*BoardPoint{
+		b := &game.Board{}
+		b.Points = &[constants.NUM_BOARD_POINTS]*game.BoardPoint{
 			// counter-clockwise player is in bottom-left.
-			{PCC, 2}, {PC, 1}, {PC, 2}, {PC, 2}, {PC, 5}, {PC, 4}, {}, {PC, 1}, {}, {}, {}, {PCC, 5},
-			{}, {}, {}, {}, {PCC, 3}, {}, {PCC, 5}, {}, {}, {}, {}, {},
+			{plyr.PCC, 2}, {plyr.PC, 1}, {plyr.PC, 2}, {plyr.PC, 2}, {plyr.PC, 5}, {plyr.PC, 4}, {}, {plyr.PC, 1}, {}, {}, {}, {plyr.PCC, 5},
+			{}, {}, {}, {}, {plyr.PCC, 3}, {}, {plyr.PCC, 5}, {}, {}, {}, {}, {},
 			//                                                        clockwise player in top-left.
 		}
-		/* Board looks like:
+		/* game.Board looks like:
 		    x  w  v  u  t  s     r  q  p  o  n  m
 		   =======================================
 		    -  -  -  -  -  X |m| -  X  -  -  -  -
@@ -494,7 +430,7 @@ func TestValidTurnsBearOffStartingFromOutside(t *testing.T) {
 		   =======================================
 		    a  b  c  d  e  f     g  h  i  j  k  l
 		*/
-		// PCC == "X", PC = O
+		// plyr.PCC == "X", plyr.PC = O
 		wants := newStringSet(c.want)
 		turns := ValidTurns(b, &c.roll, c.player)
 		gots := stringSet{}
@@ -512,37 +448,37 @@ func TestValidTurnsBearOffStartingFromOutside(t *testing.T) {
 
 func TestWeirdTurn(t *testing.T) {
 	/*
-		Board
-		  Player: O  Rolled: [2 2]
+	   game.Board
+	     Player: O  game.Rolled: [2 2]
 
-		   x  w  v  u  t  s     r  q  p  o  n  m
-		  =======================================
-		   X  O  X  O  X  X |m| -  -  -  X  X  O
-		   X     X  O     X |m|
-		         X        X |m|
-		         X        X |m|
-		         X          |m|
-		                    |m|
+	      x  w  v  u  t  s     r  q  p  o  n  m
+	     =======================================
+	      X  O  X  O  X  X |m| -  -  -  X  X  O
+	      X     X  O     X |m|
+	            X        X |m|
+	            X        X |m|
+	            X          |m|
+	                       |m|
 
 
-		                    |w|
-		                    |w|
-		                    |w|       O
-		                    |w|       O
-		   O              O |w|       O
-		   O  O  -  X  -  O |w| -  -  O  -  -  -
-		  =======================================
-		   a  b  c  d  e  f     g  h  i  j  k  l
+	                       |w|
+	                       |w|
+	                       |w|       O
+	                       |w|       O
+	      O              O |w|       O
+	      O  O  -  X  -  O |w| -  -  O  -  -  -
+	     =======================================
+	      a  b  c  d  e  f     g  h  i  j  k  l
 
-		  The bar
-		  y X's: -
-		  z O's: OO
+	     The bar
+	     y X's: -
+	     z O's: OO
 	*/
-	b := &Board{}
-	b.Points = &[constants.NUM_BOARD_POINTS]*BoardPoint{
+	b := &game.Board{}
+	b.Points = &[constants.NUM_BOARD_POINTS]*game.BoardPoint{
 		// counter-clockwise player is in bottom-left.
-		{PC, 2}, {PC, 1}, {}, {PCC, 1}, {}, {PC, 2}, {}, {}, {PC, 4}, {}, {}, {},
-		{PC, 1}, {PCC, 1}, {PCC, 1}, {}, {}, {}, {PCC, 4}, {PCC, 1}, {PC, 2}, {PCC, 5}, {PC, 1}, {PCC, 2},
+		{plyr.PC, 2}, {plyr.PC, 1}, {}, {plyr.PCC, 1}, {}, {plyr.PC, 2}, {}, {}, {plyr.PC, 4}, {}, {}, {},
+		{plyr.PC, 1}, {plyr.PCC, 1}, {plyr.PCC, 1}, {}, {}, {}, {plyr.PCC, 4}, {plyr.PCC, 1}, {plyr.PC, 2}, {plyr.PCC, 5}, {plyr.PC, 1}, {plyr.PCC, 2},
 		//                                                        clockwise player in top-left.
 	}
 	b.BarC = 2
@@ -561,8 +497,8 @@ func TestWeirdTurn(t *testing.T) {
 		"O;m2;w2;z2;z2",
 		"O;w2;w2;z2;z2",
 	})
-	roll := &Roll{2, 2}
-	turns := ValidTurns(b, roll, PC)
+	roll := &game.Roll{2, 2}
+	turns := ValidTurns(b, roll, plyr.PC)
 	gots := stringSet{}
 	for ts := range turns {
 		gots[ts] = true
@@ -571,9 +507,6 @@ func TestWeirdTurn(t *testing.T) {
 	if !reflect.DeepEqual(gots, wants) {
 		extraWants := wants.subtract(gots).values()
 		missingWants := gots.subtract(wants).values()
-		t.Errorf("TestTurnPerms bug for roll %v and player %s.\nwants is missing %v,\nwants has extra %v", roll, PC, missingWants, extraWants)
+		t.Errorf("TestTurnPerms bug for roll %v and player %s.\nwants is missing %v,\nwants has extra %v", roll, plyr.PC, missingWants, extraWants)
 	}
 }
-
-// test for hitting enemy checker and possibly moving on afterwards
-// test for u can only move 1 dice amt but in different places

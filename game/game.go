@@ -2,24 +2,27 @@ package game
 
 import (
 	"time"
+
+	"github.com/seriesoftubes/bgo/game/plyr"
+	"github.com/seriesoftubes/bgo/game/turn"
 )
 
 type Game struct {
 	Board             *Board
-	CurrentPlayer     *Player
+	CurrentPlayer     *plyr.Player
 	CurrentRoll       *Roll
 	numHumanPlayers   uint8
-	currentValidTurns map[string]Turn
+	currentValidTurns map[string]turn.Turn
 }
 
-func (g *Game) ValidTurns() map[string]Turn      { return g.currentValidTurns }
-func (g *Game) SetValidTurns(vt map[string]Turn) { g.currentValidTurns = vt }
+func (g *Game) ValidTurns() map[string]turn.Turn      { return g.currentValidTurns }
+func (g *Game) SetValidTurns(vt map[string]turn.Turn) { g.currentValidTurns = vt }
 
 func (g *Game) NextPlayersTurn() {
-	if g.CurrentPlayer == PCC {
-		g.CurrentPlayer = PC
+	if g.CurrentPlayer == plyr.PCC {
+		g.CurrentPlayer = plyr.PC
 	} else {
-		g.CurrentPlayer = PCC
+		g.CurrentPlayer = plyr.PCC
 	}
 
 	g.CurrentRoll = newRoll()
@@ -31,7 +34,7 @@ func (g *Game) IsCurrentPlayerHuman() bool {
 	if g.numHumanPlayers == 2 {
 		return true
 	} else if g.numHumanPlayers == 1 {
-		return g.CurrentPlayer != PC // The `PC` player is always the computer
+		return g.CurrentPlayer != plyr.PC // The `PC` player is always the computer
 	} else {
 		return false
 	}
@@ -39,11 +42,11 @@ func (g *Game) IsCurrentPlayerHuman() bool {
 
 func NewGame(numHumanPlayers uint8) *Game {
 	b := &Board{}
-	b.setUp()
+	b.SetUp()
 
-	player := PCC
+	player := plyr.PCC
 	if time.Now().UnixNano()%2 == 0 {
-		player = PC
+		player = plyr.PC
 	}
 
 	return &Game{Board: b, CurrentPlayer: player, CurrentRoll: newRoll(), numHumanPlayers: numHumanPlayers}

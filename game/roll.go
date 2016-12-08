@@ -7,7 +7,7 @@ import (
 
 type Roll [2]uint8
 
-func (r *Roll) moveDistances() []uint8 {
+func (r *Roll) MoveDistances() []uint8 {
 	if first, second := r[0], r[1]; first == second {
 		return []uint8{first, first, first, first}
 	} else {

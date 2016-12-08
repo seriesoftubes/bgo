@@ -3,6 +3,7 @@ package state
 import (
 	"github.com/seriesoftubes/bgo/constants"
 	"github.com/seriesoftubes/bgo/game"
+	"github.com/seriesoftubes/bgo/game/plyr"
 )
 
 type (
@@ -28,10 +29,10 @@ func uint8Ceiling(x, max uint8) uint8 {
 
 // Detects the current state of the game, truncating the checker counts up to a max.
 // Returns the State and whether the State's boardPoints were reversed to account for the player's perspective.
-func DetectState(p *game.Player, g *game.Game, maxChexToConsider uint8) (State, bool) {
+func DetectState(p *plyr.Player, g *game.Game, maxChexToConsider uint8) (State, bool) {
 	out := State{myRoll: g.CurrentRoll.Sorted()}
 
-	isPCC := p == game.PCC
+	isPCC := p == plyr.PCC
 	if isPCC {
 		out.numOnMyBar = uint8Ceiling(g.Board.BarCC, maxChexToConsider)
 		out.numOnEnemyBar = uint8Ceiling(g.Board.BarC, maxChexToConsider)

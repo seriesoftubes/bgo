@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/seriesoftubes/bgo/game"
+	"github.com/seriesoftubes/bgo/game/plyr"
 	"github.com/seriesoftubes/bgo/random"
 	"github.com/seriesoftubes/bgo/state"
 )
@@ -28,12 +29,12 @@ type Agent struct {
 	// TODO: annealing rate?
 	alpha, gamma, epsilon float64
 	game                  *game.Game
-	player                *game.Player
+	player                *plyr.Player
 	numObservations       uint64
 	qs                    *QContainer
 }
 
-func (a *Agent) SetPlayer(p *game.Player) { a.player = p }
+func (a *Agent) SetPlayer(p *plyr.Player) { a.player = p }
 func (a *Agent) SetGame(g *game.Game)     { a.game = g }
 func NewAgent(qvals *QContainer, alpha, gamma, epsilon float64) *Agent {
 	return &Agent{alpha: alpha, gamma: gamma, epsilon: epsilon, qs: qvals}
