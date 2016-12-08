@@ -7,10 +7,7 @@ import (
 	"github.com/seriesoftubes/bgo/constants"
 )
 
-const (
-	barPips  uint8 = constants.NUM_BOARD_POINTS + 1
-	alphabet       = "abcdefghijklmnopqrstuvwxyz"
-)
+const barPips uint8 = constants.NUM_BOARD_POINTS + 1
 
 type WinKind uint8
 
@@ -215,7 +212,7 @@ func (b *Board) LegalMoves(p *Player, diceAmt uint8) []*Move {
 	}
 
 	for pointIdx := range b.Points {
-		m := &Move{Requestor: p, Letter: string(alphabet[pointIdx]), FowardDistance: diceAmt}
+		m := &Move{Requestor: p, Letter: string(constants.Num2Alpha[uint8(pointIdx)]), FowardDistance: diceAmt}
 		if ok, _ := b.isLegalMove(m); ok {
 			out = append(out, m)
 		}
