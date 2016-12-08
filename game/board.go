@@ -131,47 +131,58 @@ func (b *Board) chexOnTheBar(p *plyr.Player) uint8 {
 	return b.BarCC
 }
 
+const (
+	illegalBarFirst                   = "If you have anything on the bar, you must move those things first"
+	illegalEnemyBarChex               = "Can't move the enemy's chex off the enemy's bar."
+	illegalEnemyRegularChex           = "Can only move your own checkers."
+	illegalEmptyPoint                 = "Cannot move a checker from an empty point"
+	illegalCantBearoffUntilAllAreHome = "Can't move past the finish line unless all your remaining checkers are in your home board"
+	illegalWrongFinishLine            = "Must move past the correct finish line."
+	illegalBearoffOthersFirst         = "If the amount on the dice > the point's distance away from 0, then you must have already beared off all chex behind the point."
+	illegalEnemyControlsIt            = "Can't move to a point that's controlled (has >1 chex) by the enemy."
+)
+
 func (b *Board) isLegalMove(m *turn.Move) (bool, string) {
 	isForBar := m.Letter == constants.LETTER_BAR_CC || m.Letter == constants.LETTER_BAR_C
 	numOnTheBar := b.chexOnTheBar(m.Requestor)
 	if numOnTheBar > 0 && !isForBar {
-		return false, "If you have anything on the bar, you must move those things first"
+		return false, illegalBarFirst
 	}
 	expectedLetter := constants.LETTER_BAR_C
 	if m.Requestor == plyr.PCC {
 		expectedLetter = constants.LETTER_BAR_CC
 	}
 	if isForBar && m.Letter != expectedLetter {
-		return false, "Can't move the enemy's chex."
+		return false, illegalEnemyBarChex
 	}
 
 	numChexOnCurrentPoint := numOnTheBar
 	if !isForBar {
 		fromPt := b.Points[m.PointIdx()]
 		if fromPt.Owner != m.Requestor {
-			return false, "Can only move your own checkers."
+			return false, illegalEnemyRegularChex
 		}
 		numChexOnCurrentPoint = fromPt.NumCheckers
 	}
 	if numChexOnCurrentPoint == 0 {
-		return false, "Cannot move a checker from an empty point"
+		return false, illegalEmptyPoint
 	}
 
 	nxtIdx, nxtPtExists := m.NextPointIdx()
 	if !nxtPtExists {
 		if !b.doesPlayerHaveAllRemainingCheckersInHomeBoard(m.Requestor) {
-			return false, "Can't move past the finish line unless all your remaining checkers are in your home board"
+			return false, illegalCantBearoffUntilAllAreHome
 		}
 		if (m.Requestor == plyr.PCC && nxtIdx < 0) || (m.Requestor == plyr.PC && nxtIdx >= int8(constants.NUM_BOARD_POINTS)) {
-			return false, "Must move past the correct finish line."
+			return false, illegalWrongFinishLine
 		}
 		if ((m.Requestor == plyr.PCC && nxtIdx > int8(constants.NUM_BOARD_POINTS)) || (m.Requestor == plyr.PC && nxtIdx < -1)) && b.doesPlayerHaveAnyRemainingCheckersBehindPoint(m.Requestor, m.PointIdx()) {
 			// E.g., if you roll a 6, and you have chex on your 5 and 6 point, you can only bear off the ones on the 6 point (and not the ones on the 5 until all the chex on 6 are gone).
-			return false, "If the amount on the dice > the point's distance away from 0, then you must have already beared off all chex behind the point."
+			return false, illegalBearoffOthersFirst
 		}
 	} else {
 		if nxtPt := b.Points[nxtIdx]; nxtPt.Owner != m.Requestor && nxtPt.NumCheckers > 1 {
-			return false, "Can't move to a point that's controlled (has >1 chex) by the enemy."
+			return false, illegalEnemyControlsIt
 		}
 	}
 

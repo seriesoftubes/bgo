@@ -18,17 +18,23 @@ func (m *Move) String() string {
 	return fmt.Sprintf("%s: go %d spaces starting with %s", *m.Requestor, m.FowardDistance, m.Letter)
 }
 
+const (
+	invalidNilRequestor = "Must have requestor."
+	invalidBadChar      = "Must be a whitelisted lowercase alpha character."
+	invalidBadDice      = "Distance must be between [1,6]"
+)
+
 func (m *Move) IsValid() (bool, string) {
 	if m.Requestor == nil {
-		return false, "Must have requestor."
+		return false, invalidNilRequestor
 	}
 
 	if _, ok := constants.Alpha2Num[m.Letter]; !ok {
-		return false, "Must be a whitelisted lowercase alpha character."
+		return false, invalidBadChar
 	}
 
 	if m.FowardDistance < constants.MIN_DICE_AMT || m.FowardDistance > constants.MAX_DICE_AMT {
-		return false, "Distance must be between [1,6]"
+		return false, invalidBadDice
 	}
 
 	return true, ""
