@@ -2,46 +2,10 @@ package turn
 
 import (
 	"reflect"
-	"sort"
 	"testing"
 
 	"github.com/seriesoftubes/bgo/game/plyr"
 )
-
-type stringSet map[string]bool
-
-func newStringSet(strs []string) stringSet {
-	out := stringSet{}
-	for _, s := range strs {
-		out[s] = true
-	}
-	return out
-}
-
-func (ss stringSet) copy() stringSet {
-	out := stringSet{}
-	for s := range ss {
-		out[s] = true
-	}
-	return out
-}
-
-func (ss stringSet) values() []string {
-	var out []string
-	for s := range ss {
-		out = append(out, s)
-	}
-	sort.Strings(out)
-	return out
-}
-
-func (ss stringSet) subtract(o stringSet) stringSet {
-	orig := ss.copy()
-	for s := range o {
-		delete(orig, s)
-	}
-	return orig
-}
 
 func TestCopyTurn(t *testing.T) {
 	cases := []struct {
