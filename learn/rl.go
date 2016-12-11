@@ -2,11 +2,11 @@
 package learn
 
 import (
-	"math"
 	"sync"
 
 	"github.com/seriesoftubes/bgo/game"
 	"github.com/seriesoftubes/bgo/game/plyr"
+	"github.com/seriesoftubes/bgo/game/turn"
 	"github.com/seriesoftubes/bgo/random"
 	"github.com/seriesoftubes/bgo/state"
 )
@@ -46,10 +46,9 @@ type StateActionPair struct {
 }
 
 // Choose an action that helps with training
-func (a *Agent) EpsilonGreedyAction(st state.State) string {
-	validTurns := a.game.ValidTurns()
-	possibleActions := make([]string, 0, len(validTurns))
-	for svt := range validTurns {
+func (a *Agent) EpsilonGreedyAction(st state.State, validTurnsForState map[string]turn.Turn) string {
+	possibleActions := make([]string, 0, len(validTurnsForState))
+	for svt := range validTurnsForState {
 		possibleActions = append(possibleActions, svt)
 	}
 
@@ -78,28 +77,6 @@ func (a *Agent) EpsilonGreedyAction(st state.State) string {
 	return possibleActions[idx]
 }
 
-// Use after training
-func (a *Agent) BestAction() string {
-	validTurns := a.game.ValidTurns()
-	if len(validTurns) == 0 {
-		return ""
-	}
-
-	state := a.DetectState()
-
-	bestQ := math.Inf(-1)
-	var bestAction string
-	defer a.qs.Unlock()
-	a.qs.Lock()
-	for serializedTurn := range validTurns {
-		if q, ok := a.qs.qvals[StateActionPair{state, serializedTurn}]; ok && q > bestQ {
-			bestQ, bestAction = q, serializedTurn
-		}
-	}
-
-	return bestAction
-}
-
 func (a *Agent) DetectState() state.State {
 	if a.game.CurrentPlayer != a.player {
 		panic("shouldn't be detecting the state outside of the agent's own turn.")
@@ -109,21 +86,20 @@ func (a *Agent) DetectState() state.State {
 }
 
 func (a *Agent) StopLearning() { a.epsilon = 0 }
-func (a *Agent) Learn(state1 state.State, action string, state2 state.State, reward game.WinKind) {
+func (a *Agent) Learn(state1 state.State, action string, state2 state.State, rewardForState2 game.WinKind, validTurnsInState2 map[string]turn.Turn) {
 	defer a.qs.Unlock()
 	a.qs.Lock()
-	var oldQ float64 // By default, assume Q is zero.
-	sa := StateActionPair{state1, action}
-	if q, ok := a.qs.qvals[sa]; ok {
-		oldQ = q
-	}
+
+	oldStateAction := StateActionPair{state1, action}
+	oldQ := a.qs.qvals[oldStateAction]
+
 	var bestPossibleFutureQ float64
-	for serializedTurn := range a.game.ValidTurns() {
-		if q, ok := a.qs.qvals[StateActionPair{state1, serializedTurn}]; ok && q > bestPossibleFutureQ {
+	for serializedTurn := range validTurnsInState2 {
+		if q, ok := a.qs.qvals[StateActionPair{state2, serializedTurn}]; ok && q > bestPossibleFutureQ {
 			bestPossibleFutureQ = q
 		}
 	}
-	a.qs.qvals[sa] = oldQ + a.alpha*(float64(reward)+(a.gamma*bestPossibleFutureQ)-oldQ)
+	a.qs.qvals[oldStateAction] = oldQ + a.alpha*(float64(rewardForState2)+(a.gamma*bestPossibleFutureQ)-oldQ)
 
 	a.numObservations++
 	if obs := a.numObservations; obs == 80100 && a.epsilon > 0.6 {

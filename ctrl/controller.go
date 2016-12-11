@@ -33,27 +33,27 @@ func readTurnFromStdin(validTurns map[string]turn.Turn) turn.Turn {
 }
 
 // The best AI ever built.
-func randomlyChooseValidTurn(validTurns map[string]turn.Turn) turn.Turn {
-	for _, t := range validTurns {
-		return t
+func randomlyChooseValidTurn(validTurns map[string]turn.Turn) (string, turn.Turn) {
+	for st, t := range validTurns {
+		return st, t
 	}
 	panic("no turns to choose. you should've prevented this line from being reached")
 }
 
 type GameController struct {
-	g      *game.Game
-	debug  bool
-	agent  *learn.Agent
-	state1 state.State
-	action string
+	g                *game.Game
+	debug            bool
+	agent            *learn.Agent
+	prevStateActions map[*plyr.Player]*stateAction
 }
 
 func New(qs *learn.QContainer, debug bool) *GameController {
 	learningRateAkaAlpha := 0.1
 	rewardsDiscountRateAkaGamma := 0.1
 	initialExplorationRateAkaEpsilon := 1.0
+	prevStateActions := make(map[*plyr.Player]*stateAction, 2)
 	agent := learn.NewAgent(qs, learningRateAkaAlpha, rewardsDiscountRateAkaGamma, initialExplorationRateAkaEpsilon)
-	return &GameController{agent: agent, debug: debug}
+	return &GameController{agent: agent, prevStateActions: prevStateActions, debug: debug}
 }
 
 func (gc *GameController) PlayOneGame(numHumanPlayers uint8, stopLearning bool) (*plyr.Player, game.WinKind) {
@@ -84,20 +84,24 @@ func (gc *GameController) maybePrint(s ...interface{}) {
 	}
 }
 
-func (gc *GameController) chooseTurn(validTurns map[string]turn.Turn) (turn.Turn, bool) {
+type stateAction struct {
+	state  state.State
+	action string // serialized, valid Turn
+}
+
+func (gc *GameController) chooseTurn(validTurns map[string]turn.Turn, currentState state.State) turn.Turn {
 	if gc.g.IsCurrentPlayerHuman() {
-		return readTurnFromStdin(validTurns), false
-	} else {
-		gc.agent.SetPlayer(gc.g.CurrentPlayer)
-		gc.state1 = gc.agent.DetectState()
-		var t turn.Turn
-		gc.action = gc.agent.EpsilonGreedyAction(gc.state1)
-		t, err := turn.DeserializeTurn(gc.action)
-		if err != nil {
-			panic(fmt.Sprintf("could not DeserializeTurn %s: %s", gc.action, err.Error()))
-		}
-		return t, true
+		return readTurnFromStdin(validTurns)
 	}
+
+	action := gc.agent.EpsilonGreedyAction(currentState, validTurns)
+	gc.prevStateActions[gc.g.CurrentPlayer] = &stateAction{currentState, action}
+
+	t, err := turn.DeserializeTurn(action)
+	if err != nil {
+		panic(fmt.Sprintf("could not DeserializeTurn %s: %s", action, err.Error()))
+	}
+	return t
 }
 
 // playOneTurn plays through one turn, and returns whether the game is finished after the turn executes.
@@ -109,18 +113,30 @@ func (gc *GameController) playOneTurn() bool {
 	}
 
 	validTurns := turngen.ValidTurns(g.Board, g.CurrentRoll, g.CurrentPlayer)
-	g.SetValidTurns(validTurns) // IMPORTANT: this must be set for the current turn, always!
 
-	var wasTurnPickedByAI bool
+	isComputer := !gc.g.IsCurrentPlayerHuman()
+	var currentState state.State
+	if isComputer {
+		gc.agent.SetPlayer(g.CurrentPlayer)
+		currentState = gc.agent.DetectState()
+		if prevSA, ok := gc.prevStateActions[g.CurrentPlayer]; ok {
+			gc.agent.Learn(prevSA.state, prevSA.action, currentState, game.WinKindNotWon, validTurns)
+		}
+	}
+
 	var chosenTurn turn.Turn
+	var serializedTurn string
 	if len(validTurns) == 0 {
 		gc.maybePrint("\tcan't do anything this turn, sorry!")
 	} else if len(validTurns) == 1 {
 		gc.maybePrint("\tthis turn only has 1 option, forcing!")
-		chosenTurn = randomlyChooseValidTurn(validTurns)
+		serializedTurn, chosenTurn = randomlyChooseValidTurn(validTurns)
+		if isComputer {
+			gc.prevStateActions[gc.g.CurrentPlayer] = &stateAction{currentState, serializedTurn}
+		}
 	} else {
 		gc.maybePrint(fmt.Sprintf("\tYour move, %q:", *g.CurrentPlayer))
-		chosenTurn, wasTurnPickedByAI = gc.chooseTurn(validTurns)
+		chosenTurn = gc.chooseTurn(validTurns, currentState)
 	}
 	gc.maybePrint("\tChose move:", chosenTurn)
 
@@ -140,11 +156,13 @@ func (gc *GameController) playOneTurn() bool {
 	gc.g.Board.MustExecuteTurn(chosenTurn, gc.debug)
 	winner, winAmt := gc.g.Board.Winner(), gc.g.Board.WinKind()
 
-	if wasTurnPickedByAI {
-		gc.agent.Learn(gc.state1, gc.action, gc.agent.DetectState(), winAmt)
-	}
-
 	if winner != nil {
+		if isComputer {
+			// special case: a computer won, and they need to learn from that without having to re-run this playOneTurn method.
+			prevSA := gc.prevStateActions[g.CurrentPlayer]
+			gc.agent.Learn(prevSA.state, prevSA.action, gc.agent.DetectState(), winAmt, nil) // There are 0 valid turns after a game has been won.
+		}
+
 		return true
 	} else {
 		gc.g.NextPlayersTurn()

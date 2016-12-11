@@ -48,6 +48,10 @@ func (sm sortableMoves) Less(i, j int) bool {
 
 // String serializes a Turn into a string like "X;a3;a3;b3;d3".
 func (t Turn) String() string {
+	if len(t) == 0 {
+		return ""
+	}
+
 	var out []string
 
 	smoves := make(sortableMoves, 0, len(t))
