@@ -61,7 +61,7 @@ func (a *Agent) SetPlayer(p *plyr.Player) { a.player = p }
 func (a *Agent) SetGame(g *game.Game)     { a.game = g }
 
 // Choose an action that helps with training
-func (a *Agent) EpsilonGreedyAction(st state.State, validTurnsForState map[string]turn.Turn) PlayerAgnosticTurn {
+func (a *Agent) EpsilonGreedyAction(st state.State, validTurnsForState map[turn.TurnArray]turn.Turn) PlayerAgnosticTurn {
 	possibleActions := make([]PlayerAgnosticTurn, 0, len(validTurnsForState))
 	for _, t := range validTurnsForState {
 		possibleActions = append(possibleActions, AgnosticizeTurn(t, a.player))
@@ -101,7 +101,7 @@ func (a *Agent) DetectState() state.State {
 }
 
 func (a *Agent) StopLearning() { a.epsilon = 0 }
-func (a *Agent) Learn(state1 state.State, action PlayerAgnosticTurn, state2 state.State, rewardForState2 game.WinKind, validTurnsInState2 map[string]turn.Turn) {
+func (a *Agent) Learn(state1 state.State, action PlayerAgnosticTurn, state2 state.State, rewardForState2 game.WinKind, validTurnsInState2 map[turn.TurnArray]turn.Turn) {
 	defer a.qs.Unlock()
 	a.qs.Lock()
 

@@ -13,7 +13,7 @@ import (
 	"github.com/seriesoftubes/bgo/state"
 )
 
-func readTurnFromStdin(validTurns map[string]turn.Turn) turn.Turn {
+func readTurnFromStdin(validTurns map[turn.TurnArray]turn.Turn) turn.Turn {
 	for {
 		var supposedlySerializedTurn string
 		fmt.Scanln(&supposedlySerializedTurn)
@@ -24,7 +24,7 @@ func readTurnFromStdin(validTurns map[string]turn.Turn) turn.Turn {
 			continue
 		}
 
-		if _, ok := validTurns[t.String()]; ok {
+		if _, ok := validTurns[t.Arrayify()]; ok {
 			return t
 		} else {
 			fmt.Println("invalid turn entered, please try again")
@@ -33,7 +33,7 @@ func readTurnFromStdin(validTurns map[string]turn.Turn) turn.Turn {
 }
 
 // The best AI ever built.
-func randomlyChooseValidTurn(validTurns map[string]turn.Turn) turn.Turn {
+func randomlyChooseValidTurn(validTurns map[turn.TurnArray]turn.Turn) turn.Turn {
 	for _, t := range validTurns {
 		return t
 	}
@@ -89,7 +89,7 @@ type stateAction struct {
 	action learn.PlayerAgnosticTurn
 }
 
-func (gc *GameController) chooseTurn(validTurns map[string]turn.Turn, currentState state.State) turn.Turn {
+func (gc *GameController) chooseTurn(validTurns map[turn.TurnArray]turn.Turn, currentState state.State) turn.Turn {
 	if gc.g.IsCurrentPlayerHuman() {
 		return readTurnFromStdin(validTurns)
 	}

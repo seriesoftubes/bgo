@@ -7,22 +7,42 @@ import (
 	"github.com/seriesoftubes/bgo/game/plyr"
 )
 
+const (
+	invalidNilRequestor = "Must have requestor."
+	invalidBadChar      = "Must be a whitelisted lowercase alpha character."
+	invalidBadDice      = "Distance must be between [1,6]"
+
+	maIdxPlayerIsPCC     = 0
+	maIdxBoardPointIndex = 1
+	maIdxFowardDistance  = 2
+	maIdxNumTimes        = 3
+)
+
 // A move being requested by the current player
-type Move struct {
-	Requestor      *plyr.Player
-	Letter         string
-	FowardDistance uint8 // validate between 1 and 6
+type (
+	Move struct {
+		Requestor      *plyr.Player
+		Letter         string
+		FowardDistance uint8 // validate between 1 and 6
+	}
+
+	MoveArray [4]uint8 // 0: playerIsPCC, 1: boardPoint index, 2: fowardDistance, 3: numTimes
+)
+
+func (ma MoveArray) isEmpty() bool { return ma[maIdxNumTimes] == 0 }
+
+func (m *Move) arrayify(numTimesMoveIsPlayed uint8) MoveArray {
+	var playerIsPCC uint8
+	if m.Requestor == plyr.PCC {
+		playerIsPCC = 1
+	}
+
+	return MoveArray{playerIsPCC, constants.Alpha2Num[m.Letter], m.FowardDistance, numTimesMoveIsPlayed}
 }
 
 func (m *Move) String() string {
 	return fmt.Sprintf("%s: go %d spaces starting with %s", *m.Requestor, m.FowardDistance, m.Letter)
 }
-
-const (
-	invalidNilRequestor = "Must have requestor."
-	invalidBadChar      = "Must be a whitelisted lowercase alpha character."
-	invalidBadDice      = "Distance must be between [1,6]"
-)
 
 func (m *Move) IsValid() (bool, string) {
 	if m.Requestor == nil {

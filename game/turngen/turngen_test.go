@@ -127,8 +127,8 @@ func TestValidTurns(t *testing.T) {
 		wants := newStringSet(c.want)
 		turns := ValidTurns(b, &c.roll, c.player)
 		gots := stringSet{}
-		for ts := range turns {
-			gots[ts] = true
+		for _, t := range turns {
+			gots[t.String()] = true
 		}
 
 		if !reflect.DeepEqual(gots, wants) {
@@ -201,8 +201,8 @@ func TestValidTurnsTwoOnTheBar(t *testing.T) {
 		wants := newStringSet(c.want)
 		turns := ValidTurns(b, &c.roll, c.player)
 		gots := stringSet{}
-		for ts := range turns {
-			gots[ts] = true
+		for _, t := range turns {
+			gots[t.String()] = true
 		}
 
 		if !reflect.DeepEqual(gots, wants) {
@@ -288,8 +288,8 @@ func TestValidTurnsOneOnTheBar(t *testing.T) {
 		wants := newStringSet(c.want)
 		turns := ValidTurns(b, &c.roll, c.player)
 		gots := stringSet{}
-		for ts := range turns {
-			gots[ts] = true
+		for _, t := range turns {
+			gots[t.String()] = true
 		}
 
 		if !reflect.DeepEqual(gots, wants) {
@@ -359,8 +359,8 @@ func TestValidTurnsBearOff(t *testing.T) {
 		wants := newStringSet(c.want)
 		turns := ValidTurns(b, &c.roll, c.player)
 		gots := stringSet{}
-		for ts := range turns {
-			gots[ts] = true
+		for _, t := range turns {
+			gots[t.String()] = true
 		}
 
 		if !reflect.DeepEqual(gots, wants) {
@@ -434,8 +434,8 @@ func TestValidTurnsBearOffStartingFromOutside(t *testing.T) {
 		wants := newStringSet(c.want)
 		turns := ValidTurns(b, &c.roll, c.player)
 		gots := stringSet{}
-		for ts := range turns {
-			gots[ts] = true
+		for _, t := range turns {
+			gots[t.String()] = true
 		}
 
 		if !reflect.DeepEqual(gots, wants) {
@@ -500,8 +500,8 @@ func TestWeirdTurn(t *testing.T) {
 	roll := &game.Roll{2, 2}
 	turns := ValidTurns(b, roll, plyr.PC)
 	gots := stringSet{}
-	for ts := range turns {
-		gots[ts] = true
+	for _, t := range turns {
+		gots[t.String()] = true
 	}
 
 	if !reflect.DeepEqual(gots, wants) {

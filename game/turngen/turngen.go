@@ -22,11 +22,11 @@ func popSliceUint8(slice []uint8, atIndex int) ([]uint8, error) {
 }
 
 // Generates the set of all valid turns for a player, given a roll and a board.
-func ValidTurns(b *game.Board, r *game.Roll, p *plyr.Player) map[string]turn.Turn {
-	serializedTurns := map[string]turn.Turn{} // set of serialized Turn strings
-	var bestTotalDist uint8                   // placeholder for the max total distance across all potential turns.
+func ValidTurns(b *game.Board, r *game.Roll, p *plyr.Player) map[turn.TurnArray]turn.Turn {
+	serializedTurns := map[turn.TurnArray]turn.Turn{} // set of serialized Turn strings
+	var bestTotalDist uint8                           // placeholder for the max total distance across all potential turns.
 	maybeAddToResultSet := func(t turn.Turn) bool {
-		sert := t.String()
+		sert := t.Arrayify()
 		if _, ok := serializedTurns[sert]; ok || !t.IsValid() {
 			return false // We already processed it, or it's invalid anyway.
 		}

@@ -13,7 +13,11 @@ import (
 const moveDelim = ";"
 
 // A Turn contains the moves to execute during a player's turn and the number of times to make each move.
-type Turn map[Move]uint8
+type (
+	Turn          map[Move]uint8
+	sortableMoves []Move
+	TurnArray     [constants.MAX_MOVES_PER_TURN]MoveArray
+)
 
 func (t Turn) Update(m Move) { t[m]++ }
 func (t Turn) Copy() Turn {
@@ -32,8 +36,6 @@ func (t Turn) TotalDist() uint8 {
 	return out
 }
 
-type sortableMoves []Move
-
 func (sm sortableMoves) Len() int      { return len(sm) }
 func (sm sortableMoves) Swap(i, j int) { sm[j], sm[i] = sm[i], sm[j] }
 func (sm sortableMoves) Less(i, j int) bool {
@@ -44,6 +46,22 @@ func (sm sortableMoves) Less(i, j int) bool {
 	} else {
 		return left.FowardDistance < right.FowardDistance
 	}
+}
+
+func (t Turn) Arrayify() TurnArray {
+	smoves := make(sortableMoves, 0, len(t))
+	for m := range t {
+		smoves = append(smoves, m)
+	}
+	sort.Sort(smoves)
+
+	ta := TurnArray{}
+	var taIdx int
+	for _, mov := range smoves {
+		ta[taIdx] = mov.arrayify(t[mov])
+		taIdx++
+	}
+	return ta
 }
 
 // String serializes a Turn into a string like "X;a3;a3;b3;d3".
