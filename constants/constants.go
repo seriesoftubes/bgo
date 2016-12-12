@@ -4,9 +4,11 @@ package constants
 const (
 	NUM_POINTS_IN_HOME_BOARD uint8 = 6
 	NUM_BOARD_POINTS         uint8 = 24
+	FINAL_BOARD_POINT_INDEX        = NUM_BOARD_POINTS - 1
 	NUM_CHECKERS_PER_PLAYER  uint8 = 15
 	MIN_DICE_AMT                   = 1
 	MAX_DICE_AMT                   = 6
+	MAX_MOVES_PER_TURN             = 4
 
 	LETTER_BAR_CC = "y" // Accesses chex on the bar for the CC player
 	LETTER_BAR_C  = "z" // Accesses chex on the bar for the C player

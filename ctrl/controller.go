@@ -33,9 +33,9 @@ func readTurnFromStdin(validTurns map[string]turn.Turn) turn.Turn {
 }
 
 // The best AI ever built.
-func randomlyChooseValidTurn(validTurns map[string]turn.Turn) (string, turn.Turn) {
-	for st, t := range validTurns {
-		return st, t
+func randomlyChooseValidTurn(validTurns map[string]turn.Turn) turn.Turn {
+	for _, t := range validTurns {
+		return t
 	}
 	panic("no turns to choose. you should've prevented this line from being reached")
 }
@@ -86,7 +86,7 @@ func (gc *GameController) maybePrint(s ...interface{}) {
 
 type stateAction struct {
 	state  state.State
-	action string // serialized, valid Turn
+	action learn.PlayerAgnosticTurn
 }
 
 func (gc *GameController) chooseTurn(validTurns map[string]turn.Turn, currentState state.State) turn.Turn {
@@ -94,14 +94,10 @@ func (gc *GameController) chooseTurn(validTurns map[string]turn.Turn, currentSta
 		return readTurnFromStdin(validTurns)
 	}
 
-	action := gc.agent.EpsilonGreedyAction(currentState, validTurns)
-	gc.prevStateActions[gc.g.CurrentPlayer] = &stateAction{currentState, action}
+	pat := gc.agent.EpsilonGreedyAction(currentState, validTurns)
+	gc.prevStateActions[gc.g.CurrentPlayer] = &stateAction{currentState, pat}
 
-	t, err := turn.DeserializeTurn(action)
-	if err != nil {
-		panic(fmt.Sprintf("could not DeserializeTurn %s: %s", action, err.Error()))
-	}
-	return t
+	return learn.ConvertAgnosticTurn(pat, gc.g.CurrentPlayer)
 }
 
 // playOneTurn plays through one turn, and returns whether the game is finished after the turn executes.
@@ -125,14 +121,13 @@ func (gc *GameController) playOneTurn() bool {
 	}
 
 	var chosenTurn turn.Turn
-	var serializedTurn string
 	if len(validTurns) == 0 {
 		gc.maybePrint("\tcan't do anything this turn, sorry!")
 	} else if len(validTurns) == 1 {
 		gc.maybePrint("\tthis turn only has 1 option, forcing!")
-		serializedTurn, chosenTurn = randomlyChooseValidTurn(validTurns)
+		chosenTurn = randomlyChooseValidTurn(validTurns)
 		if isComputer {
-			gc.prevStateActions[gc.g.CurrentPlayer] = &stateAction{currentState, serializedTurn}
+			gc.prevStateActions[g.CurrentPlayer] = &stateAction{currentState, learn.AgnosticizeTurn(chosenTurn, g.CurrentPlayer)}
 		}
 	} else {
 		gc.maybePrint(fmt.Sprintf("\tYour move, %q:", *g.CurrentPlayer))
