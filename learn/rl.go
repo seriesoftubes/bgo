@@ -2,7 +2,11 @@
 package learn
 
 import (
+	"encoding/gob"
+	"fmt"
+	"io"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/seriesoftubes/bgo/constants"
@@ -27,8 +31,8 @@ type (
 	PlayerAgnosticTurn [constants.MAX_MOVES_PER_TURN]PlayerAgnosticMove // up to 4 PAMoves, sorted according to sortablePAT logic.
 
 	StateActionPair struct {
-		state  state.State
-		action PlayerAgnosticTurn
+		State  state.State
+		Action PlayerAgnosticTurn
 	}
 
 	QContainer struct {
@@ -51,6 +55,35 @@ type (
 
 func NewQContainer() *QContainer {
 	return &QContainer{qvals: make(map[StateActionPair]float64, 12888444)}
+}
+
+func (qc *QContainer) String() string {
+	var out []string
+	defer qc.Unlock()
+	qc.Lock()
+	for sa, q := range qc.qvals {
+		if q != 0 {
+			out = append(out, fmt.Sprintf("%v: %v", q, sa))
+		}
+	}
+	return strings.Join(out, "\n\n")
+}
+
+func (qc *QContainer) Serialize(w io.Writer) error {
+	enc := gob.NewEncoder(w)
+	if err := enc.Encode(&qc.qvals); err != nil {
+		return fmt.Errorf("enc.Encode(*qc) error: %v", err)
+	}
+	return nil
+}
+
+func DeserializeQContainer(r io.Reader) (*QContainer, error) {
+	dec := gob.NewDecoder(r)
+	var qvals map[StateActionPair]float64
+	if err := dec.Decode(&qvals); err != nil {
+		return nil, fmt.Errorf("dec.Decode(&q) error: %v", err)
+	}
+	return &QContainer{qvals: qvals}, nil
 }
 
 func NewAgent(qvals *QContainer, alpha, gamma, epsilon float64) *Agent {
