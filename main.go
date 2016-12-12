@@ -21,8 +21,8 @@ func readQs() *learn.QContainer {
 	if err != nil {
 		return learn.NewQContainer()
 	}
-
 	defer f.Close()
+
 	qc, err := learn.DeserializeQContainer(f)
 	if err != nil {
 		panic("could not deserialize qs: " + err.Error())
@@ -72,5 +72,5 @@ func main() {
 	saveQs(qs)
 
 	mgr := ctrl.New(qs, true)
-	mgr.PlayOneGame(1 /* stopLearning=true */, true)
+	mgr.PlayOneGame(1, true /* stopLearning=true */)
 }
