@@ -147,7 +147,12 @@ func (a *Agent) Learn(state1 state.State, action PlayerAgnosticTurn, state2 stat
 			bestPossibleFutureQ = q
 		}
 	}
-	a.qs.qvals[oldStateAction] = oldQ + a.alpha*(float64(rewardForState2)+(a.gamma*bestPossibleFutureQ)-oldQ)
+
+	if newQ := oldQ + a.alpha*(float64(rewardForState2)+(a.gamma*bestPossibleFutureQ)-oldQ); newQ != 0 {
+		a.qs.qvals[oldStateAction] = newQ
+	} else {
+		delete(a.qs.qvals, oldStateAction)
+	}
 
 	a.numObservations++
 	if obs := a.numObservations; obs == 80100 && a.epsilon > 0.6 {
