@@ -13,6 +13,16 @@ import (
 	"github.com/seriesoftubes/bgo/state"
 )
 
+const (
+	msgWelcome       = "Welcome to backgammon. Good luck and have fun!"
+	msgGameOver      = "\tDONE WITH GAME!"
+	msgQvalsCacheHit = "\tHit the QVals cache!"
+	msgNoMovesAvail  = "\tcan't do anything this turn, sorry!"
+	msgForceMove     = "\tthis turn only has 1 option, forcing!"
+	msgAskForMove    = "\tYour move, "
+	msgChoseMove     = "\tChose move:"
+)
+
 func readTurnFromStdin(validTurns map[turn.TurnArray]turn.Turn) turn.Turn {
 	for {
 		var supposedlySerializedTurn string
@@ -64,7 +74,7 @@ func (gc *GameController) PlayOneGame(numHumanPlayers uint8, stopLearning bool) 
 	}
 	gc.agent.SetGame(gc.g)
 
-	gc.maybePrint("Welcome to backgammon. Good luck and have fun!")
+	gc.maybePrint(msgWelcome)
 	var done bool
 	for !done {
 		done = gc.playOneTurn()
@@ -72,7 +82,7 @@ func (gc *GameController) PlayOneGame(numHumanPlayers uint8, stopLearning bool) 
 
 	if gc.g.HasAnyHumans() || gc.debug {
 		render.PrintGame(gc.g)
-		fmt.Println("\tDONE WITH GAME!")
+		fmt.Println(msgGameOver)
 	}
 
 	return gc.g.Board.Winner(), gc.g.Board.WinKind()
@@ -94,7 +104,11 @@ func (gc *GameController) chooseTurn(validTurns map[turn.TurnArray]turn.Turn, cu
 		return readTurnFromStdin(validTurns)
 	}
 
-	pat := gc.agent.EpsilonGreedyAction(currentState, validTurns)
+	pat, hit := gc.agent.EpsilonGreedyAction(currentState, validTurns)
+	if hit {
+		gc.maybePrint(msgQvalsCacheHit)
+	}
+
 	gc.prevStateActions[gc.g.CurrentPlayer] = &stateAction{currentState, pat}
 
 	return learn.ConvertAgnosticTurn(pat, gc.g.CurrentPlayer)
@@ -122,18 +136,18 @@ func (gc *GameController) playOneTurn() bool {
 
 	var chosenTurn turn.Turn
 	if len(validTurns) == 0 {
-		gc.maybePrint("\tcan't do anything this turn, sorry!")
+		gc.maybePrint(msgNoMovesAvail)
 	} else if len(validTurns) == 1 {
-		gc.maybePrint("\tthis turn only has 1 option, forcing!")
+		gc.maybePrint(msgForceMove)
 		chosenTurn = randomlyChooseValidTurn(validTurns)
 		if isComputer {
 			gc.prevStateActions[g.CurrentPlayer] = &stateAction{currentState, learn.AgnosticizeTurn(chosenTurn, g.CurrentPlayer)}
 		}
 	} else {
-		gc.maybePrint(fmt.Sprintf("\tYour move, %q:", *g.CurrentPlayer))
+		gc.maybePrint(msgAskForMove, *g.CurrentPlayer)
 		chosenTurn = gc.chooseTurn(validTurns, currentState)
 	}
-	gc.maybePrint("\tChose move:", chosenTurn)
+	gc.maybePrint(msgChoseMove, chosenTurn)
 
 	if gc.debug {
 		defer func() {
