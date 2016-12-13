@@ -2,7 +2,8 @@
 package learn
 
 import (
-	"encoding/gob"
+	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"sort"
@@ -40,6 +41,12 @@ type (
 		qvals map[StateActionPair]float64
 	}
 
+	QcontainerJsonRow struct {
+		S state.StateArray
+		A PlayerAgnosticTurn
+		Q float64
+	}
+
 	Agent struct {
 		// Alpha = learning rate
 		// Gamma = discount rate for future rewards
@@ -70,20 +77,38 @@ func (qc *QContainer) String() string {
 }
 
 func (qc *QContainer) Serialize(w io.Writer) error {
-	enc := gob.NewEncoder(w)
-	if err := enc.Encode(&qc.qvals); err != nil {
-		return fmt.Errorf("enc.Encode(*qc) error: %v", err)
+	enc := json.NewEncoder(w)
+	for sap, qval := range qc.qvals {
+		if qval == 0 {
+			continue
+		}
+
+		row := QcontainerJsonRow{sap.State.AsArray(), sap.Action, qval}
+		if err := enc.Encode(row); err != nil {
+			return fmt.Errorf("JSON enc.Encode(row) error: %v", err)
+		}
 	}
 	return nil
 }
 
 func DeserializeQContainer(r io.Reader) (*QContainer, error) {
-	dec := gob.NewDecoder(r)
-	var qvals map[StateActionPair]float64
-	if err := dec.Decode(&qvals); err != nil {
-		return nil, fmt.Errorf("dec.Decode(&q) error: %v", err)
+	out := NewQContainer()
+
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		var row QcontainerJsonRow
+		if err := json.Unmarshal(scanner.Bytes(), &row); err != nil {
+			return nil, fmt.Errorf("json.Unmarshal error: %v", err)
+		}
+		st := state.State{}
+		st.InitFromArray(row.S)
+		out.qvals[StateActionPair{st, PlayerAgnosticTurn(row.A)}] = row.Q
 	}
-	return &QContainer{qvals: qvals}, nil
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("scanner.Err() error: %v", err)
+	}
+
+	return out, nil
 }
 
 func NewAgent(qvals *QContainer, alpha, gamma, epsilon float64) *Agent {
@@ -94,13 +119,14 @@ func (a *Agent) SetPlayer(p *plyr.Player) { a.player = p }
 func (a *Agent) SetGame(g *game.Game)     { a.game = g }
 
 // Choose an action that helps with training
-func (a *Agent) EpsilonGreedyAction(st state.State, validTurnsForState map[turn.TurnArray]turn.Turn) PlayerAgnosticTurn {
+func (a *Agent) EpsilonGreedyAction(st state.State, validTurnsForState map[turn.TurnArray]turn.Turn) (PlayerAgnosticTurn, bool) {
 	possibleActions := make([]PlayerAgnosticTurn, 0, len(validTurnsForState))
 	for _, t := range validTurnsForState {
 		possibleActions = append(possibleActions, AgnosticizeTurn(t, a.player))
 	}
 
 	var idx int
+	var wasCacheHit bool
 	if random.Float64() < a.epsilon {
 		idx = random.IntBetween(0, len(possibleActions)-1)
 	} else {
@@ -120,9 +146,10 @@ func (a *Agent) EpsilonGreedyAction(st state.State, validTurnsForState map[turn.
 		} else {
 			idx = random.IntUpTo(len(possibleActions))
 		}
+		wasCacheHit = bestQ > 0
 	}
 
-	return possibleActions[idx]
+	return possibleActions[idx], wasCacheHit
 }
 
 func (a *Agent) DetectState() state.State {

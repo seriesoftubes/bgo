@@ -18,7 +18,40 @@ type (
 		NumOnMyBar, NumOnEnemyBar uint8
 		MyRoll                    game.Roll
 	}
+
+	// the first 24 elements are the normal board points' states.
+	// #25 is [numonmybar, numonenemy].
+	// #26 is the dice amounts.
+	StateArray [constants.NUM_BOARD_POINTS + 2][2]uint8
 )
+
+func (bps BoardPointState) AsArray() [2]uint8 {
+	if bps.IsOwnedByMe {
+		return [2]uint8{1, bps.NumChex}
+	}
+	return [2]uint8{0, bps.NumChex}
+}
+
+func (s State) AsArray() StateArray {
+	out := StateArray{}
+	for i, bps := range s.BoardPoints {
+		out[i] = bps.AsArray()
+	}
+	out[constants.NUM_BOARD_POINTS] = [2]uint8{s.NumOnMyBar, s.NumOnEnemyBar}
+	out[constants.NUM_BOARD_POINTS+1] = [2]uint8(s.MyRoll)
+	return out
+}
+
+func (s State) InitFromArray(arr StateArray) {
+	for i, v := range arr[:constants.NUM_BOARD_POINTS] {
+		s.BoardPoints[i] = BoardPointState{v[0] == 1, v[1]}
+	}
+
+	barState := arr[constants.NUM_BOARD_POINTS]
+	s.NumOnMyBar, s.NumOnEnemyBar = barState[0], barState[1]
+
+	s.MyRoll = game.Roll(arr[constants.NUM_BOARD_POINTS+1])
+}
 
 func uint8Ceiling(x, max uint8) uint8 {
 	if x > max {
