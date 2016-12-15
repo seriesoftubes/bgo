@@ -58,12 +58,12 @@ func ValidTurns(b *game.Board, r *game.Roll, p *plyr.Player) map[turn.TurnArray]
 				if nextRemaining, err := popSliceUint8(remainingDists, distIdx); err != nil {
 					panic("problem popping a value from a uint8 slice: " + err.Error())
 				} else {
-					addPerm(bcop.Copy(), nextRemaining, legitTurn)
+					addPerm(bcop, nextRemaining, legitTurn)
 				}
 			}
 		}
 	}
-	addPerm(b.Copy(), r.MoveDistances(), turn.Turn{})
+	addPerm(b, r.MoveDistances(), turn.Turn{})
 
 	for st, t := range serializedTurns {
 		if t.TotalDist() != bestTotalDist {
