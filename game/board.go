@@ -140,31 +140,45 @@ const (
 	illegalWrongFinishLine            = "Must move past the correct finish line."
 	illegalBearoffOthersFirst         = "If the amount on the dice > the point's distance away from 0, then you must have already beared off all chex behind the point."
 	illegalEnemyControlsIt            = "Can't move to a point that's controlled (has >1 chex) by the enemy."
+	illegalBearOntoEnemyHome          = "Must move to a point inside the enemy's home."
 )
 
-func (b *Board) isLegalMove(m *turn.Move) (bool, string) {
-	isForBar := m.Letter == constants.LETTER_BAR_CC || m.Letter == constants.LETTER_BAR_C
-	numOnTheBar := b.chexOnTheBar(m.Requestor)
-	if numOnTheBar > 0 && !isForBar {
-		return false, illegalBarFirst
-	}
-	expectedLetter := constants.LETTER_BAR_C
-	if m.Requestor == plyr.PCC {
-		expectedLetter = constants.LETTER_BAR_CC
-	}
-	if isForBar && m.Letter != expectedLetter {
+// Specifically determines whether the given move is OK for moving a checker off the bar and back onto the board.
+// Before running this method, you must be certain that `m` specifically is for moving a checker back onto the board!
+func (b *Board) isLegalMoveForBearingOn(m *turn.Move) (bool, string) {
+	if (m.Requestor == plyr.PCC && m.Letter != constants.LETTER_BAR_CC) ||
+		(m.Requestor == plyr.PC && m.Letter != constants.LETTER_BAR_C) {
 		return false, illegalEnemyBarChex
 	}
 
-	numChexOnCurrentPoint := numOnTheBar
-	if !isForBar {
-		fromPt := b.Points[m.PointIdx()]
-		if fromPt.Owner != m.Requestor {
-			return false, illegalEnemyRegularChex
-		}
-		numChexOnCurrentPoint = fromPt.NumCheckers
+	if b.chexOnTheBar(m.Requestor) < 1 {
+		return false, illegalEmptyPoint
 	}
-	if numChexOnCurrentPoint == 0 {
+
+	enemy := m.Requestor.Enemy()
+	enemyHomeStart, enemyHomeEnd := enemy.HomePointIndices()
+
+	toPtIdx, _ := m.NextPointIdx()
+	if toPtIdx < int8(enemyHomeStart) || toPtIdx > int8(enemyHomeEnd) {
+		return false, illegalBearOntoEnemyHome
+	}
+	if pt := b.Points[toPtIdx]; pt.Owner == enemy && pt.NumCheckers > 1 {
+		return false, illegalEnemyControlsIt
+	}
+
+	return true, ""
+}
+
+func (b *Board) isLegalMoveForNonBearingOn(m *turn.Move) (bool, string) {
+	if b.chexOnTheBar(m.Requestor) > 0 {
+		return false, illegalBarFirst
+	}
+
+	fromPt := b.Points[m.PointIdx()]
+	if fromPt.Owner != m.Requestor {
+		return false, illegalEnemyRegularChex
+	}
+	if fromPt.NumCheckers < 1 {
 		return false, illegalEmptyPoint
 	}
 
@@ -189,6 +203,13 @@ func (b *Board) isLegalMove(m *turn.Move) (bool, string) {
 	return true, ""
 }
 
+func (b *Board) isLegalMove(m *turn.Move) (bool, string) {
+	if isForBar := m.Letter == constants.LETTER_BAR_CC || m.Letter == constants.LETTER_BAR_C; isForBar {
+		return b.isLegalMoveForBearingOn(m)
+	}
+	return b.isLegalMoveForNonBearingOn(m)
+}
+
 func (b *Board) doesPlayerHaveAnyRemainingCheckersBehindPoint(p *plyr.Player, pointIdx uint8) bool {
 	homeStart, homeEnd := p.HomePointIndices()
 
@@ -211,32 +232,29 @@ func (b *Board) doesPlayerHaveAnyRemainingCheckersBehindPoint(p *plyr.Player, po
 func (b *Board) LegalMoves(p *plyr.Player, diceAmt uint8) []*turn.Move {
 	var out []*turn.Move
 
-	// Moves off the bar.
 	if p == plyr.PCC && b.BarCC > 0 {
 		m := &turn.Move{Requestor: p, Letter: constants.LETTER_BAR_CC, FowardDistance: diceAmt}
-		if ok, _ := b.isLegalMove(m); ok {
-			out = append(out, m)
+		if ok, _ := b.isLegalMoveForBearingOn(m); ok {
+			return append(out, m)
 		}
-		if b.BarCC > 1 {
-			return out
-		}
+		return out
 	} else if p == plyr.PC && b.BarC > 0 {
 		m := &turn.Move{Requestor: p, Letter: constants.LETTER_BAR_C, FowardDistance: diceAmt}
-		if ok, _ := b.isLegalMove(m); ok {
-			out = append(out, m)
+		if ok, _ := b.isLegalMoveForBearingOn(m); ok {
+			return append(out, m)
 		}
-		if b.BarC > 1 {
-			return out
-		}
+		return out
 	}
 
 	for pointIdx, pt := range b.Points {
+		// TODO: keep track of which points are owned by which players and only iterate thru those,
+		// and adjust isLegalMoveForNonBearingOn accordingly
 		if pt.Owner != p {
 			continue
 		}
 
 		m := &turn.Move{Requestor: p, Letter: string(constants.Num2Alpha[uint8(pointIdx)]), FowardDistance: diceAmt}
-		if ok, _ := b.isLegalMove(m); ok {
+		if ok, _ := b.isLegalMoveForNonBearingOn(m); ok {
 			out = append(out, m)
 		}
 	}
