@@ -58,8 +58,8 @@ type GameController struct {
 }
 
 func New(qs *learn.QContainer, debug bool) *GameController {
-	learningRateAkaAlpha := 0.25
-	rewardsDiscountRateAkaGamma := 0.5
+	learningRateAkaAlpha := 0.5
+	rewardsDiscountRateAkaGamma := 0.9999999999
 	initialExplorationRateAkaEpsilon := 1.0
 	prevStateActions := make(map[*plyr.Player]*stateAction, 2)
 	agent := learn.NewAgent(qs, learningRateAkaAlpha, rewardsDiscountRateAkaGamma, initialExplorationRateAkaEpsilon)

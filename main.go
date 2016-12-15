@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	trainings     = 25650
+	trainings     = 11000
 	qvalsFileName = "/usr/local/google/home/bweidenbaum/Desktop/bgo_qvals.json"
 )
 
@@ -50,7 +50,7 @@ func main() {
 	gamesPlayed := uint64(0)
 	var wg sync.WaitGroup
 
-	for i := 0; i < 8; i++ {
+	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func() {
 			mgr := ctrl.New(qs, false)
@@ -67,7 +67,7 @@ func main() {
 	}
 	wg.Wait()
 
-	fmt.Println("trained", trainings, "times in", time.Since(start))
+	fmt.Println("trained", gamesPlayed, "times in", time.Since(start))
 
 	saveQs(qs)
 

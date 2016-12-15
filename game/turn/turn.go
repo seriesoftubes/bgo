@@ -56,10 +56,8 @@ func (t Turn) Arrayify() TurnArray {
 	sort.Sort(smoves)
 
 	ta := TurnArray{}
-	var taIdx int
-	for _, mov := range smoves {
-		ta[taIdx] = mov.arrayify(t[mov])
-		taIdx++
+	for i, mov := range smoves {
+		ta[i] = mov.arrayify(t[mov])
 	}
 	return ta
 }

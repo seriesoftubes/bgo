@@ -37,7 +37,7 @@ type (
 	}
 
 	QContainer struct {
-		sync.Mutex
+		sync.RWMutex
 		qvals map[StateActionPair]float64
 	}
 
@@ -66,8 +66,6 @@ func NewQContainer() *QContainer {
 
 func (qc *QContainer) String() string {
 	var out []string
-	defer qc.Unlock()
-	qc.Lock()
 	for sa, q := range qc.qvals {
 		if q != 0 {
 			out = append(out, fmt.Sprintf("%v: %v", q, sa))
@@ -132,8 +130,8 @@ func (a *Agent) EpsilonGreedyAction(st state.State, validTurnsForState map[turn.
 	} else {
 		var bestQ float64
 		var bestQIndices []int
-		defer a.qs.Unlock()
-		a.qs.Lock()
+		defer a.qs.RUnlock()
+		a.qs.RLock()
 		for idx, action := range possibleActions {
 			if q, ok := a.qs.qvals[StateActionPair{st, action}]; ok && q >= bestQ {
 				bestQ = q
@@ -161,11 +159,11 @@ func (a *Agent) DetectState() state.State {
 }
 
 func (a *Agent) StopLearning() { a.epsilon = 0 }
-func (a *Agent) Learn(state1 state.State, action PlayerAgnosticTurn, state2 state.State, rewardForState2 game.WinKind, validTurnsInState2 map[turn.TurnArray]turn.Turn) {
-	defer a.qs.Unlock()
-	a.qs.Lock()
 
-	oldStateAction := StateActionPair{state1, action}
+func (a *Agent) oldAndBestFutureQ(oldStateAction StateActionPair, state2 state.State, validTurnsInState2 map[turn.TurnArray]turn.Turn) (float64, float64) {
+	defer a.qs.RUnlock()
+	a.qs.RLock()
+
 	oldQ := a.qs.qvals[oldStateAction]
 
 	var bestPossibleFutureQ float64
@@ -175,6 +173,15 @@ func (a *Agent) Learn(state1 state.State, action PlayerAgnosticTurn, state2 stat
 		}
 	}
 
+	return oldQ, bestPossibleFutureQ
+}
+
+func (a *Agent) Learn(state1 state.State, action PlayerAgnosticTurn, state2 state.State, rewardForState2 game.WinKind, validTurnsInState2 map[turn.TurnArray]turn.Turn) {
+	oldStateAction := StateActionPair{state1, action}
+	oldQ, bestPossibleFutureQ := a.oldAndBestFutureQ(oldStateAction, state2, validTurnsInState2)
+
+	defer a.qs.Unlock()
+	a.qs.Lock()
 	if newQ := oldQ + a.alpha*(float64(rewardForState2)+(a.gamma*bestPossibleFutureQ)-oldQ); newQ != 0 {
 		a.qs.qvals[oldStateAction] = newQ
 	} else {
