@@ -22,7 +22,7 @@ const (
 type (
 	Move struct {
 		Requestor      plyr.Player
-		Letter         string
+		Letter         byte
 		FowardDistance uint8 // validate between 1 and 6
 	}
 

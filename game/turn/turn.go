@@ -79,9 +79,9 @@ func (t Turn) String() string {
 
 	for _, mov := range smoves {
 		if numTimes := int(t[mov]); numTimes == 1 {
-			out = append(out, fmt.Sprintf("%s%d", mov.Letter, mov.FowardDistance))
+			out = append(out, fmt.Sprintf("%s%d", string(mov.Letter), mov.FowardDistance))
 		} else {
-			reps := strings.Repeat(fmt.Sprintf("%s%d;", mov.Letter, mov.FowardDistance), numTimes)
+			reps := strings.Repeat(fmt.Sprintf("%s%d;", string(mov.Letter), mov.FowardDistance), numTimes)
 			out = append(out, reps[0:len(reps)-1])
 		}
 	}
@@ -105,7 +105,7 @@ func DeserializeTurn(s string) (Turn, error) {
 	}
 
 	for _, moveString := range moveStrings[1:len(moveStrings)] {
-		letter := string(moveString[0])
+		letter := moveString[0]
 		dist, err := strconv.Atoi(string(moveString[1]))
 		distUint8 := uint8(dist)
 		if err != nil || distUint8 < constants.MIN_DICE_AMT || distUint8 > constants.MAX_DICE_AMT {

@@ -40,7 +40,7 @@ func PrintBoard(b *game.Board) {
 		if pointIdx == topPointToTheRightOfMid {
 			prefix = "   " + " "
 		}
-		row += prefix + constants.Num2Alpha[pointIdx] + " "
+		row += prefix + string(constants.Num2Alpha[pointIdx]) + " "
 	}
 	topRows = append(topRows, row)
 
@@ -157,7 +157,7 @@ func PrintBoard(b *game.Board) {
 		if pointIdx == botPointToTheRightOfMid {
 			prefix = "   " + " "
 		}
-		row += prefix + constants.Num2Alpha[pointIdx] + " "
+		row += prefix + string(constants.Num2Alpha[pointIdx]) + " "
 	}
 	botRows = append(botRows, row)
 
@@ -173,8 +173,8 @@ func PrintBoard(b *game.Board) {
 	}
 	fmt.Println(prefix + "\n")
 	fmt.Println(prefix + "The bar")
-	fmt.Println(prefix + constants.LETTER_BAR_CC + "\t" + renderBar(plyr.PCC, b.BarCC))
-	fmt.Println(prefix + constants.LETTER_BAR_C + "\t" + renderBar(plyr.PC, b.BarC))
+	fmt.Println(prefix + string(constants.LETTER_BAR_CC) + "\t" + renderBar(plyr.PCC, b.BarCC))
+	fmt.Println(prefix + string(constants.LETTER_BAR_C) + "\t" + renderBar(plyr.PC, b.BarC))
 	fmt.Println(prefix)
 	fmt.Println(prefix + "Beared off")
 	fmt.Println(prefix + fmt.Sprintf("\t%s's: %d\t\t%s's: %d", plyr.PCC.Symbol(), b.OffCC, plyr.PC.Symbol(), b.OffC))

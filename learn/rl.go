@@ -208,7 +208,7 @@ func (a *Agent) Learn(state1 state.State, action PlayerAgnosticTurn, state2 stat
 
 func (pam PlayerAgnosticMove) isEmpty() bool { return pam[pamIdxNumTimes] == 0 }
 func (pam PlayerAgnosticMove) asMove(p plyr.Player) turn.Move {
-	var letter string
+	var letter byte
 	if bpi := pam[pamIdxStartPointIndex]; p == plyr.PCC {
 		if bpi == agnosticIndexOfHeroBar {
 			letter = constants.LETTER_BAR_CC

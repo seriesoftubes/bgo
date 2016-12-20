@@ -17,12 +17,12 @@ func TestCopyTurn(t *testing.T) {
 			Turn{},
 		},
 		{
-			Turn{Move{plyr.PCC, "j", 5}: 1, Move{plyr.PCC, "a", 1}: 1},
-			Turn{Move{plyr.PCC, "j", 5}: 1, Move{plyr.PCC, "a", 1}: 1},
+			Turn{Move{plyr.PCC, 'j', 5}: 1, Move{plyr.PCC, 'a', 1}: 1},
+			Turn{Move{plyr.PCC, 'j', 5}: 1, Move{plyr.PCC, 'a', 1}: 1},
 		},
 		{
-			Turn{Move{plyr.PCC, "j", 5}: 2, Move{plyr.PCC, "a", 1}: 1},
-			Turn{Move{plyr.PCC, "j", 5}: 2, Move{plyr.PCC, "a", 1}: 1},
+			Turn{Move{plyr.PCC, 'j', 5}: 2, Move{plyr.PCC, 'a', 1}: 1},
+			Turn{Move{plyr.PCC, 'j', 5}: 2, Move{plyr.PCC, 'a', 1}: 1},
 		},
 	}
 	for _, c := range cases {
@@ -43,27 +43,27 @@ func TestSerdeTurn(t *testing.T) {
 		// 01234567890123456789012345
 		// 0         10        20
 		{
-			Turn{Move{plyr.PCC, "j", 5}: 1, Move{plyr.PCC, "a", 1}: 1},
+			Turn{Move{plyr.PCC, 'j', 5}: 1, Move{plyr.PCC, 'a', 1}: 1},
 			"X;a1;j5",
 			TurnArray{MoveArray{1, 0, 1, 1}, MoveArray{1, 9, 5, 1}},
 		},
 		{
-			Turn{Move{plyr.PCC, "j", 1}: 4},
+			Turn{Move{plyr.PCC, 'j', 1}: 4},
 			"X;j1;j1;j1;j1",
 			TurnArray{MoveArray{1, 9, 1, 4}},
 		},
 		{
-			Turn{Move{plyr.PC, "j", 1}: 4},
+			Turn{Move{plyr.PC, 'j', 1}: 4},
 			"O;j1;j1;j1;j1",
 			TurnArray{MoveArray{0, 9, 1, 4}},
 		},
 		{
-			Turn{Move{plyr.PC, "a", 2}: 2, Move{plyr.PC, "b", 2}: 2},
+			Turn{Move{plyr.PC, 'a', 2}: 2, Move{plyr.PC, 'b', 2}: 2},
 			"O;a2;a2;b2;b2",
 			TurnArray{MoveArray{0, 0, 2, 2}, MoveArray{0, 1, 2, 2}},
 		},
 		{
-			Turn{Move{plyr.PC, "t", 5}: 2, Move{plyr.PC, "h", 5}: 2},
+			Turn{Move{plyr.PC, 't', 5}: 2, Move{plyr.PC, 'h', 5}: 2},
 			"O;h5;h5;t5;t5",
 			TurnArray{MoveArray{0, 7, 5, 2}, MoveArray{0, 19, 5, 2}},
 		},

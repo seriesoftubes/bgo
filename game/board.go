@@ -253,7 +253,7 @@ func (b *Board) LegalMoves(p plyr.Player, diceAmt uint8) []turn.Move {
 			continue
 		}
 
-		m := turn.Move{Requestor: p, Letter: string(constants.Num2Alpha[uint8(pointIdx)]), FowardDistance: diceAmt}
+		m := turn.Move{Requestor: p, Letter: constants.Num2Alpha[uint8(pointIdx)], FowardDistance: diceAmt}
 		if ok, _ := b.isLegalMoveForNonBearingOn(m); ok {
 			out = append(out, m)
 		}
