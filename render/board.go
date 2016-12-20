@@ -27,8 +27,8 @@ const (
 )
 
 func PrintBoard(b *game.Board) {
-	if winner := b.Winner(); winner != nil {
-		fmt.Println(fmt.Sprintf("\n\n\t\tWINNER: %q (won %d points)", *winner, b.WinKind()))
+	if winner := b.Winner(); winner != 0 {
+		fmt.Println(fmt.Sprintf("\n\n\t\tWINNER: %q (won %d points)", string(winner), b.WinKind()))
 	}
 
 	var topRows, botRows []string
@@ -184,7 +184,7 @@ func PrintBoard(b *game.Board) {
 	fmt.Println(prefix + "\n")
 }
 
-func renderBar(p *plyr.Player, numOnBar uint8) string {
+func renderBar(p plyr.Player, numOnBar uint8) string {
 	bar := fmt.Sprintf("%s's: ", p.Symbol())
 	for i := uint8(0); i < numOnBar && i < maxCheckersToPrint; i++ {
 		bar += p.Symbol()

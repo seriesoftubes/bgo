@@ -62,7 +62,7 @@ func uint8Ceiling(x, max uint8) uint8 {
 
 // Detects the current state of the game, truncating the checker counts up to a max.
 // Returns the State and whether the State's BoardPoints were reversed to account for the player's perspective.
-func DetectState(p *plyr.Player, g *game.Game, maxChexToConsider uint8) (State, bool) {
+func DetectState(p plyr.Player, g *game.Game, maxChexToConsider uint8) (State, bool) {
 	out := State{MyRoll: g.CurrentRoll.Sorted()}
 
 	isPCC := p == plyr.PCC

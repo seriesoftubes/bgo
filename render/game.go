@@ -7,6 +7,6 @@ import (
 )
 
 func PrintGame(g *game.Game) {
-	fmt.Println(fmt.Sprintf("\n\tPlayer: %s  Rolled: %v", g.CurrentPlayer.Symbol(), *g.CurrentRoll))
+	fmt.Println(fmt.Sprintf("\n\tPlayer: %s  Rolled: %v", g.CurrentPlayer.Symbol(), g.CurrentRoll))
 	PrintBoard(g.Board)
 }

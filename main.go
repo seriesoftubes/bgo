@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	trainings     = 11000
-	qvalsFileName = "/usr/local/google/home/bweidenbaum/Desktop/bgo_qvals.json"
+	trainings = 1000
+	//qvalsFileName = "/usr/local/google/home/bweidenbaum/Desktop/bgo_qvals.json"
+	qvalsFileName = "/Users/bweidenbaum/Desktop/bgo_qvals.json"
 )
 
 func readQs() *learn.QContainer {

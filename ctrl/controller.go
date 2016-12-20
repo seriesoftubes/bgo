@@ -54,19 +54,19 @@ type GameController struct {
 	g                *game.Game
 	debug            bool
 	agent            *learn.Agent
-	prevStateActions map[*plyr.Player]*stateAction
+	prevStateActions map[plyr.Player]stateAction
 }
 
 func New(qs *learn.QContainer, debug bool) *GameController {
 	learningRateAkaAlpha := 0.5
 	rewardsDiscountRateAkaGamma := 0.9999999999
 	initialExplorationRateAkaEpsilon := 1.0
-	prevStateActions := make(map[*plyr.Player]*stateAction, 2)
+	prevStateActions := make(map[plyr.Player]stateAction, 2)
 	agent := learn.NewAgent(qs, learningRateAkaAlpha, rewardsDiscountRateAkaGamma, initialExplorationRateAkaEpsilon)
 	return &GameController{agent: agent, prevStateActions: prevStateActions, debug: debug}
 }
 
-func (gc *GameController) PlayOneGame(numHumanPlayers uint8, stopLearning bool) (*plyr.Player, game.WinKind) {
+func (gc *GameController) PlayOneGame(numHumanPlayers uint8, stopLearning bool) (plyr.Player, game.WinKind) {
 	gc.g = game.NewGame(numHumanPlayers)
 
 	if stopLearning {
@@ -109,7 +109,7 @@ func (gc *GameController) chooseTurn(validTurns map[turn.TurnArray]turn.Turn, cu
 		gc.maybePrint(msgQvalsCacheHit)
 	}
 
-	gc.prevStateActions[gc.g.CurrentPlayer] = &stateAction{currentState, pat}
+	gc.prevStateActions[gc.g.CurrentPlayer] = stateAction{currentState, pat}
 
 	return learn.ConvertAgnosticTurn(pat, gc.g.CurrentPlayer)
 }
@@ -141,10 +141,10 @@ func (gc *GameController) playOneTurn() bool {
 		gc.maybePrint(msgForceMove)
 		chosenTurn = randomlyChooseValidTurn(validTurns)
 		if isComputer {
-			gc.prevStateActions[g.CurrentPlayer] = &stateAction{currentState, learn.AgnosticizeTurn(chosenTurn, g.CurrentPlayer)}
+			gc.prevStateActions[g.CurrentPlayer] = stateAction{currentState, learn.AgnosticizeTurn(chosenTurn, g.CurrentPlayer)}
 		}
 	} else {
-		gc.maybePrint(msgAskForMove, *g.CurrentPlayer)
+		gc.maybePrint(msgAskForMove, string(g.CurrentPlayer))
 		chosenTurn = gc.chooseTurn(validTurns, currentState)
 	}
 	gc.maybePrint(msgChoseMove, chosenTurn)
@@ -165,7 +165,7 @@ func (gc *GameController) playOneTurn() bool {
 	gc.g.Board.MustExecuteTurn(chosenTurn, gc.debug)
 	winner, winAmt := gc.g.Board.Winner(), gc.g.Board.WinKind()
 
-	if winner != nil {
+	if winner != 0 {
 		if isComputer {
 			// special case: a computer won, and they need to learn from that without having to re-run this playOneTurn method.
 			prevSA := gc.prevStateActions[g.CurrentPlayer]

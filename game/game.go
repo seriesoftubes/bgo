@@ -9,8 +9,8 @@ import (
 
 type Game struct {
 	Board             *Board
-	CurrentPlayer     *plyr.Player
-	CurrentRoll       *Roll
+	CurrentPlayer     plyr.Player
+	CurrentRoll       Roll
 	numHumanPlayers   uint8
 	currentValidTurns map[string]turn.Turn
 }

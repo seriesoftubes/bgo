@@ -5,22 +5,20 @@ import (
 )
 
 var (
-	PC  *Player = playerPointer("O") // Clockwise player
-	PCC *Player = playerPointer("X") // Counter-clockwise player
+	PC  Player = 'O' // Clockwise player
+	PCC Player = 'X' // Counter-clockwise player
 )
 
-type Player string
+type Player byte
 
-func playerPointer(p Player) *Player { return &p }
-
-func (p *Player) Enemy() *Player {
+func (p Player) Enemy() Player {
 	if p == PCC {
 		return PC
 	}
 	return PCC
 }
 
-func (p *Player) HomePointIndices() (uint8, uint8) {
+func (p Player) HomePointIndices() (uint8, uint8) {
 	endIdx := constants.NUM_POINTS_IN_HOME_BOARD - 1
 	if p == PCC {
 		endIdx = constants.NUM_BOARD_POINTS - 1
@@ -29,6 +27,6 @@ func (p *Player) HomePointIndices() (uint8, uint8) {
 	return startIdx, endIdx
 }
 
-func (p *Player) Symbol() string {
-	return string(*p)
+func (p Player) Symbol() string {
+	return string(p)
 }

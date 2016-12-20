@@ -75,7 +75,7 @@ func (t Turn) String() string {
 		smoves = append(smoves, m)
 	}
 	sort.Sort(smoves)
-	out = append(out, string(*smoves[0].Requestor))
+	out = append(out, string(smoves[0].Requestor))
 
 	for _, mov := range smoves {
 		if numTimes := int(t[mov]); numTimes == 1 {
@@ -95,10 +95,10 @@ func DeserializeTurn(s string) (Turn, error) {
 
 	moveStrings := strings.Split(s, moveDelim)
 
-	var p *plyr.Player
-	if plyr.Player(moveStrings[0]) == *plyr.PCC {
+	var p plyr.Player
+	if plyr.Player(moveStrings[0][0]) == plyr.PCC {
 		p = plyr.PCC
-	} else if plyr.Player(moveStrings[0]) == *plyr.PC {
+	} else if plyr.Player(moveStrings[0][0]) == plyr.PC {
 		p = plyr.PC
 	} else {
 		return nil, fmt.Errorf("invalid player in serialized turn %q", s)
@@ -119,9 +119,9 @@ func DeserializeTurn(s string) (Turn, error) {
 }
 
 func (t Turn) IsValid() bool {
-	var p *plyr.Player // Placeholder for the first player listed in the turn's moves.
+	var p plyr.Player // Placeholder for the first player listed in the turn's moves.
 	for m := range t {
-		if p == nil {
+		if p == 0 {
 			p = m.Requestor
 		}
 

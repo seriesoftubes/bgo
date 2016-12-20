@@ -54,7 +54,7 @@ type (
 		// TODO: annealing rate?
 		alpha, gamma, epsilon float64
 		game                  *game.Game
-		player                *plyr.Player
+		player                plyr.Player
 		numObservations       uint64
 		qs                    *QContainer
 	}
@@ -113,7 +113,7 @@ func NewAgent(qvals *QContainer, alpha, gamma, epsilon float64) *Agent {
 	return &Agent{alpha: alpha, gamma: gamma, epsilon: epsilon, qs: qvals}
 }
 
-func (a *Agent) SetPlayer(p *plyr.Player) { a.player = p }
+func (a *Agent) SetPlayer(p plyr.Player) { a.player = p }
 func (a *Agent) SetGame(g *game.Game)     { a.game = g }
 
 // Choose an action that helps with training
@@ -207,7 +207,7 @@ func (a *Agent) Learn(state1 state.State, action PlayerAgnosticTurn, state2 stat
 }
 
 func (pam PlayerAgnosticMove) isEmpty() bool { return pam[pamIdxNumTimes] == 0 }
-func (pam PlayerAgnosticMove) asMove(p *plyr.Player) turn.Move {
+func (pam PlayerAgnosticMove) asMove(p plyr.Player) turn.Move {
 	var letter string
 	if bpi := pam[pamIdxStartPointIndex]; p == plyr.PCC {
 		if bpi == agnosticIndexOfHeroBar {
@@ -246,7 +246,7 @@ func (sp sortablePAT) Less(i, j int) bool {
 	return left[pamIdxNumTimes] < right[pamIdxNumTimes]
 }
 
-func AgnosticizeTurn(t turn.Turn, p *plyr.Player) PlayerAgnosticTurn {
+func AgnosticizeTurn(t turn.Turn, p plyr.Player) PlayerAgnosticTurn {
 	var spat sortablePAT
 
 	if p == plyr.PC {
@@ -278,7 +278,7 @@ func AgnosticizeTurn(t turn.Turn, p *plyr.Player) PlayerAgnosticTurn {
 	sort.Sort(spat)
 	out := PlayerAgnosticTurn{}
 	if len(spat) > constants.MAX_MOVES_PER_TURN {
-		panic("turn was invalid (had > 4 moves) for player " + *p)
+		panic("turn was invalid (had > 4 moves) for player " + string(p))
 	}
 	for i, pam := range spat {
 		out[i] = pam
@@ -286,7 +286,7 @@ func AgnosticizeTurn(t turn.Turn, p *plyr.Player) PlayerAgnosticTurn {
 	return out
 }
 
-func ConvertAgnosticTurn(paa PlayerAgnosticTurn, p *plyr.Player) turn.Turn {
+func ConvertAgnosticTurn(paa PlayerAgnosticTurn, p plyr.Player) turn.Turn {
 	out := turn.Turn{}
 	for _, pam := range paa {
 		if pam.isEmpty() {

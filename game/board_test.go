@@ -236,7 +236,7 @@ func TestExecuteMoveIfLegal(t *testing.T) {
 	b := Board{}
 	b.SetUp()
 
-	m := &turn.Move{Requestor: plyr.PCC, Letter: "a", FowardDistance: 6}
+	m := turn.Move{Requestor: plyr.PCC, Letter: "a", FowardDistance: 6}
 
 	// Original state
 	fromIdx := constants.Alpha2Num[m.Letter]
@@ -265,7 +265,7 @@ func TestExecuteMoveIfLegalFromBar(t *testing.T) {
 	b.Points[0].NumCheckers--
 	b.BarCC = 1
 
-	m := &turn.Move{Requestor: plyr.PCC, Letter: "y", FowardDistance: 1}
+	m := turn.Move{Requestor: plyr.PCC, Letter: "y", FowardDistance: 1}
 
 	// Original state
 	toIdx, _ := constants.Alpha2Num["a"]
@@ -293,7 +293,7 @@ func TestExecuteMoveIfLegalFromBarForPlayerC(t *testing.T) {
 	b.Points[constants.Alpha2Num["x"]].NumCheckers--
 	b.BarC = 1
 
-	m := &turn.Move{Requestor: plyr.PC, Letter: "z", FowardDistance: 2}
+	m := turn.Move{Requestor: plyr.PC, Letter: "z", FowardDistance: 2}
 
 	// Original state
 	toIdx, _ := constants.Alpha2Num["w"]
@@ -345,7 +345,7 @@ func TestExecuteMoveIfLegalBearOff(t *testing.T) {
 	 a  b  c  d  e  f     g  h  i  j  k  l
 	*/
 
-	m := &turn.Move{Requestor: plyr.PCC, Letter: "t", FowardDistance: 6}
+	m := turn.Move{Requestor: plyr.PCC, Letter: "t", FowardDistance: 6}
 
 	// Original state
 	fromIdx, _ := constants.Alpha2Num[m.Letter]
@@ -394,7 +394,7 @@ func TestExecuteMoveIfLegalTakeoverEnemy(t *testing.T) {
 		//                                                        clockwise player in top-left.
 	}
 
-	m := &turn.Move{Requestor: plyr.PCC, Letter: "a", FowardDistance: 5}
+	m := turn.Move{Requestor: plyr.PCC, Letter: "a", FowardDistance: 5}
 	// Expect the state to be:
 	// 0 on "a" (and nil Owner),
 	// 1 on "f" (and plyr.PCC Owner)
@@ -476,7 +476,7 @@ func TestExecuteMoveIfLegalWinSingleGame(t *testing.T) {
 	 a  b  c  d  e  f     g  h  i  j  k  l
 	*/
 	boardPC := b.Copy()
-	moveForPC := &turn.Move{Requestor: plyr.PC, Letter: "b", FowardDistance: 6}
+	moveForPC := turn.Move{Requestor: plyr.PC, Letter: "b", FowardDistance: 6}
 
 	if boardPC.winner != nil {
 		t.Errorf("expected no winner to be set but got %v", *boardPC.winner)
@@ -496,7 +496,7 @@ func TestExecuteMoveIfLegalWinSingleGame(t *testing.T) {
 	}
 
 	boardPCC := b.Copy()
-	moveForPCC := &turn.Move{Requestor: plyr.PCC, Letter: "x", FowardDistance: 1}
+	moveForPCC := turn.Move{Requestor: plyr.PCC, Letter: "x", FowardDistance: 1}
 
 	if boardPCC.winner != nil {
 		t.Errorf("expected no winner to be set but got %v", *boardPCC.winner)
@@ -546,7 +546,7 @@ func TestExecuteMoveIfLegalWinGammon(t *testing.T) {
 	 a  b  c  d  e  f     g  h  i  j  k  l
 	*/
 	boardPC := b.Copy()
-	moveForPC := &turn.Move{Requestor: plyr.PC, Letter: "b", FowardDistance: 2}
+	moveForPC := turn.Move{Requestor: plyr.PC, Letter: "b", FowardDistance: 2}
 
 	if boardPC.winner != nil {
 		t.Errorf("expected no winner to be set but got %v", *boardPC.winner)
@@ -596,7 +596,7 @@ func TestExecuteMoveIfLegalWinBackgammon(t *testing.T) {
 	 a  b  c  d  e  f     g  h  i  j  k  l
 	*/
 	boardPC := b.Copy()
-	moveForPC := &turn.Move{Requestor: plyr.PC, Letter: "b", FowardDistance: 2}
+	moveForPC := turn.Move{Requestor: plyr.PC, Letter: "b", FowardDistance: 2}
 
 	if boardPC.winner != nil {
 		t.Errorf("expected no winner to be set but got %v", *boardPC.winner)
@@ -623,7 +623,7 @@ func strSlicesEqual(a, b []string) bool {
 	return reflect.DeepEqual(a, b)
 }
 
-func mLetters(moves []*turn.Move) []string {
+func mLetters(moves []turn.Move) []string {
 	var out []string
 	for _, m := range moves {
 		out = append(out, m.Letter)

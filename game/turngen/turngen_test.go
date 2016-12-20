@@ -125,7 +125,7 @@ func TestValidTurns(t *testing.T) {
 		    a  b  c  d  e  f     g  h  i  j  k  l
 		*/
 		wants := newStringSet(c.want)
-		turns := ValidTurns(b, &c.roll, c.player)
+		turns := ValidTurns(b, c.roll, c.player)
 		gots := stringSet{}
 		for _, t := range turns {
 			gots[t.String()] = true
@@ -199,7 +199,7 @@ func TestValidTurnsTwoOnTheBar(t *testing.T) {
 		   z O's: -
 		*/
 		wants := newStringSet(c.want)
-		turns := ValidTurns(b, &c.roll, c.player)
+		turns := ValidTurns(b, c.roll, c.player)
 		gots := stringSet{}
 		for _, t := range turns {
 			gots[t.String()] = true
@@ -286,7 +286,7 @@ func TestValidTurnsOneOnTheBar(t *testing.T) {
 		   z O's: -
 		*/
 		wants := newStringSet(c.want)
-		turns := ValidTurns(b, &c.roll, c.player)
+		turns := ValidTurns(b, c.roll, c.player)
 		gots := stringSet{}
 		for _, t := range turns {
 			gots[t.String()] = true
@@ -357,7 +357,7 @@ func TestValidTurnsBearOff(t *testing.T) {
 		*/
 		// plyr.PCC == "X", plyr.PC = O
 		wants := newStringSet(c.want)
-		turns := ValidTurns(b, &c.roll, c.player)
+		turns := ValidTurns(b, c.roll, c.player)
 		gots := stringSet{}
 		for _, t := range turns {
 			gots[t.String()] = true
@@ -432,7 +432,7 @@ func TestValidTurnsBearOffStartingFromOutside(t *testing.T) {
 		*/
 		// plyr.PCC == "X", plyr.PC = O
 		wants := newStringSet(c.want)
-		turns := ValidTurns(b, &c.roll, c.player)
+		turns := ValidTurns(b, c.roll, c.player)
 		gots := stringSet{}
 		for _, t := range turns {
 			gots[t.String()] = true
@@ -497,7 +497,7 @@ func TestWeirdTurn(t *testing.T) {
 		"O;m2;w2;z2;z2",
 		"O;w2;w2;z2;z2",
 	})
-	roll := &game.Roll{2, 2}
+	roll := game.Roll{2, 2}
 	turns := ValidTurns(b, roll, plyr.PC)
 	gots := stringSet{}
 	for _, t := range turns {

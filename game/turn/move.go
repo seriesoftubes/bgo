@@ -21,7 +21,7 @@ const (
 // A move being requested by the current player
 type (
 	Move struct {
-		Requestor      *plyr.Player
+		Requestor      plyr.Player
 		Letter         string
 		FowardDistance uint8 // validate between 1 and 6
 	}
@@ -31,7 +31,7 @@ type (
 
 func (ma MoveArray) isEmpty() bool { return ma[maIdxNumTimes] == 0 }
 
-func (m *Move) arrayify(numTimesMoveIsPlayed uint8) MoveArray {
+func (m Move) arrayify(numTimesMoveIsPlayed uint8) MoveArray {
 	var playerIsPCC uint8
 	if m.Requestor == plyr.PCC {
 		playerIsPCC = 1
@@ -40,12 +40,12 @@ func (m *Move) arrayify(numTimesMoveIsPlayed uint8) MoveArray {
 	return MoveArray{playerIsPCC, constants.Alpha2Num[m.Letter], m.FowardDistance, numTimesMoveIsPlayed}
 }
 
-func (m *Move) String() string {
-	return fmt.Sprintf("%s: go %d spaces starting with %s", *m.Requestor, m.FowardDistance, m.Letter)
+func (m Move) String() string {
+	return fmt.Sprintf("%s: go %d spaces starting with %s", m.Requestor, m.FowardDistance, m.Letter)
 }
 
-func (m *Move) IsValid() (bool, string) {
-	if m.Requestor == nil {
+func (m Move) IsValid() (bool, string) {
+	if m.Requestor == 0 {
 		return false, invalidNilRequestor
 	}
 
@@ -60,11 +60,11 @@ func (m *Move) IsValid() (bool, string) {
 	return true, ""
 }
 
-func (m *Move) IsToMoveSomethingOutOfTheBar() bool {
+func (m Move) IsToMoveSomethingOutOfTheBar() bool {
 	return m.Letter == constants.LETTER_BAR_CC || m.Letter == constants.LETTER_BAR_C
 }
 
-func (m *Move) PointIdx() uint8 {
+func (m Move) PointIdx() uint8 {
 	if m.IsToMoveSomethingOutOfTheBar() {
 		panic("no point index available for the bar letters (those arent stored in board.Points)")
 	}
@@ -76,7 +76,7 @@ func (m *Move) PointIdx() uint8 {
 
 // Gets the PointIndex of the next point to go to.
 // May return < 0 or > 23, if the move is to bear-off a checker.
-func (m *Move) NextPointIdx() (int8, bool) {
+func (m Move) NextPointIdx() (int8, bool) {
 	var nxtIdx int8
 	if m.IsToMoveSomethingOutOfTheBar() {
 		if m.Requestor == plyr.PCC {
@@ -93,7 +93,7 @@ func (m *Move) NextPointIdx() (int8, bool) {
 
 // distCC gets the counter-clockwise distance (meaning, moving in a positive direction thru the BoardPoint indices).
 // Whatever comes out of this method, you *add* to BoardPoint's index.
-func (m *Move) distCC() int {
+func (m Move) distCC() int {
 	if m.Requestor == plyr.PCC {
 		return int(m.FowardDistance)
 	}

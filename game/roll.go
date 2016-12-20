@@ -23,6 +23,6 @@ func (r *Roll) Sorted() Roll {
 	}
 }
 
-func newRoll() *Roll {
-	return &Roll{random.Uint8Between(constants.MIN_DICE_AMT, constants.MAX_DICE_AMT), random.Uint8Between(constants.MIN_DICE_AMT, constants.MAX_DICE_AMT)}
+func newRoll() Roll {
+	return Roll{random.Uint8Between(constants.MIN_DICE_AMT, constants.MAX_DICE_AMT), random.Uint8Between(constants.MIN_DICE_AMT, constants.MAX_DICE_AMT)}
 }
