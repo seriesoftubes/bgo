@@ -47,7 +47,7 @@ func (ss stringSet) subtract(o stringSet) stringSet {
 
 func TestValidTurns(t *testing.T) {
 	cases := []struct {
-		player *plyr.Player
+		player plyr.Player
 		roll   game.Roll
 		want   []string // List of stringified turns
 	}{
@@ -134,14 +134,14 @@ func TestValidTurns(t *testing.T) {
 		if !reflect.DeepEqual(gots, wants) {
 			extraWants := wants.subtract(gots).values()
 			missingWants := gots.subtract(wants).values()
-			t.Errorf("TestTurnPerms bug for roll %v and player %s.\nwants is missing %v,\nwants has extra %v", c.roll, *c.player, missingWants, extraWants)
+			t.Errorf("TestTurnPerms bug for roll %v and player %s.\nwants is missing %v,\nwants has extra %v", c.roll, string(c.player), missingWants, extraWants)
 		}
 	}
 }
 
 func TestValidTurnsTwoOnTheBar(t *testing.T) {
 	cases := []struct {
-		player *plyr.Player
+		player plyr.Player
 		roll   game.Roll
 		want   []string // List of stringified turns
 	}{
@@ -208,14 +208,14 @@ func TestValidTurnsTwoOnTheBar(t *testing.T) {
 		if !reflect.DeepEqual(gots, wants) {
 			extraWants := wants.subtract(gots).values()
 			missingWants := gots.subtract(wants).values()
-			t.Errorf("TestTurnPerms bug for roll %v and player %s.\nwants is missing %v,\nwants has extra %v", c.roll, *c.player, missingWants, extraWants)
+			t.Errorf("TestTurnPerms bug for roll %v and player %s.\nwants is missing %v,\nwants has extra %v", c.roll, string(c.player), missingWants, extraWants)
 		}
 	}
 }
 
 func TestValidTurnsOneOnTheBar(t *testing.T) {
 	cases := []struct {
-		player *plyr.Player
+		player plyr.Player
 		roll   game.Roll
 		want   []string // List of stringified turns
 	}{
@@ -295,7 +295,7 @@ func TestValidTurnsOneOnTheBar(t *testing.T) {
 		if !reflect.DeepEqual(gots, wants) {
 			extraWants := wants.subtract(gots).values()
 			missingWants := gots.subtract(wants).values()
-			t.Errorf("TestTurnPerms bug for roll %v and player %s.\nwants is missing %v,\nwants has extra %v", c.roll, *c.player, missingWants, extraWants)
+			t.Errorf("TestTurnPerms bug for roll %v and player %s.\nwants is missing %v,\nwants has extra %v", c.roll, string(c.player), missingWants, extraWants)
 		}
 	}
 }
@@ -303,7 +303,7 @@ func TestValidTurnsOneOnTheBar(t *testing.T) {
 // Tests that, with all chex in your home, you can bear stuff off.
 func TestValidTurnsBearOff(t *testing.T) {
 	cases := []struct {
-		player *plyr.Player
+		player plyr.Player
 		roll   game.Roll
 		want   []string // List of stringified turns
 	}{
@@ -366,7 +366,7 @@ func TestValidTurnsBearOff(t *testing.T) {
 		if !reflect.DeepEqual(gots, wants) {
 			extraWants := wants.subtract(gots).values()
 			missingWants := gots.subtract(wants).values()
-			t.Errorf("TestTurnPerms bug for roll %v and player %s.\nwants is missing %v,\nwants has extra %v", c.roll, *c.player, missingWants, extraWants)
+			t.Errorf("TestTurnPerms bug for roll %v and player %s.\nwants is missing %v,\nwants has extra %v", c.roll, string(c.player), missingWants, extraWants)
 		}
 	}
 }
@@ -374,7 +374,7 @@ func TestValidTurnsBearOff(t *testing.T) {
 // Tests that, even when you start with 1 chex outside your home, you can bear stuff off.
 func TestValidTurnsBearOffStartingFromOutside(t *testing.T) {
 	cases := []struct {
-		player *plyr.Player
+		player plyr.Player
 		roll   game.Roll
 		want   []string // List of stringified turns
 	}{
@@ -441,7 +441,7 @@ func TestValidTurnsBearOffStartingFromOutside(t *testing.T) {
 		if !reflect.DeepEqual(gots, wants) {
 			extraWants := wants.subtract(gots).values()
 			missingWants := gots.subtract(wants).values()
-			t.Errorf("TestTurnPerms bug for roll %v and player %s.\nwants is missing %v,\nwants has extra %v", c.roll, *c.player, missingWants, extraWants)
+			t.Errorf("TestTurnPerms bug for roll %v and player %s.\nwants is missing %v,\nwants has extra %v", c.roll, string(c.player), missingWants, extraWants)
 		}
 	}
 }

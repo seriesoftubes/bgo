@@ -139,7 +139,7 @@ func TestLegalMovesBearOff(t *testing.T) {
 	*/
 	// plyr.PCC == "X", plyr.PC = O
 	cases := []struct {
-		player      *plyr.Player
+		player      plyr.Player
 		diceAmt     uint8
 		wantLetters []string
 	}{
@@ -168,7 +168,7 @@ func TestLegalMovesBearOff(t *testing.T) {
 
 		gotLetters := mLetters(b.LegalMoves(c.player, c.diceAmt))
 		if !strSlicesEqual(gotLetters, c.wantLetters) {
-			t.Errorf("LegalMoves for Player %q and diceAmt %v unexpected. got %v want %v", *c.player, c.diceAmt, gotLetters, c.wantLetters)
+			t.Errorf("LegalMoves for Player %q and diceAmt %v unexpected. got %v want %v", c.player, c.diceAmt, gotLetters, c.wantLetters)
 		}
 	}
 }
@@ -197,7 +197,7 @@ func TestLegalMovesBearOffBoth(t *testing.T) {
 	*/
 	// plyr.PCC == "X", plyr.PC = O
 	cases := []struct {
-		player      *plyr.Player
+		player      plyr.Player
 		diceAmt     uint8
 		wantLetters []string
 	}{
@@ -227,7 +227,7 @@ func TestLegalMovesBearOffBoth(t *testing.T) {
 
 		gotLetters := mLetters(b.LegalMoves(c.player, c.diceAmt))
 		if !strSlicesEqual(gotLetters, c.wantLetters) {
-			t.Errorf("LegalMoves for Player %q and diceAmt %v unexpected. got %v want %v", *c.player, c.diceAmt, gotLetters, c.wantLetters)
+			t.Errorf("LegalMoves for Player %q and diceAmt %v unexpected. got %v want %v", c.player, c.diceAmt, gotLetters, c.wantLetters)
 		}
 	}
 }
@@ -428,8 +428,8 @@ func TestExecuteMoveIfLegalTakeoverEnemy(t *testing.T) {
 		t.Errorf("Test move was not legal. Change the test! %v", reason)
 	}
 
-	if fromPt.Owner != nil {
-		t.Errorf("expected there to be no owner of the from point, got %v", *fromPt.Owner)
+	if fromPt.Owner != 0 {
+		t.Errorf("expected there to be no owner of the from point, got %v", fromPt.Owner)
 	}
 	if fromPt.NumCheckers != 0 {
 		t.Errorf("expected there to be 0 checkers on the from point, got %v", fromPt.NumCheckers)
@@ -478,8 +478,8 @@ func TestExecuteMoveIfLegalWinSingleGame(t *testing.T) {
 	boardPC := b.Copy()
 	moveForPC := turn.Move{Requestor: plyr.PC, Letter: "b", FowardDistance: 6}
 
-	if boardPC.winner != nil {
-		t.Errorf("expected no winner to be set but got %v", *boardPC.winner)
+	if boardPC.winner != 0 {
+		t.Errorf("expected no winner to be set but got %v", string(boardPC.winner))
 	} else if boardPC.winKind != WinKindNotWon {
 		t.Errorf("expected win state to be %v but got %v", WinKindNotWon, boardPC.winKind)
 	}
@@ -488,7 +488,7 @@ func TestExecuteMoveIfLegalWinSingleGame(t *testing.T) {
 		t.Errorf("Test move was not legal. Change the test! %v", reason)
 	}
 	if boardPC.winner != plyr.PC {
-		t.Errorf("expected winner to be %v but got %v", *plyr.PC, *boardPC.winner)
+		t.Errorf("expected winner to be %v but got %v", string(plyr.PC), string(boardPC.winner))
 	} else if boardPC.winKind != WinKindSingleGame {
 		t.Errorf("expected win state to be %v but got %v", WinKindSingleGame, boardPC.winKind)
 	} else if boardPC.OffC != constants.NUM_CHECKERS_PER_PLAYER {
@@ -498,8 +498,8 @@ func TestExecuteMoveIfLegalWinSingleGame(t *testing.T) {
 	boardPCC := b.Copy()
 	moveForPCC := turn.Move{Requestor: plyr.PCC, Letter: "x", FowardDistance: 1}
 
-	if boardPCC.winner != nil {
-		t.Errorf("expected no winner to be set but got %v", *boardPCC.winner)
+	if boardPCC.winner != 0 {
+		t.Errorf("expected no winner to be set but got %v", string(boardPCC.winner))
 	} else if boardPCC.winKind != WinKindNotWon {
 		t.Errorf("expected win state to be %v but got %v", WinKindNotWon, boardPCC.winKind)
 	}
@@ -508,7 +508,7 @@ func TestExecuteMoveIfLegalWinSingleGame(t *testing.T) {
 		t.Errorf("Test move was not legal. Change the test! %v", reason)
 	}
 	if boardPCC.winner != plyr.PCC {
-		t.Errorf("expected winner to be %v but got %v", *plyr.PCC, *boardPCC.winner)
+		t.Errorf("expected winner to be %v but got %v", string(plyr.PCC), string(boardPCC.winner))
 	} else if boardPCC.winKind != WinKindSingleGame {
 		t.Errorf("expected win state to be %v but got %v", WinKindSingleGame, boardPCC.winKind)
 	} else if boardPCC.OffCC != constants.NUM_CHECKERS_PER_PLAYER {
@@ -548,8 +548,8 @@ func TestExecuteMoveIfLegalWinGammon(t *testing.T) {
 	boardPC := b.Copy()
 	moveForPC := turn.Move{Requestor: plyr.PC, Letter: "b", FowardDistance: 2}
 
-	if boardPC.winner != nil {
-		t.Errorf("expected no winner to be set but got %v", *boardPC.winner)
+	if boardPC.winner != 0 {
+		t.Errorf("expected no winner to be set but got %v", string(boardPC.winner))
 	} else if boardPC.winKind != WinKindNotWon {
 		t.Errorf("expected win state to be %v but got %v", WinKindNotWon, boardPC.winKind)
 	}
@@ -558,7 +558,7 @@ func TestExecuteMoveIfLegalWinGammon(t *testing.T) {
 		t.Errorf("Test move was not legal. Change the test! %v", reason)
 	}
 	if boardPC.winner != plyr.PC {
-		t.Errorf("expected winner to be %v but got %v", *plyr.PC, *boardPC.winner)
+		t.Errorf("expected winner to be %v but got %v", string(plyr.PC), string(boardPC.winner))
 	} else if boardPC.winKind != WinKindGammon {
 		t.Errorf("expected win state to be %v but got %v", WinKindGammon, boardPC.winKind)
 	} else if boardPC.OffC != constants.NUM_CHECKERS_PER_PLAYER {
@@ -598,8 +598,8 @@ func TestExecuteMoveIfLegalWinBackgammon(t *testing.T) {
 	boardPC := b.Copy()
 	moveForPC := turn.Move{Requestor: plyr.PC, Letter: "b", FowardDistance: 2}
 
-	if boardPC.winner != nil {
-		t.Errorf("expected no winner to be set but got %v", *boardPC.winner)
+	if boardPC.winner != 0 {
+		t.Errorf("expected no winner to be set but got %v", string(boardPC.winner))
 	} else if boardPC.winKind != WinKindNotWon {
 		t.Errorf("expected win state to be %v but got %v", WinKindNotWon, boardPC.winKind)
 	}
@@ -608,7 +608,7 @@ func TestExecuteMoveIfLegalWinBackgammon(t *testing.T) {
 		t.Errorf("Test move was not legal. Change the test! %v", reason)
 	}
 	if boardPC.winner != plyr.PC {
-		t.Errorf("expected winner to be %v but got %v", *plyr.PC, *boardPC.winner)
+		t.Errorf("expected winner to be %v but got %v", string(plyr.PC), string(boardPC.winner))
 	} else if boardPC.winKind != WinKindBackgammon {
 		t.Errorf("expected win state to be %v but got %v", WinKindBackgammon, boardPC.winKind)
 	} else if boardPC.OffC != constants.NUM_CHECKERS_PER_PLAYER {
