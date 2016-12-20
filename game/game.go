@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/seriesoftubes/bgo/game/plyr"
-	"github.com/seriesoftubes/bgo/game/turn"
 )
 
 type Game struct {
@@ -12,11 +11,7 @@ type Game struct {
 	CurrentPlayer     plyr.Player
 	CurrentRoll       Roll
 	numHumanPlayers   uint8
-	currentValidTurns map[string]turn.Turn
 }
-
-func (g *Game) ValidTurns() map[string]turn.Turn      { return g.currentValidTurns }
-func (g *Game) SetValidTurns(vt map[string]turn.Turn) { g.currentValidTurns = vt }
 
 func (g *Game) NextPlayersTurn() {
 	if g.CurrentPlayer == plyr.PCC {
