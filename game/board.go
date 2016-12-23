@@ -106,7 +106,7 @@ func (b *Board) Copy() *Board {
 }
 
 func (b *Board) Winner() plyr.Player { return b.winner }
-func (b *Board) WinKind() WinKind     { return b.winKind }
+func (b *Board) WinKind() WinKind    { return b.winKind }
 
 func (b *Board) doesPlayerHaveAllRemainingCheckersInHomeBoard(p plyr.Player) bool {
 	totalChexInHomeOrBearedOff := b.OffC
@@ -247,8 +247,6 @@ func (b *Board) LegalMoves(p plyr.Player, diceAmt uint8) []turn.Move {
 	}
 
 	for pointIdx, pt := range b.Points {
-		// TODO: keep track of which points are owned by which players and only iterate thru those,
-		// and adjust isLegalMoveForNonBearingOn accordingly
 		if pt.Owner != p {
 			continue
 		}
@@ -364,8 +362,8 @@ func (b *Board) ExecuteMoveUnsafe(m turn.Move) {
 
 	nxtPt := b.Points[nextPointIdx]
 	if nxtPt.Owner != 0 && nxtPt.Owner != m.Requestor {
-		nxtPt.NumCheckers--
 		b.incrementBar(nxtPt.Owner)
+		nxtPt.NumCheckers--
 	}
 	nxtPt.NumCheckers++
 	nxtPt.Owner = m.Requestor

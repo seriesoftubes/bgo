@@ -114,7 +114,7 @@ func NewAgent(qvals *QContainer, alpha, gamma, epsilon float64) *Agent {
 }
 
 func (a *Agent) SetPlayer(p plyr.Player) { a.player = p }
-func (a *Agent) SetGame(g *game.Game)     { a.game = g }
+func (a *Agent) SetGame(g *game.Game)    { a.game = g }
 
 // Choose an action that helps with training
 func (a *Agent) EpsilonGreedyAction(st state.State, validTurnsForState map[turn.TurnArray]turn.Turn) (PlayerAgnosticTurn, bool) {

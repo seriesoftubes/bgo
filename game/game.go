@@ -7,10 +7,10 @@ import (
 )
 
 type Game struct {
-	Board             *Board
-	CurrentPlayer     plyr.Player
-	CurrentRoll       Roll
-	numHumanPlayers   uint8
+	Board           *Board
+	CurrentPlayer   plyr.Player
+	CurrentRoll     Roll
+	numHumanPlayers uint8
 }
 
 func (g *Game) NextPlayersTurn() {
