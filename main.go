@@ -2,51 +2,16 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/seriesoftubes/bgo/ctrl"
-	"github.com/seriesoftubes/bgo/learn"
 )
 
-const (
-	trainings = 1000
-	//qvalsFileName = "/usr/local/google/home/bweidenbaum/Desktop/bgo_qvals.json"
-	qvalsFileName = "/Users/bweidenbaum/Desktop/bgo_qvals.json"
-)
-
-func readQs() *learn.QContainer {
-	f, err := os.Open(qvalsFileName)
-	if err != nil {
-		return learn.NewQContainer()
-	}
-	defer f.Close()
-
-	qc, err := learn.DeserializeQContainer(f)
-	if err != nil {
-		panic("could not deserialize qs: " + err.Error())
-	}
-	return qc
-}
-
-func saveQs(qc *learn.QContainer) {
-	f, err := os.Create(qvalsFileName) // always overwrites the existing file.
-	if err != nil {
-		panic("could not create file: " + err.Error())
-	}
-	defer f.Close()
-
-	if err := qc.Serialize(f); err != nil {
-		panic("couldnt Serialize qvals: " + err.Error())
-	}
-}
+const trainings = 1000
 
 func main() {
-	// Shared resources across all goroutines.
-	qs := readQs()
-
 	start := time.Now()
 	gamesPlayed := uint64(0)
 	var wg sync.WaitGroup
@@ -54,7 +19,7 @@ func main() {
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func() {
-			mgr := ctrl.New(qs, false)
+			mgr := ctrl.New(false)
 			for i := 0; i < trainings; i++ {
 				mgr.PlayOneGame(0, false) // Play 1 game with 0 humans and don't stop learning!
 
@@ -70,8 +35,6 @@ func main() {
 
 	fmt.Println("trained", gamesPlayed, "times in", time.Since(start))
 
-	saveQs(qs)
-
-	mgr := ctrl.New(qs, true)
+	mgr := ctrl.New(true)
 	mgr.PlayOneGame(1, true /* stopLearning=true */)
 }

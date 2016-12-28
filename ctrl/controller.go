@@ -14,13 +14,12 @@ import (
 )
 
 const (
-	msgWelcome       = "Welcome to backgammon. Good luck and have fun!"
-	msgGameOver      = "\tDONE WITH GAME!"
-	msgQvalsCacheHit = "\tHit the QVals cache!"
-	msgNoMovesAvail  = "\tcan't do anything this turn, sorry!"
-	msgForceMove     = "\tthis turn only has 1 option, forcing!"
-	msgAskForMove    = "\tYour move, "
-	msgChoseMove     = "\tChose move:"
+	msgWelcome      = "Welcome to backgammon. Good luck and have fun!"
+	msgGameOver     = "\tDONE WITH GAME!"
+	msgNoMovesAvail = "\tcan't do anything this turn, sorry!"
+	msgForceMove    = "\tthis turn only has 1 option, forcing!"
+	msgAskForMove   = "\tYour move, "
+	msgChoseMove    = "\tChose move:"
 )
 
 func readTurnFromStdin(validTurns map[turn.TurnArray]turn.Turn) turn.Turn {
@@ -51,19 +50,19 @@ func randomlyChooseValidTurn(validTurns map[turn.TurnArray]turn.Turn) turn.Turn 
 }
 
 type GameController struct {
-	g                *game.Game
-	debug            bool
-	agent            *learn.Agent
-	prevStateActions map[plyr.Player]stateAction
+	g          *game.Game
+	debug      bool
+	agent      *learn.Agent
+	prevStates map[plyr.Player]state.State
 }
 
-func New(qs *learn.QContainer, debug bool) *GameController {
+func New(debug bool) *GameController {
 	learningRateAkaAlpha := 0.5
 	rewardsDiscountRateAkaGamma := 0.9999999999
 	initialExplorationRateAkaEpsilon := 1.0
-	prevStateActions := make(map[plyr.Player]stateAction, 2)
-	agent := learn.NewAgent(qs, learningRateAkaAlpha, rewardsDiscountRateAkaGamma, initialExplorationRateAkaEpsilon)
-	return &GameController{agent: agent, prevStateActions: prevStateActions, debug: debug}
+	prevStates := make(map[plyr.Player]state.State, 2)
+	agent := learn.NewAgent(learningRateAkaAlpha, rewardsDiscountRateAkaGamma, initialExplorationRateAkaEpsilon)
+	return &GameController{agent: agent, prevStates: prevStates, debug: debug}
 }
 
 func (gc *GameController) PlayOneGame(numHumanPlayers uint8, stopLearning bool) (plyr.Player, game.WinKind) {
@@ -94,22 +93,13 @@ func (gc *GameController) maybePrint(s ...interface{}) {
 	}
 }
 
-type stateAction struct {
-	state  state.State
-	action learn.PlayerAgnosticTurn
-}
-
 func (gc *GameController) chooseTurn(validTurns map[turn.TurnArray]turn.Turn, currentState state.State) turn.Turn {
 	if gc.g.IsCurrentPlayerHuman() {
 		return readTurnFromStdin(validTurns)
 	}
 
-	pat, hit := gc.agent.EpsilonGreedyAction(currentState, validTurns)
-	if hit {
-		gc.maybePrint(msgQvalsCacheHit)
-	}
-
-	gc.prevStateActions[gc.g.CurrentPlayer] = stateAction{currentState, pat}
+	pat := gc.agent.EpsilonGreedyAction(currentState, validTurns)
+	gc.prevStates[gc.g.CurrentPlayer] = currentState
 
 	return learn.ConvertAgnosticTurn(pat, gc.g.CurrentPlayer)
 }
@@ -129,8 +119,8 @@ func (gc *GameController) playOneTurn() bool {
 	if isComputer {
 		gc.agent.SetPlayer(g.CurrentPlayer)
 		currentState = gc.agent.DetectState()
-		if prevSA, ok := gc.prevStateActions[g.CurrentPlayer]; ok {
-			gc.agent.Learn(prevSA.state, prevSA.action, currentState, game.WinKindNotWon, validTurns)
+		if prevState, ok := gc.prevStates[g.CurrentPlayer]; ok {
+			gc.agent.Learn(prevState, currentState, game.WinKindNotWon)
 		}
 	}
 
@@ -141,7 +131,7 @@ func (gc *GameController) playOneTurn() bool {
 		gc.maybePrint(msgForceMove)
 		chosenTurn = randomlyChooseValidTurn(validTurns)
 		if isComputer {
-			gc.prevStateActions[g.CurrentPlayer] = stateAction{currentState, learn.AgnosticizeTurn(chosenTurn, g.CurrentPlayer)}
+			gc.prevStates[g.CurrentPlayer] = currentState
 		}
 	} else {
 		gc.maybePrint(msgAskForMove, string(g.CurrentPlayer))
@@ -168,8 +158,8 @@ func (gc *GameController) playOneTurn() bool {
 	if winner != 0 {
 		if isComputer {
 			// special case: a computer won, and they need to learn from that without having to re-run this playOneTurn method.
-			prevSA := gc.prevStateActions[g.CurrentPlayer]
-			gc.agent.Learn(prevSA.state, prevSA.action, gc.agent.DetectState(), winAmt, nil) // There are 0 valid turns after a game has been won.
+			prevState := gc.prevStates[g.CurrentPlayer]
+			gc.agent.Learn(prevState, gc.agent.DetectState(), winAmt)
 		}
 
 		return true

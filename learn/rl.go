@@ -2,50 +2,26 @@
 package learn
 
 import (
-	"bufio"
-	"encoding/json"
-	"fmt"
-	"io"
 	"sort"
-	"strings"
-	"sync"
 
 	"github.com/seriesoftubes/bgo/constants"
 	"github.com/seriesoftubes/bgo/game"
 	"github.com/seriesoftubes/bgo/game/plyr"
 	"github.com/seriesoftubes/bgo/game/turn"
-	"github.com/seriesoftubes/bgo/random"
 	"github.com/seriesoftubes/bgo/state"
 )
 
 const (
-	maxChexToConsider      uint8 = 7 // Because does it really matter if you have 7, 8, or 10 chex on a single point? Best dimensionality reduction ever.
-	pamIdxStartPointIndex        = 0
-	pamIdxFowardDistance         = 1
-	pamIdxNumTimes               = 2
-	agnosticIndexOfHeroBar       = constants.NUM_BOARD_POINTS
+	pamIdxStartPointIndex  = 0
+	pamIdxFowardDistance   = 1
+	pamIdxNumTimes         = 2
+	agnosticIndexOfHeroBar = constants.NUM_BOARD_POINTS
 )
 
 type (
 	PlayerAgnosticMove [3]uint8 // 0: the agnostic start idx, 1: forward dist, and 2: numTimes.
 	sortablePAT        []PlayerAgnosticMove
 	PlayerAgnosticTurn [constants.MAX_MOVES_PER_TURN]PlayerAgnosticMove // up to 4 PAMoves, sorted according to sortablePAT logic.
-
-	StateActionPair struct {
-		State  state.State
-		Action PlayerAgnosticTurn
-	}
-
-	QContainer struct {
-		sync.RWMutex
-		qvals map[StateActionPair]float64
-	}
-
-	QcontainerJsonRow struct {
-		S state.StateArray
-		A PlayerAgnosticTurn
-		Q float64
-	}
 
 	Agent struct {
 		// Alpha = learning rate
@@ -55,156 +31,34 @@ type (
 		alpha, gamma, epsilon float64
 		game                  *game.Game
 		player                plyr.Player
-		numObservations       uint64
-		qs                    *QContainer
 	}
 )
 
-func NewQContainer() *QContainer {
-	return &QContainer{qvals: make(map[StateActionPair]float64, 12888444)}
-}
-
-func (qc *QContainer) String() string {
-	var out []string
-	for sa, q := range qc.qvals {
-		if q != 0 {
-			out = append(out, fmt.Sprintf("%v: %v", q, sa))
-		}
-	}
-	return strings.Join(out, "\n\n")
-}
-
-func (qc *QContainer) Serialize(w io.Writer) error {
-	enc := json.NewEncoder(w)
-	for sap, qval := range qc.qvals {
-		if qval == 0 {
-			continue
-		}
-
-		row := QcontainerJsonRow{sap.State.AsArray(), sap.Action, qval}
-		if err := enc.Encode(row); err != nil {
-			return fmt.Errorf("JSON enc.Encode(row) error: %v", err)
-		}
-	}
-	return nil
-}
-
-func DeserializeQContainer(r io.Reader) (*QContainer, error) {
-	out := NewQContainer()
-
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		var row QcontainerJsonRow
-		if err := json.Unmarshal(scanner.Bytes(), &row); err != nil {
-			return nil, fmt.Errorf("json.Unmarshal error: %v", err)
-		}
-		st := state.State{}
-		st.InitFromArray(row.S)
-		out.qvals[StateActionPair{st, PlayerAgnosticTurn(row.A)}] = row.Q
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("scanner.Err() error: %v", err)
-	}
-
-	return out, nil
-}
-
-func NewAgent(qvals *QContainer, alpha, gamma, epsilon float64) *Agent {
-	return &Agent{alpha: alpha, gamma: gamma, epsilon: epsilon, qs: qvals}
+func NewAgent(alpha, gamma, epsilon float64) *Agent {
+	return &Agent{alpha: alpha, gamma: gamma, epsilon: epsilon}
 }
 
 func (a *Agent) SetPlayer(p plyr.Player) { a.player = p }
 func (a *Agent) SetGame(g *game.Game)    { a.game = g }
 
-// Choose an action that helps with training
-func (a *Agent) EpsilonGreedyAction(st state.State, validTurnsForState map[turn.TurnArray]turn.Turn) (PlayerAgnosticTurn, bool) {
-	possibleActions := make([]PlayerAgnosticTurn, 0, len(validTurnsForState))
+// TODO: Agent interface with DetectState and EpsilonGreedyAction?
+func (a *Agent) EpsilonGreedyAction(st state.State, validTurnsForState map[turn.TurnArray]turn.Turn) PlayerAgnosticTurn {
 	for _, t := range validTurnsForState {
-		possibleActions = append(possibleActions, AgnosticizeTurn(t, a.player))
+		return AgnosticizeTurn(t, a.player)
 	}
-
-	var idx int
-	var wasCacheHit bool
-	if random.Float64() < a.epsilon {
-		idx = random.IntBetween(0, len(possibleActions)-1)
-	} else {
-		var bestQ float64
-		var bestQIndices []int
-		defer a.qs.RUnlock()
-		a.qs.RLock()
-		for idx, action := range possibleActions {
-			if q, ok := a.qs.qvals[StateActionPair{st, action}]; ok && q >= bestQ {
-				bestQ = q
-				bestQIndices = append(bestQIndices, idx)
-			}
-		}
-		if len(bestQIndices) > 0 {
-			idxWithinBestQIndices := random.IntUpTo(len(bestQIndices))
-			idx = bestQIndices[idxWithinBestQIndices]
-		} else {
-			idx = random.IntUpTo(len(possibleActions))
-		}
-		wasCacheHit = bestQ > 0
-	}
-
-	return possibleActions[idx], wasCacheHit
+	panic("should have prevented this function from being called!")
 }
 
 func (a *Agent) DetectState() state.State {
 	if a.game.CurrentPlayer != a.player {
 		panic("shouldn't be detecting the state outside of the agent's own turn.")
 	}
-	s, _ := state.DetectState(a.player, a.game, maxChexToConsider)
-	return s
+	return state.DetectState(a.player, a.game)
 }
 
 func (a *Agent) StopLearning() { a.epsilon = 0 }
 
-func (a *Agent) oldAndBestFutureQ(oldStateAction StateActionPair, state2 state.State, validTurnsInState2 map[turn.TurnArray]turn.Turn) (float64, float64) {
-	defer a.qs.RUnlock()
-	a.qs.RLock()
-
-	oldQ := a.qs.qvals[oldStateAction]
-
-	var bestPossibleFutureQ float64
-	for _, t := range validTurnsInState2 {
-		if q, ok := a.qs.qvals[StateActionPair{state2, AgnosticizeTurn(t, a.player)}]; ok && q > bestPossibleFutureQ {
-			bestPossibleFutureQ = q
-		}
-	}
-
-	return oldQ, bestPossibleFutureQ
-}
-
-func (a *Agent) Learn(state1 state.State, action PlayerAgnosticTurn, state2 state.State, rewardForState2 game.WinKind, validTurnsInState2 map[turn.TurnArray]turn.Turn) {
-	oldStateAction := StateActionPair{state1, action}
-	oldQ, bestPossibleFutureQ := a.oldAndBestFutureQ(oldStateAction, state2, validTurnsInState2)
-
-	defer a.qs.Unlock()
-	a.qs.Lock()
-	if newQ := oldQ + a.alpha*(float64(rewardForState2)+(a.gamma*bestPossibleFutureQ)-oldQ); newQ != 0 {
-		a.qs.qvals[oldStateAction] = newQ
-	} else {
-		delete(a.qs.qvals, oldStateAction)
-	}
-
-	a.numObservations++
-	if obs := a.numObservations; obs == 80100 && a.epsilon > 0.6 {
-		a.epsilon = 0.6
-	} else if obs == 200100 && a.epsilon > 0.5 {
-		a.epsilon = 0.5
-	} else if obs == 500100 && a.epsilon > 0.4 {
-		a.epsilon = 0.4
-	} else if obs == 1200100 && a.epsilon > 0.3 {
-		a.epsilon = 0.3
-	} else if obs == 5200100 && a.epsilon > 0.2 {
-		a.epsilon = 0.2
-	} else if obs == 15200100 && a.epsilon > 0.1 {
-		a.epsilon = 0.1
-	} else if obs == 55200100 && a.epsilon > 0.01 {
-		a.epsilon = 0.01
-	}
-}
+func (a *Agent) Learn(state1 state.State, state2 state.State, rewardForState2 game.WinKind) {}
 
 func (pam PlayerAgnosticMove) isEmpty() bool { return pam[pamIdxNumTimes] == 0 }
 func (pam PlayerAgnosticMove) asMove(p plyr.Player) turn.Move {

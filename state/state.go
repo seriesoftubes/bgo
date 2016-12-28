@@ -6,85 +6,92 @@ import (
 	"github.com/seriesoftubes/bgo/game/plyr"
 )
 
-type (
-	BoardPointState struct {
-		IsOwnedByMe bool
-		NumChex     uint8
-	}
-
-	State struct {
-		// points on the board, indexed with 0 being the furthest away from the current player's home
-		BoardPoints               [constants.NUM_BOARD_POINTS]BoardPointState
-		NumOnMyBar, NumOnEnemyBar uint8
-		MyRoll                    game.Roll
-	}
-
-	// the first 24 elements are the normal board points' states.
-	// #25 is [numonmybar, numonenemy].
-	// #26 is the dice amounts.
-	StateArray [constants.NUM_BOARD_POINTS + 2][2]uint8
+const (
+	NUM_VARS_PER_BOARD_POINT int = 12
+	NUM_NON_BOARD_POINT_VARS int = 3
 )
 
-func (bps BoardPointState) AsArray() [2]uint8 {
-	if bps.IsOwnedByMe {
-		return [2]uint8{1, bps.NumChex}
-	}
-	return [2]uint8{0, bps.NumChex}
-}
-
-func (s State) AsArray() StateArray {
-	out := StateArray{}
-	for i, bps := range s.BoardPoints {
-		out[i] = bps.AsArray()
-	}
-	out[constants.NUM_BOARD_POINTS] = [2]uint8{s.NumOnMyBar, s.NumOnEnemyBar}
-	out[constants.NUM_BOARD_POINTS+1] = [2]uint8(s.MyRoll)
-	return out
-}
-
-func (s State) InitFromArray(arr StateArray) {
-	for i, v := range arr[:constants.NUM_BOARD_POINTS] {
-		s.BoardPoints[i] = BoardPointState{v[0] == 1, v[1]}
-	}
-
-	barState := arr[constants.NUM_BOARD_POINTS]
-	s.NumOnMyBar, s.NumOnEnemyBar = barState[0], barState[1]
-
-	s.MyRoll = game.Roll(arr[constants.NUM_BOARD_POINTS+1])
-}
-
-func uint8Ceiling(x, max uint8) uint8 {
-	if x > max {
-		return max
-	}
-	return x
-}
+type State [int(constants.NUM_BOARD_POINTS)*NUM_VARS_PER_BOARD_POINT + NUM_NON_BOARD_POINT_VARS]float32
 
 // Detects the current state of the game, truncating the checker counts up to a max.
 // Returns the State and whether the State's BoardPoints were reversed to account for the player's perspective.
-func DetectState(p plyr.Player, g *game.Game, maxChexToConsider uint8) (State, bool) {
-	out := State{MyRoll: g.CurrentRoll.Sorted()}
+func DetectState(p plyr.Player, g *game.Game) State {
+	out := State{}
 
+	b := g.Board
 	isPCC := p == plyr.PCC
 	if isPCC {
-		out.NumOnMyBar = uint8Ceiling(g.Board.BarCC, maxChexToConsider)
-		out.NumOnEnemyBar = uint8Ceiling(g.Board.BarC, maxChexToConsider)
+		// HeroBar, EnemyBar, Hero-EnemyBar.
+		out[0], out[1], out[2] = float32(b.BarCC), float32(b.BarC), float32(b.BarCC-b.BarC)
 	} else {
-		out.NumOnMyBar = uint8Ceiling(g.Board.BarC, maxChexToConsider)
-		out.NumOnEnemyBar = uint8Ceiling(g.Board.BarCC, maxChexToConsider)
+		out[0], out[1], out[2] = float32(b.BarC), float32(b.BarCC), float32(b.BarC-b.BarCC)
 	}
 
-	out.BoardPoints = [constants.NUM_BOARD_POINTS]BoardPointState{}
-	lastPointIndex := int(constants.NUM_BOARD_POINTS - 1)
-	for ptIdx, pt := range g.Board.Points {
-		chex := uint8Ceiling(pt.NumCheckers, maxChexToConsider)
+	lastPointIndex := int(constants.FINAL_BOARD_POINT_INDEX)
+	for ptIdx, pt := range b.Points {
+		chex := pt.NumCheckers
 		// fill them in order of distance from enemy home. so PCC starts as normal
 		translatedPtIdx := lastPointIndex - ptIdx
 		if isPCC {
 			translatedPtIdx = ptIdx
 		}
-		out.BoardPoints[translatedPtIdx] = BoardPointState{pt.Owner == p, chex}
+		// the first index in the out array that is relevant to the current boardpoint.
+		outIdx := NUM_NON_BOARD_POINT_VARS + (translatedPtIdx * NUM_VARS_PER_BOARD_POINT)
+
+		var ownerStatus float32
+		if pt.Owner == p {
+			ownerStatus = 1.0
+		} else if pt.Owner != 0 {
+			ownerStatus = -1.0
+		}
+		out[outIdx+0] = ownerStatus
+
+		numBeyond2 := float32(pt.NumCheckers) - 2.0
+		out[outIdx+1] = numBeyond2
+
+		var isSecured float32
+		if numBeyond2 >= 0 {
+			isSecured = 1.0
+		}
+		out[outIdx+2] = isSecured
+
+		oppositeDiff := float32(chex - b.Points[constants.FINAL_BOARD_POINT_INDEX-uint8(ptIdx)].NumCheckers)
+		out[outIdx+3] = oppositeDiff
+
+		lookaheadDist := int(1)
+		var numEnemyChexInFront, distToClosestEnemyBlotPoint, distToClosestEnemySecuredPoint float32
+		if isPCC {
+			for forwardPtIdx := ptIdx + lookaheadDist; forwardPtIdx < int(constants.NUM_BOARD_POINTS); forwardPtIdx++ {
+				if fpt := b.Points[forwardPtIdx]; fpt.Owner != plyr.PCC {
+					numEnemyChexInFront++
+					if distToClosestEnemyBlotPoint == 0 && fpt.NumCheckers == 1 {
+						distToClosestEnemyBlotPoint = float32(lookaheadDist)
+					} else if distToClosestEnemySecuredPoint == 0 && fpt.NumCheckers > 1 {
+						distToClosestEnemySecuredPoint = float32(lookaheadDist)
+					}
+				}
+			}
+		} else {
+			for forwardPtIdx := ptIdx - lookaheadDist; forwardPtIdx >= 0; forwardPtIdx-- {
+				if fpt := b.Points[forwardPtIdx]; fpt.Owner != plyr.PC {
+					numEnemyChexInFront++
+					if distToClosestEnemyBlotPoint == 0 && fpt.NumCheckers == 1 {
+						distToClosestEnemyBlotPoint = float32(lookaheadDist)
+					} else if distToClosestEnemySecuredPoint == 0 && fpt.NumCheckers > 1 {
+						distToClosestEnemySecuredPoint = float32(lookaheadDist)
+					}
+				}
+			}
+		}
+		out[outIdx+4] = numEnemyChexInFront
+		out[outIdx+5] = distToClosestEnemyBlotPoint
+		out[outIdx+6] = distToClosestEnemySecuredPoint
+		out[outIdx+7] = ownerStatus * isSecured
+		out[outIdx+8] = ownerStatus * numBeyond2
+		out[outIdx+9] = ownerStatus * numEnemyChexInFront
+		out[outIdx+10] = ownerStatus * distToClosestEnemyBlotPoint
+		out[outIdx+11] = ownerStatus * distToClosestEnemySecuredPoint
 	}
 
-	return out, !isPCC
+	return out
 }
