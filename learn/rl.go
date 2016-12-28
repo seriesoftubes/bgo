@@ -8,6 +8,8 @@ import (
 	"github.com/seriesoftubes/bgo/game"
 	"github.com/seriesoftubes/bgo/game/plyr"
 	"github.com/seriesoftubes/bgo/game/turn"
+	"github.com/seriesoftubes/bgo/learn/nnet"
+	"github.com/seriesoftubes/bgo/random"
 	"github.com/seriesoftubes/bgo/state"
 )
 
@@ -41,19 +43,37 @@ func NewAgent(alpha, gamma, epsilon float64) *Agent {
 func (a *Agent) SetPlayer(p plyr.Player) { a.player = p }
 func (a *Agent) SetGame(g *game.Game)    { a.game = g }
 
-// TODO: Agent interface with DetectState and EpsilonGreedyAction?
 func (a *Agent) EpsilonGreedyAction(st state.State, validTurnsForState map[turn.TurnArray]turn.Turn) PlayerAgnosticTurn {
-	for _, t := range validTurnsForState {
-		return AgnosticizeTurn(t, a.player)
+	if len(validTurnsForState) == 0 {
+		panic("should have prevented this function from being called!")
 	}
-	panic("should have prevented this function from being called!")
+
+	if random.Float64() < a.epsilon { // exploration mode.
+		for _, t := range validTurnsForState {
+			return AgnosticizeTurn(t, a.player)
+		}
+		panic("should have prevented this function from being called!")
+	}
+
+	// Use 1-ply lookahead to get the best turn. TODO: use 3-ply.
+	var bestTurn turn.Turn
+	var bestVal float32
+	for _, t := range validTurnsForState {
+		bcop := a.game.Board.Copy()
+		bcop.MustExecuteTurn(t, false)
+		if val := nnet.ValueEstimate(state.DetectState(a.player.Enemy(), bcop)); val >= bestVal {
+			bestVal = val
+			bestTurn = t
+		}
+	}
+	return AgnosticizeTurn(bestTurn, a.player)
 }
 
 func (a *Agent) DetectState() state.State {
 	if a.game.CurrentPlayer != a.player {
 		panic("shouldn't be detecting the state outside of the agent's own turn.")
 	}
-	return state.DetectState(a.player, a.game)
+	return state.DetectState(a.player, a.game.Board)
 }
 
 func (a *Agent) StopLearning() { a.epsilon = 0 }

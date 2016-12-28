@@ -13,12 +13,10 @@ const (
 
 type State [int(constants.NUM_BOARD_POINTS)*NUM_VARS_PER_BOARD_POINT + NUM_NON_BOARD_POINT_VARS]float32
 
-// Detects the current state of the game, truncating the checker counts up to a max.
-// Returns the State and whether the State's BoardPoints were reversed to account for the player's perspective.
-func DetectState(p plyr.Player, g *game.Game) State {
+// DetectState detects the current state of the game.
+func DetectState(p plyr.Player, b *game.Board) State {
 	out := State{}
 
-	b := g.Board
 	isPCC := p == plyr.PCC
 	if isPCC {
 		// HeroBar, EnemyBar, Hero-EnemyBar.
