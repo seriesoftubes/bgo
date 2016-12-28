@@ -22,7 +22,8 @@ const (
 	msgChoseMove    = "\tChose move:"
 )
 
-func readTurnFromStdin(validTurns map[turn.TurnArray]turn.Turn) turn.Turn {
+func readTurnFromStdin(p plyr.Player, validTurns map[turn.TurnArray]turn.Turn) turn.Turn {
+	fmt.Println(msgAskForMove, string(p))
 	for {
 		var supposedlySerializedTurn string
 		fmt.Scanln(&supposedlySerializedTurn)
@@ -93,17 +94,6 @@ func (gc *GameController) maybePrint(s ...interface{}) {
 	}
 }
 
-func (gc *GameController) chooseTurn(validTurns map[turn.TurnArray]turn.Turn, currentState state.State) turn.Turn {
-	if gc.g.IsCurrentPlayerHuman() {
-		return readTurnFromStdin(validTurns)
-	}
-
-	pat := gc.agent.EpsilonGreedyAction(currentState, validTurns)
-	gc.prevStates[gc.g.CurrentPlayer] = currentState
-
-	return learn.ConvertAgnosticTurn(pat, gc.g.CurrentPlayer)
-}
-
 // playOneTurn plays through one turn, and returns whether the game is finished after the turn executes.
 func (gc *GameController) playOneTurn() bool {
 	g := gc.g
@@ -130,28 +120,16 @@ func (gc *GameController) playOneTurn() bool {
 	} else if len(validTurns) == 1 {
 		gc.maybePrint(msgForceMove)
 		chosenTurn = randomlyChooseValidTurn(validTurns)
-		if isComputer {
-			gc.prevStates[g.CurrentPlayer] = currentState
-		}
 	} else {
-		gc.maybePrint(msgAskForMove, string(g.CurrentPlayer))
-		chosenTurn = gc.chooseTurn(validTurns, currentState)
+		if gc.g.IsCurrentPlayerHuman() {
+			chosenTurn = readTurnFromStdin(g.CurrentPlayer, validTurns)
+		} else {
+			chosenTurn = learn.ConvertAgnosticTurn(gc.agent.EpsilonGreedyAction(currentState, validTurns), gc.g.CurrentPlayer)
+		}
 	}
 	gc.maybePrint(msgChoseMove, chosenTurn)
 
-	if gc.debug {
-		defer func() {
-			r := recover()
-			if r == nil {
-				return
-			}
-			fmt.Println("\n\n\n\t\tRecovering in playOneTurn() from", r)
-			fmt.Println("\tWTF move:", chosenTurn)
-			render.PrintGame(g)
-			panic("ok, panic again because this should kill the whole game")
-		}()
-	}
-
+	gc.prevStates[g.CurrentPlayer] = currentState
 	gc.g.Board.MustExecuteTurn(chosenTurn, gc.debug)
 	winner, winAmt := gc.g.Board.Winner(), gc.g.Board.WinKind()
 
