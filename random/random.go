@@ -12,6 +12,12 @@ var (
 	gen = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
 
+func Float32Between(min, max float32) float32 {
+	defer mu.Unlock()
+	mu.Lock()
+	return gen.Float32()*(max-min) + min
+}
+
 func Float64() float64 {
 	defer mu.Unlock()
 	mu.Lock()

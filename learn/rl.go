@@ -30,13 +30,13 @@ type (
 		// Gamma = discount rate for future rewards
 		// Epsilon = probability of choosing a random action (at least at first until annealing kicks in)
 		// TODO: annealing rate?
-		alpha, gamma, epsilon float64
+		alpha, gamma, epsilon float32
 		game                  *game.Game
 		player                plyr.Player
 	}
 )
 
-func NewAgent(alpha, gamma, epsilon float64) *Agent {
+func NewAgent(alpha, gamma, epsilon float32) *Agent {
 	return &Agent{alpha: alpha, gamma: gamma, epsilon: epsilon}
 }
 
@@ -48,7 +48,7 @@ func (a *Agent) EpsilonGreedyAction(st state.State, validTurnsForState map[turn.
 		panic("should have prevented this function from being called!")
 	}
 
-	if random.Float64() < a.epsilon { // exploration mode.
+	if random.Float32Between(0, 1) < a.epsilon { // exploration mode.
 		for _, t := range validTurnsForState {
 			return AgnosticizeTurn(t, a.player)
 		}
@@ -61,7 +61,7 @@ func (a *Agent) EpsilonGreedyAction(st state.State, validTurnsForState map[turn.
 	for _, t := range validTurnsForState {
 		bcop := a.game.Board.Copy()
 		bcop.MustExecuteTurn(t, false)
-		if val := nnet.ValueEstimate(state.DetectState(a.player.Enemy(), bcop)); val >= bestVal {
+		if val, _, _ := nnet.ValueEstimate(state.DetectState(a.player.Enemy(), bcop)); val >= bestVal {
 			bestVal = val
 			bestTurn = t
 		}
@@ -78,7 +78,17 @@ func (a *Agent) DetectState() state.State {
 
 func (a *Agent) StopLearning() { a.epsilon = 0 }
 
-func (a *Agent) Learn(state1 state.State, state2 state.State, rewardForState2 game.WinKind) {}
+func (a *Agent) LearnNonFinalState(state1 state.State, state2 state.State) {
+	est, _, _ := nnet.ValueEstimate(state2)
+	nnet.TrainWeights(state1, est*a.gamma, a.alpha)
+	// TODO: invert state1, and train against (invertedState1, -1*est*a.gamma)
+}
+
+func (a *Agent) LearnFinal(state1 state.State, rewardForNextState game.WinKind) {
+	est := float32(rewardForNextState)
+	nnet.TrainWeights(state1, est*a.gamma, a.alpha)
+	// TODO: invert state1, and train against (invertedState1, -1*est*a.gamma)
+}
 
 func (pam PlayerAgnosticMove) isEmpty() bool { return pam[pamIdxNumTimes] == 0 }
 func (pam PlayerAgnosticMove) asMove(p plyr.Player) turn.Move {

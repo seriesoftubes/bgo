@@ -58,9 +58,9 @@ type GameController struct {
 }
 
 func New(debug bool) *GameController {
-	learningRateAkaAlpha := 0.5
-	rewardsDiscountRateAkaGamma := 0.9999999999
-	initialExplorationRateAkaEpsilon := 1.0
+	learningRateAkaAlpha := float32(0.0001)
+	rewardsDiscountRateAkaGamma := float32(0.999)
+	initialExplorationRateAkaEpsilon := float32(1.0)
 	prevStates := make(map[plyr.Player]state.State, 2)
 	agent := learn.NewAgent(learningRateAkaAlpha, rewardsDiscountRateAkaGamma, initialExplorationRateAkaEpsilon)
 	return &GameController{agent: agent, prevStates: prevStates, debug: debug}
@@ -110,7 +110,7 @@ func (gc *GameController) playOneTurn() bool {
 		gc.agent.SetPlayer(g.CurrentPlayer)
 		currentState = gc.agent.DetectState()
 		if prevState, ok := gc.prevStates[g.CurrentPlayer]; ok {
-			gc.agent.Learn(prevState, currentState, game.WinKindNotWon)
+			gc.agent.LearnNonFinalState(prevState, currentState)
 		}
 	}
 
@@ -124,7 +124,7 @@ func (gc *GameController) playOneTurn() bool {
 		if gc.g.IsCurrentPlayerHuman() {
 			chosenTurn = readTurnFromStdin(g.CurrentPlayer, validTurns)
 		} else {
-			chosenTurn = learn.ConvertAgnosticTurn(gc.agent.EpsilonGreedyAction(currentState, validTurns), gc.g.CurrentPlayer)
+			chosenTurn = learn.ConvertAgnosticTurn(gc.agent.EpsilonGreedyAction(currentState, validTurns), g.CurrentPlayer)
 		}
 	}
 	gc.maybePrint(msgChoseMove, chosenTurn)
@@ -134,12 +134,9 @@ func (gc *GameController) playOneTurn() bool {
 	winner, winAmt := gc.g.Board.Winner(), gc.g.Board.WinKind()
 
 	if winner != 0 {
-		if isComputer {
-			// special case: a computer won, and they need to learn from that without having to re-run this playOneTurn method.
-			prevState := gc.prevStates[g.CurrentPlayer]
-			gc.agent.Learn(prevState, gc.agent.DetectState(), winAmt)
+		if isComputer { // special case: a computer won, and they need to learn from that without having to re-run this playOneTurn method.
+			gc.agent.LearnFinal(currentState, winAmt) // The `currentState` variable still reflects the state before the turn was executed.
 		}
-
 		return true
 	} else {
 		gc.g.NextPlayersTurn()
