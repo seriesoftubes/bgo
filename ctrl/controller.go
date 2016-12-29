@@ -3,6 +3,7 @@ package ctrl
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/seriesoftubes/bgo/game"
 	"github.com/seriesoftubes/bgo/game/plyr"
@@ -19,6 +20,11 @@ const (
 	msgForceMove    = "\tthis turn only has 1 option, forcing!"
 	msgAskForMove   = "\tYour move, "
 	msgChoseMove    = "\tChose move:"
+)
+
+var (
+	NNVariances   []float32
+	nnVariancesMu sync.Mutex
 )
 
 func readTurnFromStdin(p plyr.Player, validTurns map[turn.TurnArray]turn.Turn) turn.Turn {
@@ -78,6 +84,11 @@ func (gc *GameController) PlayOneGame(numHumanPlayers uint8, stopLearning bool) 
 	for !done {
 		done = gc.playOneTurn()
 	}
+	avgVariance := gc.agent.AverageNeuralNetworkVariance() // gets avg variance as of the end of a game.
+	defer nnVariancesMu.Unlock()
+	nnVariancesMu.Lock()
+	NNVariances = append(NNVariances, avgVariance)
+	gc.agent.ResetNeuralNetworkStats()
 
 	if gc.g.HasAnyHumans() || gc.debug {
 		render.PrintGame(gc.g)
@@ -123,7 +134,7 @@ func (gc *GameController) playOneTurn() bool {
 		if gc.g.IsCurrentPlayerHuman() {
 			chosenTurn = readTurnFromStdin(g.CurrentPlayer, validTurns)
 		} else {
-			chosenTurn = learn.ConvertAgnosticTurn(gc.agent.EpsilonGreedyAction(currentBoard, validTurns), g.CurrentPlayer)
+			chosenTurn = gc.agent.EpsilonGreedyAction(currentBoard, validTurns)
 		}
 	}
 	gc.maybePrint(msgChoseMove, chosenTurn)

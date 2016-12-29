@@ -81,15 +81,6 @@ func ValueEstimate(st state.State) (float32, [numFhNodes]float32, [numFhNodes]fl
 	return estimate, fhNodePreVals, fhNodePostVals
 }
 
-func capBetween(v, min, max float32) float32 {
-	if v < min {
-		return min
-	} else if v > max {
-		return max
-	}
-	return v
-}
-
 func weightGradients(st state.State, target float32) (float32, [numFh2OutConnections]float32, [numIn2FhConnections]float32) {
 	var (
 		in2fhWeightIndex      int // tracks which in2fhWeight we're analyzing.
@@ -109,8 +100,7 @@ func weightGradients(st state.State, target float32) (float32, [numFh2OutConnect
 	for fhNodeIdx := 0; fhNodeIdx < numFhNodes; fhNodeIdx++ {
 		dEstimate_wrt_fh2outWeight := fhNodePostVals[fhNodeIdx] // derive this wrt weight1: `(fhNodePostVal1*weight1 + fhNodePostVal2*weight2 + ...)`.
 		dVariance_wrt_fh2outWeight := dVariance_wrt_Estimate * dEstimate_wrt_fh2outWeight
-		fh2outWeightsGradient[fhNodeIdx] = dVariance_wrt_fh2outWeight // capBetween(dVariance_wrt_fh2outWeight, -8, 8)
-
+		fh2outWeightsGradient[fhNodeIdx] = dVariance_wrt_fh2outWeight
 		if fhNodeIdx == numFhNodes-1 {
 			break
 		}
@@ -124,13 +114,13 @@ func weightGradients(st state.State, target float32) (float32, [numFh2OutConnect
 		}
 		for _, dFhNodePreVal_wrt_in2fhWeight := range st { // derive ths wrt w1: est = (w1*inp1 + w2*inp2 + ...)
 			dVariance_wrt_in2fhWeight := dVariance_wrt_Estimate * dEstimate_wrt_fhNodePostVal * dFhNodePostVal_wrt_fhNodePreVal * dFhNodePreVal_wrt_in2fhWeight
-			in2fhWeightsGradient[in2fhWeightIndex] = dVariance_wrt_in2fhWeight // capBetween(dVariance_wrt_in2fhWeight, -8, 8)
+			in2fhWeightsGradient[in2fhWeightIndex] = dVariance_wrt_in2fhWeight
 			in2fhWeightIndex++
 		}
 		// and 1 more for the bias one.
 		dFhNodePreVal_wrt_in2fhWeight := bias
 		dVariance_wrt_in2fhWeight := dVariance_wrt_Estimate * dEstimate_wrt_fhNodePostVal * dFhNodePostVal_wrt_fhNodePreVal * dFhNodePreVal_wrt_in2fhWeight
-		in2fhWeightsGradient[in2fhWeightIndex] = dVariance_wrt_in2fhWeight // capBetween(dVariance_wrt_in2fhWeight, -8, 8)
+		in2fhWeightsGradient[in2fhWeightIndex] = dVariance_wrt_in2fhWeight
 		in2fhWeightIndex++
 	}
 

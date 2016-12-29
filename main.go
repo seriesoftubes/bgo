@@ -9,14 +9,14 @@ import (
 	"github.com/seriesoftubes/bgo/ctrl"
 )
 
-const trainings = 1000
+const trainings = 200
 
 func main() {
 	start := time.Now()
 	gamesPlayed := uint64(0)
 	var wg sync.WaitGroup
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 1; i++ {
 		wg.Add(1)
 		go func() {
 			mgr := ctrl.New(false)
@@ -34,6 +34,11 @@ func main() {
 	wg.Wait()
 
 	fmt.Println("trained", gamesPlayed, "times in", time.Since(start))
+
+	fmt.Println("GamesPlayed\tAvgVariance")
+	for i, v := range ctrl.NNVariances {
+		fmt.Printf("%v\t%v\n", i+1, v)
+	}
 
 	mgr := ctrl.New(true)
 	mgr.PlayOneGame(1, true /* stopLearning=true */)
