@@ -43,7 +43,7 @@ func NewAgent(alpha, gamma, epsilon float32) *Agent {
 func (a *Agent) SetPlayer(p plyr.Player) { a.player = p }
 func (a *Agent) SetGame(g *game.Game)    { a.game = g }
 
-func (a *Agent) EpsilonGreedyAction(st state.State, validTurnsForState map[turn.TurnArray]turn.Turn) PlayerAgnosticTurn {
+func (a *Agent) EpsilonGreedyAction(b *game.Board, validTurnsForState map[turn.TurnArray]turn.Turn) PlayerAgnosticTurn {
 	if len(validTurnsForState) == 0 {
 		panic("should have prevented this function from being called!")
 	}
@@ -57,9 +57,10 @@ func (a *Agent) EpsilonGreedyAction(st state.State, validTurnsForState map[turn.
 
 	// Use 1-ply lookahead to get the best turn. TODO: use 3-ply.
 	var bestTurn turn.Turn
-	var bestVal float32
+	bestVal := float32(-3e38)
+	// TODO also: display some variance stats
 	for _, t := range validTurnsForState {
-		bcop := a.game.Board.Copy()
+		bcop := b.Copy()
 		bcop.MustExecuteTurn(t, false)
 		if val, _, _ := nnet.ValueEstimate(state.DetectState(a.player.Enemy(), bcop)); val >= bestVal {
 			bestVal = val
@@ -78,16 +79,17 @@ func (a *Agent) DetectState() state.State {
 
 func (a *Agent) StopLearning() { a.epsilon = 0 }
 
-func (a *Agent) LearnNonFinalState(state1 state.State, state2 state.State) {
-	est, _, _ := nnet.ValueEstimate(state2)
-	nnet.TrainWeights(state1, est*a.gamma, a.alpha)
-	// TODO: invert state1, and train against (invertedState1, -1*est*a.gamma)
+func (a *Agent) LearnNonFinalState(previousBoard, currentBoard *game.Board) {
+	est, _, _ := nnet.ValueEstimate(state.DetectState(a.player, currentBoard))
+	nnet.TrainWeights(state.DetectState(a.player, previousBoard), est*a.gamma, a.alpha)
 }
 
-func (a *Agent) LearnFinal(state1 state.State, rewardForNextState game.WinKind) {
-	est := float32(rewardForNextState)
-	nnet.TrainWeights(state1, est*a.gamma, a.alpha)
-	// TODO: invert state1, and train against (invertedState1, -1*est*a.gamma)
+func (a *Agent) LearnFinal(previousHeroBoard, previousEnemyBoard *game.Board, rewardForNextState game.WinKind) {
+	discountedEstimate := float32(rewardForNextState) * a.gamma
+	nnet.TrainWeights(state.DetectState(a.player, previousHeroBoard), discountedEstimate, a.alpha)
+	if previousEnemyBoard != nil { // If the enemy is human, their previous boards aren't saved, which is fine.
+		nnet.TrainWeights(state.DetectState(a.player.Enemy(), previousEnemyBoard), -discountedEstimate, a.alpha)
+	}
 }
 
 func (pam PlayerAgnosticMove) isEmpty() bool { return pam[pamIdxNumTimes] == 0 }

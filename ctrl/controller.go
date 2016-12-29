@@ -10,7 +10,6 @@ import (
 	"github.com/seriesoftubes/bgo/game/turngen"
 	"github.com/seriesoftubes/bgo/learn"
 	"github.com/seriesoftubes/bgo/render"
-	"github.com/seriesoftubes/bgo/state"
 )
 
 const (
@@ -54,16 +53,16 @@ type GameController struct {
 	g          *game.Game
 	debug      bool
 	agent      *learn.Agent
-	prevStates map[plyr.Player]state.State
+	prevBoards map[plyr.Player]*game.Board
 }
 
 func New(debug bool) *GameController {
 	learningRateAkaAlpha := float32(0.0001)
 	rewardsDiscountRateAkaGamma := float32(0.999)
 	initialExplorationRateAkaEpsilon := float32(1.0)
-	prevStates := make(map[plyr.Player]state.State, 2)
+	prevBoards := make(map[plyr.Player]*game.Board, 2)
 	agent := learn.NewAgent(learningRateAkaAlpha, rewardsDiscountRateAkaGamma, initialExplorationRateAkaEpsilon)
-	return &GameController{agent: agent, prevStates: prevStates, debug: debug}
+	return &GameController{agent: agent, prevBoards: prevBoards, debug: debug}
 }
 
 func (gc *GameController) PlayOneGame(numHumanPlayers uint8, stopLearning bool) (plyr.Player, game.WinKind) {
@@ -104,13 +103,13 @@ func (gc *GameController) playOneTurn() bool {
 
 	validTurns := turngen.ValidTurns(g.Board, g.CurrentRoll, g.CurrentPlayer)
 
-	isComputer := !gc.g.IsCurrentPlayerHuman()
-	var currentState state.State
+	isComputer := !g.IsCurrentPlayerHuman()
+	var currentBoard *game.Board
 	if isComputer {
 		gc.agent.SetPlayer(g.CurrentPlayer)
-		currentState = gc.agent.DetectState()
-		if prevState, ok := gc.prevStates[g.CurrentPlayer]; ok {
-			gc.agent.LearnNonFinalState(prevState, currentState)
+		currentBoard = g.Board.Copy()
+		if prevBoard, ok := gc.prevBoards[g.CurrentPlayer]; ok {
+			gc.agent.LearnNonFinalState(prevBoard, currentBoard)
 		}
 	}
 
@@ -124,18 +123,19 @@ func (gc *GameController) playOneTurn() bool {
 		if gc.g.IsCurrentPlayerHuman() {
 			chosenTurn = readTurnFromStdin(g.CurrentPlayer, validTurns)
 		} else {
-			chosenTurn = learn.ConvertAgnosticTurn(gc.agent.EpsilonGreedyAction(currentState, validTurns), g.CurrentPlayer)
+			chosenTurn = learn.ConvertAgnosticTurn(gc.agent.EpsilonGreedyAction(currentBoard, validTurns), g.CurrentPlayer)
 		}
 	}
 	gc.maybePrint(msgChoseMove, chosenTurn)
 
-	gc.prevStates[g.CurrentPlayer] = currentState
+	gc.prevBoards[g.CurrentPlayer] = currentBoard
 	gc.g.Board.MustExecuteTurn(chosenTurn, gc.debug)
 	winner, winAmt := gc.g.Board.Winner(), gc.g.Board.WinKind()
 
 	if winner != 0 {
 		if isComputer { // special case: a computer won, and they need to learn from that without having to re-run this playOneTurn method.
-			gc.agent.LearnFinal(currentState, winAmt) // The `currentState` variable still reflects the state before the turn was executed.
+			previousEnemyBoard := gc.prevBoards[g.CurrentPlayer.Enemy()]  // this can be null if the other player is human.
+			gc.agent.LearnFinal(currentBoard, previousEnemyBoard, winAmt) // The `currentBoard` variable still reflects the state before the turn was executed.
 		}
 		return true
 	} else {

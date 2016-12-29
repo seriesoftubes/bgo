@@ -9,13 +9,14 @@ import (
 const (
 	NUM_VARS_PER_BOARD_POINT int = 12
 	NUM_NON_BOARD_POINT_VARS int = 3
+	lastPointIndex               = int(constants.FINAL_BOARD_POINT_INDEX)
 )
 
 type State [int(constants.NUM_BOARD_POINTS)*NUM_VARS_PER_BOARD_POINT + NUM_NON_BOARD_POINT_VARS]float32
 
 // DetectState detects the current state of the game.
 func DetectState(p plyr.Player, b *game.Board) State {
-	out := State{}
+	var out State
 
 	isPCC := p == plyr.PCC
 	if isPCC {
@@ -25,7 +26,6 @@ func DetectState(p plyr.Player, b *game.Board) State {
 		out[0], out[1], out[2] = float32(b.BarC), float32(b.BarCC), float32(b.BarC-b.BarCC)
 	}
 
-	lastPointIndex := int(constants.FINAL_BOARD_POINT_INDEX)
 	for ptIdx, pt := range b.Points {
 		chex := pt.NumCheckers
 		// fill them in order of distance from enemy home. so PCC starts as normal
