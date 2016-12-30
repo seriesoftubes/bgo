@@ -49,13 +49,13 @@ var (
 )
 
 func RemoveUselessGameData(gameID uint32) {
-	defer fh2outWeightsMu.Unlock()
-	fh2outWeightsMu.Lock()
-	defer in2fhWeightsMu.Unlock()
 	in2fhWeightsMu.Lock()
-
 	delete(in2fhWeightsPreviousEligibilityTracesByGameID, gameID)
+	in2fhWeightsMu.Unlock()
+
+	fh2outWeightsMu.Lock()
 	delete(fh2outWeightsPreviousEligibilityTracesByGameID, gameID)
+	fh2outWeightsMu.Unlock()
 }
 
 func sigmoid(x float32) float32 { return float32(1.0 / (1.0 + math.Exp(float64(-x)))) }
@@ -67,34 +67,37 @@ func ValueEstimate(st state.State) (float32, [numFhNodes]float32, [numFhNodes]fl
 		fhNodePostVals [numFhNodes]float32
 	)
 
-	defer in2fhWeightsMu.RUnlock()
 	in2fhWeightsMu.RLock()
-	defer fh2outWeightsMu.RUnlock()
+	my_in2fhWeights := in2fhWeights
+	in2fhWeightsMu.RUnlock()
+
 	fh2outWeightsMu.RLock()
+	my_fh2outWeights := fh2outWeights
+	fh2outWeightsMu.RUnlock()
 
 	var fhNodeIdx, in2fhWeightIndex int
 	for ; fhNodeIdx < numFhNodes-1; fhNodeIdx++ {
 		// Important note: this loop only iterates over the first N-1 FH nodes-- the Nth one needs to be the new bias node!
 		var fhNodeSum float32
 		for _, num := range st {
-			fhNodeSum += num * in2fhWeights[in2fhWeightIndex]
+			fhNodeSum += num * my_in2fhWeights[in2fhWeightIndex]
 			in2fhWeightIndex++
 		}
 		// Here we artificially add a bias to the input "state":
-		fhNodeSum += bias * in2fhWeights[in2fhWeightIndex]
+		fhNodeSum += bias * my_in2fhWeights[in2fhWeightIndex]
 		in2fhWeightIndex++
 
 		fhNodePreVals[fhNodeIdx] = fhNodeSum
 		fhNodePostVal := sigmoid(fhNodeSum)
 		fhNodePostVals[fhNodeIdx] = fhNodePostVal
-		estimate += fhNodePostVal * fh2outWeights[fhNodeIdx]
+		estimate += fhNodePostVal * my_fh2outWeights[fhNodeIdx]
 	}
 	// Now we artificially add a bias node to the FH layer:
 	fhNodeSum := bias
 	fhNodePreVals[fhNodeIdx] = fhNodeSum
 	fhNodePostVal := sigmoid(fhNodeSum)
 	fhNodePostVals[fhNodeIdx] = fhNodePostVal
-	estimate += fhNodePostVal * fh2outWeights[fhNodeIdx]
+	estimate += fhNodePostVal * my_fh2outWeights[fhNodeIdx]
 
 	return estimate, fhNodePreVals, fhNodePostVals
 }
@@ -107,10 +110,9 @@ func weightGradients(st state.State, target float32) (float32, [numFh2OutConnect
 	)
 	est, _, fhNodePostVals := ValueEstimate(st)
 
-	defer in2fhWeightsMu.RUnlock()
-	in2fhWeightsMu.RLock()
-	defer fh2outWeightsMu.RUnlock()
 	fh2outWeightsMu.RLock()
+	my_fh2outWeights := fh2outWeights
+	fh2outWeightsMu.RUnlock()
 
 	for fhNodeIdx := 0; fhNodeIdx < numFhNodes; fhNodeIdx++ {
 		dEstimate_wrt_fh2outWeight := fhNodePostVals[fhNodeIdx] // derive this wrt weight1: `(fhNodePostVal1*weight1 + fhNodePostVal2*weight2 + ...)`.
@@ -120,7 +122,7 @@ func weightGradients(st state.State, target float32) (float32, [numFh2OutConnect
 		}
 		// From here down, we're talking about the incoming in2fh weights that connect to this FH node.
 
-		dEstimate_wrt_fhNodePostVal := fh2outWeights[fhNodeIdx]                                          // derive this wrt fhPostVal1: `estimate = (w1*fhPostVal1 + w2*fhPostVal2 + ...)`.
+		dEstimate_wrt_fhNodePostVal := my_fh2outWeights[fhNodeIdx]                                       // derive this wrt fhPostVal1: `estimate = (w1*fhPostVal1 + w2*fhPostVal2 + ...)`.
 		dFhNodePostVal_wrt_fhNodePreVal := dEstimate_wrt_fh2outWeight * (1 - dEstimate_wrt_fh2outWeight) // derivative of sigmoid(x) is: sigmoid(x) * (1 - sigmoid(x))
 		for _, dFhNodePreVal_wrt_in2fhWeight := range st {                                               // derive ths wrt w1: est = (w1*inp1 + w2*inp2 + ...)
 			dEstimate_wrt_in2fhWeight := dEstimate_wrt_fhNodePostVal * dFhNodePostVal_wrt_fhNodePreVal * dFhNodePreVal_wrt_in2fhWeight
