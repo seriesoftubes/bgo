@@ -4,6 +4,10 @@
 package nnet
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"io/ioutil"
 	"math"
 	"runtime"
 	"sync"
@@ -13,7 +17,7 @@ import (
 )
 
 const (
-	bias                 = float32(3.0)
+	bias                 = float32(3.0) // If you change the bias, saved weights will be erroneous and you need to retrain the network.
 	numInputs            = len(state.State{}) + 1
 	numIn2FhConnections  = numInputs * numInputs // the "FH" aka firsthidden layer is fully-connected with all inputs.
 	numFhNodes           = numInputs + 1         // the "FH" layer has 1 node per input, plus one more bias.
@@ -47,6 +51,46 @@ var (
 	fh2outWeightsPreviousEligibilityTracesByGameID map[uint32]*[numFh2OutConnections]float32 = make(map[uint32]*[numFh2OutConnections]float32, maxConcurrentGames)
 	fh2outWeightsMu                                sync.RWMutex
 )
+
+type jsonifyable struct {
+	In2FhWeights  [numIn2FhConnections]float32
+	Fh2OutWeights [numFh2OutConnections]float32
+}
+
+func Save(w io.Writer) error {
+	enc := json.NewEncoder(w)
+	if err := enc.Encode(jsonifyable{in2fhWeights, fh2outWeights}); err != nil {
+		return fmt.Errorf("JSON Encode error: %v", err)
+	}
+	return nil
+}
+
+func Load(r io.Reader) error {
+	text, err := ioutil.ReadAll(r)
+	if err != nil {
+		return fmt.Errorf("ioutil.ReadAll(r) error: %v", err)
+	}
+
+	var j jsonifyable
+	if err := json.Unmarshal(text, &j); err != nil {
+		return fmt.Errorf("json.Unmarshal error: %v", err)
+	}
+
+	if len(j.In2FhWeights) != len(in2fhWeights) {
+		return fmt.Errorf("serialized network does not match dimensions of the one in this program. expected both to have length of %d", len(in2fhWeights))
+	}
+	if len(j.Fh2OutWeights) != len(fh2outWeights) {
+		return fmt.Errorf("serialized network does not match dimensions of the one in this program. expected both to have length of %d", len(fh2outWeights))
+	}
+
+	for i, v := range j.In2FhWeights {
+		in2fhWeights[i] = v
+	}
+	for i, v := range j.Fh2OutWeights {
+		fh2outWeights[i] = v
+	}
+	return nil
+}
 
 func RemoveUselessGameData(gameID uint32) {
 	in2fhWeightsMu.Lock()
