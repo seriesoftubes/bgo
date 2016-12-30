@@ -91,6 +91,10 @@ func (t Turn) String() string {
 
 // DeserializeTurn creates a Turn from a string like "X;a3;a3;b3;d3".
 func DeserializeTurn(s string) (Turn, error) {
+	if strings.TrimSpace(s) == "" {
+		return nil, fmt.Errorf("no turn provided in serialized turn %q", s)
+	}
+
 	out := Turn{}
 
 	moveStrings := strings.Split(s, moveDelim)
