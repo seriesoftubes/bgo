@@ -56,19 +56,18 @@ func randomlyChooseValidTurn(validTurns map[turn.TurnArray]turn.Turn) turn.Turn 
 }
 
 type GameController struct {
-	g          *game.Game
-	debug      bool
-	agent      *learn.Agent
-	prevBoards map[plyr.Player]*game.Board
+	g         *game.Game
+	debug     bool
+	agent     *learn.Agent
+	prevBoard *game.Board
 }
 
 func New(debug bool) *GameController {
-	learningRateAkaAlpha := float32(0.0001)
-	rewardsDiscountRateAkaGamma := float32(0.999)
+	learningRateAkaAlpha := float32(0.00001)
+	rewardsDiscountRateAkaGamma := float32(0.9)
 	initialExplorationRateAkaEpsilon := float32(1.0)
-	prevBoards := make(map[plyr.Player]*game.Board, 2)
 	agent := learn.NewAgent(learningRateAkaAlpha, rewardsDiscountRateAkaGamma, initialExplorationRateAkaEpsilon)
-	return &GameController{agent: agent, prevBoards: prevBoards, debug: debug}
+	return &GameController{agent: agent, debug: debug}
 }
 
 func (gc *GameController) PlayOneGame(numHumanPlayers uint8, stopLearning bool) (plyr.Player, game.WinKind) {
@@ -87,8 +86,10 @@ func (gc *GameController) PlayOneGame(numHumanPlayers uint8, stopLearning bool) 
 	avgVariance := gc.agent.AverageNeuralNetworkVariance() // gets avg variance as of the end of a game.
 	defer nnVariancesMu.Unlock()
 	nnVariancesMu.Lock()
+	fmt.Println(avgVariance)
 	NNVariances = append(NNVariances, avgVariance)
 	gc.agent.ResetNeuralNetworkStats()
+	gc.prevBoard = nil
 
 	if gc.g.HasAnyHumans() || gc.debug {
 		render.PrintGame(gc.g)
@@ -119,8 +120,8 @@ func (gc *GameController) playOneTurn() bool {
 	if isComputer {
 		gc.agent.SetPlayer(g.CurrentPlayer)
 		currentBoard = g.Board.Copy()
-		if prevBoard, ok := gc.prevBoards[g.CurrentPlayer]; ok {
-			gc.agent.LearnNonFinalState(prevBoard, currentBoard)
+		if gc.prevBoard != nil {
+			gc.agent.LearnNonFinalState(gc.prevBoard, currentBoard)
 		}
 	}
 
@@ -139,14 +140,13 @@ func (gc *GameController) playOneTurn() bool {
 	}
 	gc.maybePrint(msgChoseMove, chosenTurn)
 
-	gc.prevBoards[g.CurrentPlayer] = currentBoard
+	gc.prevBoard = currentBoard
 	gc.g.Board.MustExecuteTurn(chosenTurn, gc.debug)
 	winner, winAmt := gc.g.Board.Winner(), gc.g.Board.WinKind()
 
 	if winner != 0 {
 		if isComputer { // special case: a computer won, and they need to learn from that without having to re-run this playOneTurn method.
-			previousEnemyBoard := gc.prevBoards[g.CurrentPlayer.Enemy()]  // this can be null if the other player is human.
-			gc.agent.LearnFinal(currentBoard, previousEnemyBoard, winAmt) // The `currentBoard` variable still reflects the state before the turn was executed.
+			gc.agent.LearnFinal(currentBoard, winAmt) // The `currentBoard` variable still reflects the state before the turn was executed.
 		}
 		return true
 	} else {

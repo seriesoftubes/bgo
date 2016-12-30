@@ -1,12 +1,19 @@
 package game
 
 import (
+	"sync"
 	"time"
 
 	"github.com/seriesoftubes/bgo/game/plyr"
 )
 
+var (
+	nextGameID     uint32
+	nextGameIdLock sync.Mutex
+)
+
 type Game struct {
+	ID              uint32
 	Board           *Board
 	CurrentPlayer   plyr.Player
 	CurrentRoll     Roll
@@ -44,5 +51,9 @@ func NewGame(numHumanPlayers uint8) *Game {
 		player = plyr.PC
 	}
 
-	return &Game{Board: b, CurrentPlayer: player, CurrentRoll: newRoll(), numHumanPlayers: numHumanPlayers}
+	defer nextGameIdLock.Unlock()
+	nextGameIdLock.Lock()
+	nextGameID++
+
+	return &Game{ID: nextGameID, Board: b, CurrentPlayer: player, CurrentRoll: newRoll(), numHumanPlayers: numHumanPlayers}
 }

@@ -1,9 +1,11 @@
 // Package nnet contains a neural network that estimates the game equity given the current state of the game.
-// The network itself consists of the input layer, 1 fully-connected ReLU layer.
+// The network itself consists of the input layer, 1 fully-connected Sigmoid layer.
 // TODO: maybe add 2nd hidden ReLU layer.
 package nnet
 
 import (
+	"math"
+	"runtime"
 	"sync"
 
 	"github.com/seriesoftubes/bgo/random"
@@ -19,6 +21,8 @@ const (
 )
 
 var (
+	maxConcurrentGames int = runtime.NumCPU() * 2 // Assume a max of 2 goroutines training per CPU. This variable would be a const but that caused a compiler error.
+
 	// Weights that connect IN to FH.
 	in2fhWeights [numIn2FhConnections]float32 = (func() [numIn2FhConnections]float32 {
 		out := [numIn2FhConnections]float32{}
@@ -27,7 +31,9 @@ var (
 		}
 		return out
 	})()
-	in2fhWeightsMu sync.RWMutex
+	// each key in the map is a gameID, and each value is an array of previous eligibility traces-- one trace for each in2fh weight.
+	in2fhWeightsPreviousEligibilityTracesByGameID map[uint32]*[numIn2FhConnections]float32 = make(map[uint32]*[numIn2FhConnections]float32, maxConcurrentGames)
+	in2fhWeightsMu                                sync.RWMutex
 
 	// Weights that connect FH to OUT.
 	fh2outWeights [numFh2OutConnections]float32 = (func() [numFh2OutConnections]float32 {
@@ -37,8 +43,22 @@ var (
 		}
 		return out
 	})()
-	fh2outWeightsMu sync.RWMutex
+	// each key in the map is a gameID, and each value is an array of previous eligibility traces-- one trace for each fh2out weight.
+	fh2outWeightsPreviousEligibilityTracesByGameID map[uint32]*[numFh2OutConnections]float32 = make(map[uint32]*[numFh2OutConnections]float32, maxConcurrentGames)
+	fh2outWeightsMu                                sync.RWMutex
 )
+
+func RemoveUselessGameData(gameID uint32) {
+	defer fh2outWeightsMu.Unlock()
+	fh2outWeightsMu.Lock()
+	defer in2fhWeightsMu.Unlock()
+	in2fhWeightsMu.Lock()
+
+	delete(in2fhWeightsPreviousEligibilityTracesByGameID, gameID)
+	delete(fh2outWeightsPreviousEligibilityTracesByGameID, gameID)
+}
+
+func sigmoid(x float32) float32 { return float32(1.0 / (1.0 + math.Exp(float64(-x)))) }
 
 func ValueEstimate(st state.State) (float32, [numFhNodes]float32, [numFhNodes]float32) {
 	var (
@@ -65,18 +85,16 @@ func ValueEstimate(st state.State) (float32, [numFhNodes]float32, [numFhNodes]fl
 		in2fhWeightIndex++
 
 		fhNodePreVals[fhNodeIdx] = fhNodeSum
-		if fhNodeSum > 0 { // This `if` switch does the ReLU work of the hidden activation.
-			fhNodePostVals[fhNodeIdx] = fhNodeSum
-			estimate += fhNodeSum * fh2outWeights[fhNodeIdx]
-		}
+		fhNodePostVal := sigmoid(fhNodeSum)
+		fhNodePostVals[fhNodeIdx] = fhNodePostVal
+		estimate += fhNodePostVal * fh2outWeights[fhNodeIdx]
 	}
 	// Now we artificially add a bias node to the FH layer:
 	fhNodeSum := bias
 	fhNodePreVals[fhNodeIdx] = fhNodeSum
-	if fhNodeSum > 0 { // This `if` switch does the ReLU work of the hidden activation.
-		fhNodePostVals[fhNodeIdx] = fhNodeSum
-		estimate += fhNodeSum * fh2outWeights[fhNodeIdx]
-	}
+	fhNodePostVal := sigmoid(fhNodeSum)
+	fhNodePostVals[fhNodeIdx] = fhNodePostVal
+	estimate += fhNodePostVal * fh2outWeights[fhNodeIdx]
 
 	return estimate, fhNodePreVals, fhNodePostVals
 }
@@ -87,10 +105,7 @@ func weightGradients(st state.State, target float32) (float32, [numFh2OutConnect
 		fh2outWeightsGradient [numFh2OutConnections]float32
 		in2fhWeightsGradient  [numIn2FhConnections]float32
 	)
-	est, fhNodePreVals, fhNodePostVals := ValueEstimate(st)
-
-	// Variance = (t - e)**2 = (t - e)*(t - e) = (t**2 -2et + e**2)
-	dVariance_wrt_Estimate := 2*est - 2*target // The ^^above^^ equation, derived for `e`.
+	est, _, fhNodePostVals := ValueEstimate(st)
 
 	defer in2fhWeightsMu.RUnlock()
 	in2fhWeightsMu.RLock()
@@ -99,28 +114,23 @@ func weightGradients(st state.State, target float32) (float32, [numFh2OutConnect
 
 	for fhNodeIdx := 0; fhNodeIdx < numFhNodes; fhNodeIdx++ {
 		dEstimate_wrt_fh2outWeight := fhNodePostVals[fhNodeIdx] // derive this wrt weight1: `(fhNodePostVal1*weight1 + fhNodePostVal2*weight2 + ...)`.
-		dVariance_wrt_fh2outWeight := dVariance_wrt_Estimate * dEstimate_wrt_fh2outWeight
-		fh2outWeightsGradient[fhNodeIdx] = dVariance_wrt_fh2outWeight
+		fh2outWeightsGradient[fhNodeIdx] = dEstimate_wrt_fh2outWeight
 		if fhNodeIdx == numFhNodes-1 {
-			break
+			break // The final FH node is a standalone bias node with no weights coming into it-- that's why we skip those in2fh weights for the final FH node.
 		}
-		// From here down, we're talking about the in2fh weights that connect to this FH node.
-		// Remember, the final FH node is a standalone bias node with no weights coming into it-- that's why we skip those in2fh weights for the final FH node.
+		// From here down, we're talking about the incoming in2fh weights that connect to this FH node.
 
-		dEstimate_wrt_fhNodePostVal := fh2outWeights[fhNodeIdx] // derive this wrt fhPostVal1: `estimate = (w1*fhPostVal1 + w2*fhPostVal2 + ...)`.
-		var dFhNodePostVal_wrt_fhNodePreVal float32             // derivative of ReLU(x) is 1.0 when x > 0, 0 otherwise.
-		if preValWasPositive := fhNodePreVals[fhNodeIdx] > 0; preValWasPositive {
-			dFhNodePostVal_wrt_fhNodePreVal = 1.0
-		}
-		for _, dFhNodePreVal_wrt_in2fhWeight := range st { // derive ths wrt w1: est = (w1*inp1 + w2*inp2 + ...)
-			dVariance_wrt_in2fhWeight := dVariance_wrt_Estimate * dEstimate_wrt_fhNodePostVal * dFhNodePostVal_wrt_fhNodePreVal * dFhNodePreVal_wrt_in2fhWeight
-			in2fhWeightsGradient[in2fhWeightIndex] = dVariance_wrt_in2fhWeight
+		dEstimate_wrt_fhNodePostVal := fh2outWeights[fhNodeIdx]                                          // derive this wrt fhPostVal1: `estimate = (w1*fhPostVal1 + w2*fhPostVal2 + ...)`.
+		dFhNodePostVal_wrt_fhNodePreVal := dEstimate_wrt_fh2outWeight * (1 - dEstimate_wrt_fh2outWeight) // derivative of sigmoid(x) is: sigmoid(x) * (1 - sigmoid(x))
+		for _, dFhNodePreVal_wrt_in2fhWeight := range st {                                               // derive ths wrt w1: est = (w1*inp1 + w2*inp2 + ...)
+			dEstimate_wrt_in2fhWeight := dEstimate_wrt_fhNodePostVal * dFhNodePostVal_wrt_fhNodePreVal * dFhNodePreVal_wrt_in2fhWeight
+			in2fhWeightsGradient[in2fhWeightIndex] = dEstimate_wrt_in2fhWeight
 			in2fhWeightIndex++
 		}
 		// and 1 more for the bias one.
 		dFhNodePreVal_wrt_in2fhWeight := bias
-		dVariance_wrt_in2fhWeight := dVariance_wrt_Estimate * dEstimate_wrt_fhNodePostVal * dFhNodePostVal_wrt_fhNodePreVal * dFhNodePreVal_wrt_in2fhWeight
-		in2fhWeightsGradient[in2fhWeightIndex] = dVariance_wrt_in2fhWeight
+		dEstimate_wrt_in2fhWeight := dEstimate_wrt_fhNodePostVal * dFhNodePostVal_wrt_fhNodePreVal * dFhNodePreVal_wrt_in2fhWeight
+		in2fhWeightsGradient[in2fhWeightIndex] = dEstimate_wrt_in2fhWeight
 		in2fhWeightIndex++
 	}
 
@@ -128,21 +138,37 @@ func weightGradients(st state.State, target float32) (float32, [numFh2OutConnect
 }
 
 // TrainWeights back-propagates the error of an estimate against a target.
-func TrainWeights(st state.State, target, learningRate float32) float32 {
+func TrainWeights(gameID uint32, st state.State, target, learningRate, eligibilityDecayRate float32) float32 {
 	est, fh2outWeightsGradient, in2fhWeightsGradient := weightGradients(st, target)
+	valueEstimateDiff := target - est // If this diff is positive, we need to add the gradient in the positive direction. else in the negative direction.
 
 	defer in2fhWeightsMu.Unlock()
 	in2fhWeightsMu.Lock()
 	defer fh2outWeightsMu.Unlock()
 	fh2outWeightsMu.Lock()
+	// Important: don't write to any of the global vars until these locks are acquired-- that's why very little processing could happen above this line.
 
+	if _, ok := in2fhWeightsPreviousEligibilityTracesByGameID[gameID]; !ok {
+		in2fhWeightsPreviousEligibilityTracesByGameID[gameID] = &([numIn2FhConnections]float32{})
+	}
+	in2fhWeightsPreviousEligibilityTraces := in2fhWeightsPreviousEligibilityTracesByGameID[gameID]
 	for i, in2fhWeightDerivative := range in2fhWeightsGradient {
-		in2fhWeights[i] -= learningRate * in2fhWeightDerivative
-	}
-	for i, fh2outWeightDerivative := range fh2outWeightsGradient {
-		fh2outWeights[i] -= learningRate * fh2outWeightDerivative
+		previousEligibilityTrace := (*in2fhWeightsPreviousEligibilityTraces)[i]
+		eligibilityTrace := in2fhWeightDerivative + (eligibilityDecayRate * previousEligibilityTrace)
+		(*in2fhWeightsPreviousEligibilityTraces)[i] = eligibilityTrace
+		in2fhWeights[i] += learningRate * valueEstimateDiff * eligibilityTrace
 	}
 
-	deviation := est - target
-	return deviation * deviation // The variance before adjusting the weights.
+	if _, ok := fh2outWeightsPreviousEligibilityTracesByGameID[gameID]; !ok {
+		fh2outWeightsPreviousEligibilityTracesByGameID[gameID] = &([numFh2OutConnections]float32{})
+	}
+	fh2outWeightsPreviousEligibilityTraces := fh2outWeightsPreviousEligibilityTracesByGameID[gameID]
+	for i, fh2outWeightDerivative := range fh2outWeightsGradient {
+		previousEligibilityTrace := (*fh2outWeightsPreviousEligibilityTraces)[i]
+		eligibilityTrace := fh2outWeightDerivative + (eligibilityDecayRate * previousEligibilityTrace)
+		(*fh2outWeightsPreviousEligibilityTraces)[i] = eligibilityTrace
+		fh2outWeights[i] += learningRate * valueEstimateDiff * eligibilityTrace
+	}
+
+	return valueEstimateDiff * valueEstimateDiff // The variance before adjusting the weights.
 }

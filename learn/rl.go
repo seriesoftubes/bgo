@@ -31,7 +31,15 @@ func (a *Agent) AverageNeuralNetworkVariance() float32 {
 	return a.totalVarianceAcrossAllTrainings / float32(a.numTrainings)
 }
 func (a *Agent) SetPlayer(p plyr.Player) { a.player = p }
-func (a *Agent) SetGame(g *game.Game)    { a.game = g }
+
+// It's assumed that this is only called when the Agent's GameController is starting a new game.
+func (a *Agent) SetGame(g *game.Game) {
+	if a.game != nil {
+		nnet.RemoveUselessGameData(a.game.ID)
+	}
+
+	a.game = g
+}
 
 func (a *Agent) EpsilonGreedyAction(b *game.Board, validTurnsForState map[turn.TurnArray]turn.Turn) turn.Turn {
 	if len(validTurnsForState) == 0 {
@@ -69,19 +77,22 @@ func (a *Agent) DetectState() state.State {
 func (a *Agent) StopLearning() { a.epsilon = 0 }
 
 func (a *Agent) LearnNonFinalState(previousBoard, currentBoard *game.Board) {
-	est, _, _ := nnet.ValueEstimate(state.DetectState(a.player, currentBoard))
+	// `currentBoard` is the state that is about to be played by the enemy.
+	// `previousBoard` is the state that the hero made a move on which led to `currentBoard`.
+	// so the value of `currentBoard` from the enemy's POV == -1*(the_value_for_hero).
+	// a.player is the player who made the transition from previous to current board.
+	newStateFromEnemyPOV := state.DetectState(a.player.Enemy(), currentBoard)
+	previousStateHeroPOV := state.DetectState(a.player, previousBoard)
+	enemyEst, _, _ := nnet.ValueEstimate(newStateFromEnemyPOV)
+
+	a.totalVarianceAcrossAllTrainings += nnet.TrainWeights(a.game.ID, previousStateHeroPOV, -enemyEst, a.alpha, a.gamma)
 	a.numTrainings++
-	a.totalVarianceAcrossAllTrainings += nnet.TrainWeights(state.DetectState(a.player, previousBoard), est*a.gamma, a.alpha)
 }
 
-func (a *Agent) LearnFinal(previousHeroBoard, previousEnemyBoard *game.Board, rewardForNextState game.WinKind) {
-	discountedEstimate := float32(rewardForNextState) * a.gamma
+func (a *Agent) LearnFinal(preWinningMoveBoard *game.Board, rewardForNextState game.WinKind) {
+	actualReward := float32(rewardForNextState)
+	previousStateHeroPOV := state.DetectState(a.player, preWinningMoveBoard)
 
-	a.totalVarianceAcrossAllTrainings += nnet.TrainWeights(state.DetectState(a.player, previousHeroBoard), discountedEstimate, a.alpha)
+	a.totalVarianceAcrossAllTrainings += nnet.TrainWeights(a.game.ID, previousStateHeroPOV, actualReward, a.alpha, a.gamma)
 	a.numTrainings++
-
-	if previousEnemyBoard != nil { // If the enemy is human, their previous boards aren't saved, which is fine.
-		a.totalVarianceAcrossAllTrainings += nnet.TrainWeights(state.DetectState(a.player.Enemy(), previousEnemyBoard), -discountedEstimate, a.alpha)
-		a.numTrainings++
-	}
 }

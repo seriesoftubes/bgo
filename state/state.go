@@ -61,24 +61,26 @@ func DetectState(p plyr.Player, b *game.Board) State {
 		if isPCC {
 			for forwardPtIdx := ptIdx + lookaheadDist; forwardPtIdx < int(constants.NUM_BOARD_POINTS); forwardPtIdx++ {
 				if fpt := b.Points[forwardPtIdx]; fpt.Owner == plyr.PC {
-					numEnemyChexInFront++
+					numEnemyChexInFront += float32(fpt.NumCheckers)
 					if distToClosestEnemyBlotPoint == 0 && fpt.NumCheckers == 1 {
 						distToClosestEnemyBlotPoint = float32(lookaheadDist)
 					} else if distToClosestEnemySecuredPoint == 0 && fpt.NumCheckers > 1 {
 						distToClosestEnemySecuredPoint = float32(lookaheadDist)
 					}
 				}
+				lookaheadDist++
 			}
 		} else {
 			for forwardPtIdx := ptIdx - lookaheadDist; forwardPtIdx >= 0; forwardPtIdx-- {
 				if fpt := b.Points[forwardPtIdx]; fpt.Owner == plyr.PCC {
-					numEnemyChexInFront++
+					numEnemyChexInFront += float32(fpt.NumCheckers)
 					if distToClosestEnemyBlotPoint == 0 && fpt.NumCheckers == 1 {
 						distToClosestEnemyBlotPoint = float32(lookaheadDist)
 					} else if distToClosestEnemySecuredPoint == 0 && fpt.NumCheckers > 1 {
 						distToClosestEnemySecuredPoint = float32(lookaheadDist)
 					}
 				}
+				lookaheadDist++
 			}
 		}
 		out[outIdx+4] = numEnemyChexInFront
@@ -90,6 +92,5 @@ func DetectState(p plyr.Player, b *game.Board) State {
 		out[outIdx+10] = ownerStatus * distToClosestEnemyBlotPoint
 		out[outIdx+11] = ownerStatus * distToClosestEnemySecuredPoint
 	}
-
 	return out
 }
