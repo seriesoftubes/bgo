@@ -59,7 +59,7 @@ func (a *Agent) EpsilonGreedyAction(b *game.Board, validTurnsForState map[turn.T
 	for _, t := range validTurnsForState {
 		bcop := b.Copy()
 		bcop.MustExecuteTurn(t, false)
-		if val, _, _ := nnet.ValueEstimate(state.DetectState(a.player.Enemy(), bcop)); val < worstValForEnemy {
+		if val, _ := nnet.ValueEstimate(state.DetectState(a.player.Enemy(), bcop)); val < worstValForEnemy {
 			worstValForEnemy = val
 			bestTurn = t
 		}
@@ -83,9 +83,9 @@ func (a *Agent) LearnNonFinalState(previousBoard, currentBoard *game.Board) {
 	// a.player is the player who made the transition from previous to current board.
 	newStateFromEnemyPOV := state.DetectState(a.player.Enemy(), currentBoard)
 	previousStateHeroPOV := state.DetectState(a.player, previousBoard)
-	enemyEst, _, _ := nnet.ValueEstimate(newStateFromEnemyPOV)
+	enemyEst, _ := nnet.ValueEstimate(newStateFromEnemyPOV)
 
-	a.totalVarianceAcrossAllTrainings += nnet.TrainWeights(a.game.ID, previousStateHeroPOV, -enemyEst, a.alpha, a.gamma)
+	a.totalVarianceAcrossAllTrainings += nnet.TrainWeights(a.game.ID, previousStateHeroPOV, -enemyEst)
 	a.numTrainings++
 }
 
@@ -93,6 +93,6 @@ func (a *Agent) LearnFinal(preWinningMoveBoard *game.Board, rewardForNextState g
 	actualReward := float32(rewardForNextState)
 	previousStateHeroPOV := state.DetectState(a.player, preWinningMoveBoard)
 
-	a.totalVarianceAcrossAllTrainings += nnet.TrainWeights(a.game.ID, previousStateHeroPOV, actualReward, a.alpha, a.gamma)
+	a.totalVarianceAcrossAllTrainings += nnet.TrainWeights(a.game.ID, previousStateHeroPOV, actualReward)
 	a.numTrainings++
 }

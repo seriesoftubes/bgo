@@ -17,14 +17,19 @@ import (
 )
 
 const (
-	bias                 = float32(3.0) // If you change the bias, saved weights will be erroneous and you need to retrain the network.
-	numInputs            = len(state.State{}) + 1
-	numIn2FhConnections  = numInputs * numInputs // the "FH" aka firsthidden layer is fully-connected with all inputs.
-	numFhNodes           = numInputs + 1         // the "FH" layer has 1 node per input, plus one more bias.
-	numFh2OutConnections = numFhNodes            // Each "FH" node connects directly to the 1 output signal.
+	bias                 = float32(3.0)           // If you change the bias, saved weights will be erroneous and you need to retrain the network.
+	numInputs            = len(state.State{}) + 1 // The `+1` is for the artificially-added bias.
+	numIn2FhConnections  = numInputs * numInputs  // the "FH" aka firsthidden layer is fully-connected with all inputs.
+	numFhNodes           = numInputs + 1          // the "FH" layer has 1 node per input, plus one more bias.
+	numFh2OutConnections = numFhNodes             // Each "FH" node connects directly to the 1 output signal.
 )
 
 var (
+	// TODO: automatically skip modifying certain weights to keep it closer to "all else equal".
+	learningRate         = float32(0.00001)
+	eligibilityDecayRate = float32(0.9)
+	configMu             sync.RWMutex
+
 	maxConcurrentGames int = runtime.NumCPU() * 2 // Assume a max of 2 goroutines training per CPU. This variable would be a const but that caused a compiler error.
 
 	// Weights that connect IN to FH.
@@ -52,44 +57,55 @@ var (
 	fh2outWeightsMu                                sync.RWMutex
 )
 
-type jsonifyable struct {
-	In2FhWeights  [numIn2FhConnections]float32
-	Fh2OutWeights [numFh2OutConnections]float32
+type netConfig struct {
+	GamesPlayedSoFar     uint64
+	LearningRate         float32
+	EligibilityDecayRate float32
+	In2FhWeights         [numIn2FhConnections]float32
+	Fh2OutWeights        [numFh2OutConnections]float32
 }
 
-func Save(w io.Writer) error {
+func Save(w io.Writer, gamesPlayedSoFar uint64) error {
+	cfg := netConfig{
+		GamesPlayedSoFar:     gamesPlayedSoFar,
+		EligibilityDecayRate: eligibilityDecayRate,
+		LearningRate:         learningRate,
+		In2FhWeights:         in2fhWeights,
+		Fh2OutWeights:        fh2outWeights,
+	}
+
 	enc := json.NewEncoder(w)
-	if err := enc.Encode(jsonifyable{in2fhWeights, fh2outWeights}); err != nil {
+	if err := enc.Encode(cfg); err != nil {
 		return fmt.Errorf("JSON Encode error: %v", err)
 	}
 	return nil
 }
 
-func Load(r io.Reader) error {
+func Load(r io.Reader) (uint64, error) {
 	text, err := ioutil.ReadAll(r)
 	if err != nil {
-		return fmt.Errorf("ioutil.ReadAll(r) error: %v", err)
+		return 0, fmt.Errorf("ioutil.ReadAll(r) error: %v", err)
 	}
 
-	var j jsonifyable
-	if err := json.Unmarshal(text, &j); err != nil {
-		return fmt.Errorf("json.Unmarshal error: %v", err)
+	var cfg netConfig
+	if err := json.Unmarshal(text, &cfg); err != nil {
+		return 0, fmt.Errorf("json.Unmarshal error: %v", err)
 	}
 
-	if len(j.In2FhWeights) != len(in2fhWeights) {
-		return fmt.Errorf("serialized network does not match dimensions of the one in this program. expected both to have length of %d", len(in2fhWeights))
+	if len(cfg.In2FhWeights) != len(in2fhWeights) {
+		return 0, fmt.Errorf("serialized network In2FH weights do not match dimensions of the one in this program. expected both to have length of %d", len(in2fhWeights))
 	}
-	if len(j.Fh2OutWeights) != len(fh2outWeights) {
-		return fmt.Errorf("serialized network does not match dimensions of the one in this program. expected both to have length of %d", len(fh2outWeights))
+	if len(cfg.Fh2OutWeights) != len(fh2outWeights) {
+		return 0, fmt.Errorf("serialized network FH2Out weights do not match dimensions of the one in this program. expected both to have length of %d", len(fh2outWeights))
 	}
 
-	for i, v := range j.In2FhWeights {
+	for i, v := range cfg.In2FhWeights {
 		in2fhWeights[i] = v
 	}
-	for i, v := range j.Fh2OutWeights {
+	for i, v := range cfg.Fh2OutWeights {
 		fh2outWeights[i] = v
 	}
-	return nil
+	return cfg.GamesPlayedSoFar, nil
 }
 
 func RemoveUselessGameData(gameID uint32) {
@@ -104,12 +120,9 @@ func RemoveUselessGameData(gameID uint32) {
 
 func sigmoid(x float32) float32 { return float32(1.0 / (1.0 + math.Exp(float64(-x)))) }
 
-func ValueEstimate(st state.State) (float32, [numFhNodes]float32, [numFhNodes]float32) {
-	var (
-		estimate       float32
-		fhNodePreVals  [numFhNodes]float32
-		fhNodePostVals [numFhNodes]float32
-	)
+func ValueEstimate(st state.State) (float32, [numFhNodes]float32) {
+	var estimate float32
+	var fhNodePostVals [numFhNodes]float32
 
 	in2fhWeightsMu.RLock()
 	my_in2fhWeights := in2fhWeights
@@ -131,19 +144,17 @@ func ValueEstimate(st state.State) (float32, [numFhNodes]float32, [numFhNodes]fl
 		fhNodeSum += bias * my_in2fhWeights[in2fhWeightIndex]
 		in2fhWeightIndex++
 
-		fhNodePreVals[fhNodeIdx] = fhNodeSum
 		fhNodePostVal := sigmoid(fhNodeSum)
 		fhNodePostVals[fhNodeIdx] = fhNodePostVal
 		estimate += fhNodePostVal * my_fh2outWeights[fhNodeIdx]
 	}
 	// Now we artificially add a bias node to the FH layer:
 	fhNodeSum := bias
-	fhNodePreVals[fhNodeIdx] = fhNodeSum
 	fhNodePostVal := sigmoid(fhNodeSum)
 	fhNodePostVals[fhNodeIdx] = fhNodePostVal
 	estimate += fhNodePostVal * my_fh2outWeights[fhNodeIdx]
 
-	return estimate, fhNodePreVals, fhNodePostVals
+	return estimate, fhNodePostVals
 }
 
 func weightGradients(st state.State, target float32) (float32, [numFh2OutConnections]float32, [numIn2FhConnections]float32) {
@@ -152,7 +163,7 @@ func weightGradients(st state.State, target float32) (float32, [numFh2OutConnect
 		fh2outWeightsGradient [numFh2OutConnections]float32
 		in2fhWeightsGradient  [numIn2FhConnections]float32
 	)
-	est, _, fhNodePostVals := ValueEstimate(st)
+	est, fhNodePostVals := ValueEstimate(st)
 
 	fh2outWeightsMu.RLock()
 	my_fh2outWeights := fh2outWeights
@@ -183,10 +194,23 @@ func weightGradients(st state.State, target float32) (float32, [numFh2OutConnect
 	return est, fh2outWeightsGradient, in2fhWeightsGradient
 }
 
+func MultiplyLearningRate(rateMultiplier float32) {
+	configMu.Lock()
+	defer configMu.Unlock()
+	learningRate *= rateMultiplier
+}
+
+func getLearningParams() (float32, float32) {
+	configMu.RLock()
+	defer configMu.RUnlock()
+	return learningRate, eligibilityDecayRate
+}
+
 // TrainWeights back-propagates the error of an estimate against a target.
-func TrainWeights(gameID uint32, st state.State, target, learningRate, eligibilityDecayRate float32) float32 {
+func TrainWeights(gameID uint32, st state.State, target float32) float32 {
 	est, fh2outWeightsGradient, in2fhWeightsGradient := weightGradients(st, target)
 	valueEstimateDiff := target - est // If this diff is positive, we need to add the gradient in the positive direction. else in the negative direction.
+	my_learningRate, my_eligibilityDecayRate := getLearningParams()
 
 	defer in2fhWeightsMu.Unlock()
 	in2fhWeightsMu.Lock()
@@ -200,9 +224,9 @@ func TrainWeights(gameID uint32, st state.State, target, learningRate, eligibili
 	in2fhWeightsPreviousEligibilityTraces := in2fhWeightsPreviousEligibilityTracesByGameID[gameID]
 	for i, in2fhWeightDerivative := range in2fhWeightsGradient {
 		previousEligibilityTrace := (*in2fhWeightsPreviousEligibilityTraces)[i]
-		eligibilityTrace := in2fhWeightDerivative + (eligibilityDecayRate * previousEligibilityTrace)
+		eligibilityTrace := in2fhWeightDerivative + (my_eligibilityDecayRate * previousEligibilityTrace)
 		(*in2fhWeightsPreviousEligibilityTraces)[i] = eligibilityTrace
-		in2fhWeights[i] += learningRate * valueEstimateDiff * eligibilityTrace
+		in2fhWeights[i] += my_learningRate * valueEstimateDiff * eligibilityTrace
 	}
 
 	if _, ok := fh2outWeightsPreviousEligibilityTracesByGameID[gameID]; !ok {
@@ -211,9 +235,9 @@ func TrainWeights(gameID uint32, st state.State, target, learningRate, eligibili
 	fh2outWeightsPreviousEligibilityTraces := fh2outWeightsPreviousEligibilityTracesByGameID[gameID]
 	for i, fh2outWeightDerivative := range fh2outWeightsGradient {
 		previousEligibilityTrace := (*fh2outWeightsPreviousEligibilityTraces)[i]
-		eligibilityTrace := fh2outWeightDerivative + (eligibilityDecayRate * previousEligibilityTrace)
+		eligibilityTrace := fh2outWeightDerivative + (my_eligibilityDecayRate * previousEligibilityTrace)
 		(*fh2outWeightsPreviousEligibilityTraces)[i] = eligibilityTrace
-		fh2outWeights[i] += learningRate * valueEstimateDiff * eligibilityTrace
+		fh2outWeights[i] += my_learningRate * valueEstimateDiff * eligibilityTrace
 	}
 
 	return valueEstimateDiff * valueEstimateDiff // The variance before adjusting the weights.
