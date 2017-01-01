@@ -118,8 +118,6 @@ func RemoveUselessGameData(gameID uint32) {
 	fh2outWeightsMu.Unlock()
 }
 
-func sigmoid(x float32) float32 { return float32(1.0 / (1.0 + math.Exp(float64(-x)))) }
-
 func ValueEstimate(st state.State) (float32, [numFhNodes]float32) {
 	var estimate float32
 	var fhNodePostVals [numFhNodes]float32
@@ -155,6 +153,49 @@ func ValueEstimate(st state.State) (float32, [numFhNodes]float32) {
 	estimate += fhNodePostVal * my_fh2outWeights[fhNodeIdx]
 
 	return estimate, fhNodePostVals
+}
+
+func MultiplyLearningRate(rateMultiplier float32) {
+	configMu.Lock()
+	defer configMu.Unlock()
+	learningRate *= rateMultiplier
+}
+
+// TrainWeights back-propagates the error of an estimate against a target.
+func TrainWeights(gameID uint32, st state.State, target float32) float32 {
+	est, fh2outWeightsGradient, in2fhWeightsGradient := weightGradients(st, target)
+	valueEstimateDiff := target - est // If this diff is positive, we need to add the gradient in the positive direction. else in the negative direction.
+	my_learningRate, my_eligibilityDecayRate := getLearningParams()
+
+	defer in2fhWeightsMu.Unlock()
+	in2fhWeightsMu.Lock()
+	defer fh2outWeightsMu.Unlock()
+	fh2outWeightsMu.Lock()
+	// Important: don't write to any of the global vars until these locks are acquired-- that's why very little processing could happen above this line.
+
+	if _, ok := in2fhWeightsPreviousEligibilityTracesByGameID[gameID]; !ok {
+		in2fhWeightsPreviousEligibilityTracesByGameID[gameID] = &([numIn2FhConnections]float32{})
+	}
+	in2fhWeightsPreviousEligibilityTraces := in2fhWeightsPreviousEligibilityTracesByGameID[gameID]
+	for i, in2fhWeightDerivative := range in2fhWeightsGradient {
+		previousEligibilityTrace := (*in2fhWeightsPreviousEligibilityTraces)[i]
+		eligibilityTrace := in2fhWeightDerivative + (my_eligibilityDecayRate * previousEligibilityTrace)
+		(*in2fhWeightsPreviousEligibilityTraces)[i] = eligibilityTrace
+		in2fhWeights[i] += my_learningRate * valueEstimateDiff * eligibilityTrace
+	}
+
+	if _, ok := fh2outWeightsPreviousEligibilityTracesByGameID[gameID]; !ok {
+		fh2outWeightsPreviousEligibilityTracesByGameID[gameID] = &([numFh2OutConnections]float32{})
+	}
+	fh2outWeightsPreviousEligibilityTraces := fh2outWeightsPreviousEligibilityTracesByGameID[gameID]
+	for i, fh2outWeightDerivative := range fh2outWeightsGradient {
+		previousEligibilityTrace := (*fh2outWeightsPreviousEligibilityTraces)[i]
+		eligibilityTrace := fh2outWeightDerivative + (my_eligibilityDecayRate * previousEligibilityTrace)
+		(*fh2outWeightsPreviousEligibilityTraces)[i] = eligibilityTrace
+		fh2outWeights[i] += my_learningRate * valueEstimateDiff * eligibilityTrace
+	}
+
+	return valueEstimateDiff * valueEstimateDiff // The variance before adjusting the weights.
 }
 
 func weightGradients(st state.State, target float32) (float32, [numFh2OutConnections]float32, [numIn2FhConnections]float32) {
@@ -194,51 +235,10 @@ func weightGradients(st state.State, target float32) (float32, [numFh2OutConnect
 	return est, fh2outWeightsGradient, in2fhWeightsGradient
 }
 
-func MultiplyLearningRate(rateMultiplier float32) {
-	configMu.Lock()
-	defer configMu.Unlock()
-	learningRate *= rateMultiplier
-}
+func sigmoid(x float32) float32 { return float32(1.0 / (1.0 + math.Exp(float64(-x)))) }
 
 func getLearningParams() (float32, float32) {
 	configMu.RLock()
 	defer configMu.RUnlock()
 	return learningRate, eligibilityDecayRate
-}
-
-// TrainWeights back-propagates the error of an estimate against a target.
-func TrainWeights(gameID uint32, st state.State, target float32) float32 {
-	est, fh2outWeightsGradient, in2fhWeightsGradient := weightGradients(st, target)
-	valueEstimateDiff := target - est // If this diff is positive, we need to add the gradient in the positive direction. else in the negative direction.
-	my_learningRate, my_eligibilityDecayRate := getLearningParams()
-
-	defer in2fhWeightsMu.Unlock()
-	in2fhWeightsMu.Lock()
-	defer fh2outWeightsMu.Unlock()
-	fh2outWeightsMu.Lock()
-	// Important: don't write to any of the global vars until these locks are acquired-- that's why very little processing could happen above this line.
-
-	if _, ok := in2fhWeightsPreviousEligibilityTracesByGameID[gameID]; !ok {
-		in2fhWeightsPreviousEligibilityTracesByGameID[gameID] = &([numIn2FhConnections]float32{})
-	}
-	in2fhWeightsPreviousEligibilityTraces := in2fhWeightsPreviousEligibilityTracesByGameID[gameID]
-	for i, in2fhWeightDerivative := range in2fhWeightsGradient {
-		previousEligibilityTrace := (*in2fhWeightsPreviousEligibilityTraces)[i]
-		eligibilityTrace := in2fhWeightDerivative + (my_eligibilityDecayRate * previousEligibilityTrace)
-		(*in2fhWeightsPreviousEligibilityTraces)[i] = eligibilityTrace
-		in2fhWeights[i] += my_learningRate * valueEstimateDiff * eligibilityTrace
-	}
-
-	if _, ok := fh2outWeightsPreviousEligibilityTracesByGameID[gameID]; !ok {
-		fh2outWeightsPreviousEligibilityTracesByGameID[gameID] = &([numFh2OutConnections]float32{})
-	}
-	fh2outWeightsPreviousEligibilityTraces := fh2outWeightsPreviousEligibilityTracesByGameID[gameID]
-	for i, fh2outWeightDerivative := range fh2outWeightsGradient {
-		previousEligibilityTrace := (*fh2outWeightsPreviousEligibilityTraces)[i]
-		eligibilityTrace := fh2outWeightDerivative + (my_eligibilityDecayRate * previousEligibilityTrace)
-		(*fh2outWeightsPreviousEligibilityTraces)[i] = eligibilityTrace
-		fh2outWeights[i] += my_learningRate * valueEstimateDiff * eligibilityTrace
-	}
-
-	return valueEstimateDiff * valueEstimateDiff // The variance before adjusting the weights.
 }

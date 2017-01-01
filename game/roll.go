@@ -7,6 +7,10 @@ import (
 
 type Roll [2]uint8
 
+func newRoll() Roll {
+	return Roll{random.Uint8Between(constants.MIN_DICE_AMT, constants.MAX_DICE_AMT), random.Uint8Between(constants.MIN_DICE_AMT, constants.MAX_DICE_AMT)}
+}
+
 func (r *Roll) MoveDistances() []uint8 {
 	if first, second := r[0], r[1]; first == second {
 		return []uint8{first, first, first, first}
@@ -21,8 +25,4 @@ func (r *Roll) Sorted() Roll {
 	} else {
 		return Roll{second, first}
 	}
-}
-
-func newRoll() Roll {
-	return Roll{random.Uint8Between(constants.MIN_DICE_AMT, constants.MAX_DICE_AMT), random.Uint8Between(constants.MIN_DICE_AMT, constants.MAX_DICE_AMT)}
 }
