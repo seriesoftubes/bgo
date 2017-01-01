@@ -79,7 +79,7 @@ func (a *Agent) StopLearning() { a.epsilon = 0 }
 func (a *Agent) LearnNonFinalState(previousBoard, currentBoard *game.Board) {
 	// `currentBoard` is the state that is about to be played by the enemy.
 	// `previousBoard` is the state that the hero made a move on which led to `currentBoard`.
-	// so the value of `currentBoard` from the enemy's POV == -1*(the_value_for_hero).
+	// so the value of `currentBoard` from the hero's POV == -1*(currentboard_value_from_enemyPOV).
 	// a.player is the player who made the transition from previous to current board.
 	newStateFromEnemyPOV := state.DetectState(a.player.Enemy(), currentBoard)
 	previousStateHeroPOV := state.DetectState(a.player, previousBoard)
