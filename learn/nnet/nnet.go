@@ -43,6 +43,7 @@ var (
 	// each key in the map is a gameID, and each value is an array of previous eligibility traces-- one trace for each in2fh weight.
 	in2fhWeightsPreviousEligibilityTracesByGameID map[uint32]*[numIn2FhConnections]float32 = make(map[uint32]*[numIn2FhConnections]float32, maxConcurrentGames)
 	in2fhWeightsMu                                sync.RWMutex
+	in2fhWeightsChunked                           []int = splitIntoChunkSizes(numIn2FhConnections, runtime.NumCPU()*3/2)
 
 	// Weights that connect FH to OUT.
 	fh2outWeights [numFh2OutConnections]float32 = (func() [numFh2OutConnections]float32 {
@@ -177,11 +178,22 @@ func TrainWeights(gameID uint32, st state.State, target float32) float32 {
 		in2fhWeightsPreviousEligibilityTracesByGameID[gameID] = &([numIn2FhConnections]float32{})
 	}
 	in2fhWeightsPreviousEligibilityTraces := in2fhWeightsPreviousEligibilityTracesByGameID[gameID]
-	for i, in2fhWeightDerivative := range in2fhWeightsGradient {
-		previousEligibilityTrace := (*in2fhWeightsPreviousEligibilityTraces)[i]
-		eligibilityTrace := in2fhWeightDerivative + (my_eligibilityDecayRate * previousEligibilityTrace)
-		(*in2fhWeightsPreviousEligibilityTraces)[i] = eligibilityTrace
-		in2fhWeights[i] += my_learningRate * valueEstimateDiff * eligibilityTrace
+
+	startIdx := 0
+	var wg sync.WaitGroup
+	for _, sz := range in2fhWeightsChunked { // using this global var is OK because everything is locked right now.
+		wg.Add(1)
+		go func(start, end int) {
+			for i := start; i <= end; i++ {
+				in2fhWeightDerivative := in2fhWeightsGradient[i]
+				previousEligibilityTrace := (*in2fhWeightsPreviousEligibilityTraces)[i]
+				eligibilityTrace := in2fhWeightDerivative + (my_eligibilityDecayRate * previousEligibilityTrace)
+				(*in2fhWeightsPreviousEligibilityTraces)[i] = eligibilityTrace
+				in2fhWeights[i] += my_learningRate * valueEstimateDiff * eligibilityTrace
+			}
+			wg.Done()
+		}(startIdx, startIdx+sz-1)
+		startIdx += sz
 	}
 
 	if _, ok := fh2outWeightsPreviousEligibilityTracesByGameID[gameID]; !ok {
@@ -195,7 +207,49 @@ func TrainWeights(gameID uint32, st state.State, target float32) float32 {
 		fh2outWeights[i] += my_learningRate * valueEstimateDiff * eligibilityTrace
 	}
 
+	wg.Wait()
+
 	return valueEstimateDiff * valueEstimateDiff // The variance before adjusting the weights.
+}
+
+// splitIntoStartEndIndices spits out [start, end] indices for chunking an array into chunks each of which (if possible) share exactly the same size.
+// maxChunks refers to the number of chunks you want to produce.
+// It's possible that you will receive fewer chunks than you request, if there aren't enough elements in your array.
+// It's impossible to receive more chunks than you request though.
+func splitIntoChunkSizes(arrLen, maxChunks int) []int {
+	if maxChunks < 1 {
+		panic(fmt.Sprintf("`maxChunks` must be >= 1, but got %d", maxChunks))
+	} else if arrLen < 0 {
+		panic(fmt.Sprintf("`arrLen` must be >= 0, but got %d", arrLen))
+	}
+
+	var out []int
+
+	if arrLen <= maxChunks {
+		elementsPerChunk := 1
+		for i := 0; i < arrLen; i++ {
+			out = append(out, elementsPerChunk)
+		}
+		return out
+	}
+
+	if canBeEvenlyDivided := arrLen%maxChunks == 0; canBeEvenlyDivided {
+		elementsPerChunk := arrLen / maxChunks
+		for i := 0; i < maxChunks; i++ {
+			out = append(out, elementsPerChunk)
+		}
+		return out
+	}
+
+	ratio := float64(arrLen) / float64(maxChunks)
+	ceil, floor := int(math.Ceil(ratio)), int(math.Floor(ratio))
+	dominantNumEls := ceil
+	if math.Abs(float64(floor*maxChunks-arrLen)) < math.Abs(float64(ceil*maxChunks-arrLen)) {
+		dominantNumEls = floor
+	}
+
+	out = append(out, dominantNumEls)
+	return append(out, splitIntoChunkSizes(arrLen-dominantNumEls, maxChunks-1)...)
 }
 
 func weightGradients(st state.State, target float32) (float32, [numFh2OutConnections]float32, [numIn2FhConnections]float32) {

@@ -2,7 +2,6 @@
 package nnperf
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -30,7 +29,6 @@ func GameAverageVariances(lastN int, waitForWrites bool) []float32 {
 	if lastN < 0 {
 		firstIndex = 0
 	}
-	fmt.Println("getting data for", firstIndex, sz)
 	return append([]float32{}, gameAverageVariances.data[firstIndex:sz]...)
 }
 
