@@ -9,15 +9,50 @@ import (
 	"github.com/seriesoftubes/bgo/game/turn"
 )
 
-const barPips uint8 = constants.NUM_BOARD_POINTS + 1
-
-type WinKind uint8
-
 const (
 	WinKindNotWon     WinKind = 0
 	WinKindSingleGame WinKind = 1
 	WinKindGammon     WinKind = 2
 	WinKindBackgammon WinKind = 3
+)
+
+const (
+	barPips uint8 = constants.NUM_BOARD_POINTS + 1
+
+	illegalBarFirst                   = "If you have anything on the bar, you must move those things first"
+	illegalEnemyBarChex               = "Can't move the enemy's chex off the enemy's bar."
+	illegalEnemyRegularChex           = "Can only move your own checkers."
+	illegalEmptyPoint                 = "Cannot move a checker from an empty point"
+	illegalCantBearoffUntilAllAreHome = "Can't move past the finish line unless all your remaining checkers are in your home board"
+	illegalWrongFinishLine            = "Must move past the correct finish line."
+	illegalBearoffOthersFirst         = "If the amount on the dice > the point's distance away from 0, then you must have already beared off all chex behind the point."
+	illegalEnemyControlsIt            = "Can't move to a point that's controlled (has >1 chex) by the enemy."
+	illegalBearOntoEnemyHome          = "Must move to a point inside the enemy's home."
+)
+
+type (
+	WinKind uint8
+
+	BoardPoint struct {
+		Owner       plyr.Player
+		NumCheckers uint8
+	}
+	Board struct {
+		Points      *[constants.NUM_BOARD_POINTS]*BoardPoint
+		BarCC, BarC uint8 // # of checkers on each player's bar
+		OffCC, OffC uint8 // # of checkers that each player has beared off
+		// These win-related fields must only be set by the board itself.
+		winner  plyr.Player
+		winKind WinKind
+	}
+)
+
+type (
+	motimesPair struct {
+		mo    turn.Move
+		times uint8
+	}
+	sortableMotimesPairs []motimesPair
 )
 
 func detectWinKind(b *Board, p plyr.Player) WinKind {
@@ -51,21 +86,17 @@ func detectWinKind(b *Board, p plyr.Player) WinKind {
 	return WinKindGammon
 }
 
-type BoardPoint struct {
-	Owner       plyr.Player
-	NumCheckers uint8
+func (smp sortableMotimesPairs) Len() int      { return len(smp) }
+func (smp sortableMotimesPairs) Swap(i, j int) { smp[i], smp[j] = smp[j], smp[i] }
+func (smp sortableMotimesPairs) Less(i, j int) bool {
+	if left, right := smp[i], smp[j]; left.mo.Requestor == plyr.PCC {
+		return left.mo.Letter < right.mo.Letter // PCC needs to exec lo letters first, then hi ones
+	} else {
+		return left.mo.Letter > right.mo.Letter // PC needs to exec hi letters first, then lo ones
+	}
 }
 
 func (p *BoardPoint) Symbol() string { return p.Owner.Symbol() }
-
-type Board struct {
-	Points      *[constants.NUM_BOARD_POINTS]*BoardPoint
-	BarCC, BarC uint8 // # of checkers on each player's bar
-	OffCC, OffC uint8 // # of checkers that each player has beared off
-	// These win-related fields must only be set by the board itself.
-	winner  plyr.Player
-	winKind WinKind
-}
 
 // Copy returns a pointer to a deepcopy of a Board.
 func (b *Board) Copy() *Board {
@@ -108,127 +139,6 @@ func (b *Board) Copy() *Board {
 func (b *Board) Winner() plyr.Player { return b.winner }
 func (b *Board) WinKind() WinKind    { return b.winKind }
 
-func (b *Board) doesPlayerHaveAllRemainingCheckersInHomeBoard(p plyr.Player) bool {
-	totalChexInHomeOrBearedOff := b.OffC
-	if p == plyr.PCC {
-		totalChexInHomeOrBearedOff = b.OffCC
-	}
-
-	homeStart, homeEnd := p.HomePointIndices()
-	for i := homeStart; i <= homeEnd; i++ {
-		if pt := b.Points[i]; pt.Owner == p {
-			totalChexInHomeOrBearedOff += pt.NumCheckers
-		}
-	}
-
-	return totalChexInHomeOrBearedOff == constants.NUM_CHECKERS_PER_PLAYER
-}
-
-func (b *Board) chexOnTheBar(p plyr.Player) uint8 {
-	if p == plyr.PC {
-		return b.BarC
-	}
-	return b.BarCC
-}
-
-const (
-	illegalBarFirst                   = "If you have anything on the bar, you must move those things first"
-	illegalEnemyBarChex               = "Can't move the enemy's chex off the enemy's bar."
-	illegalEnemyRegularChex           = "Can only move your own checkers."
-	illegalEmptyPoint                 = "Cannot move a checker from an empty point"
-	illegalCantBearoffUntilAllAreHome = "Can't move past the finish line unless all your remaining checkers are in your home board"
-	illegalWrongFinishLine            = "Must move past the correct finish line."
-	illegalBearoffOthersFirst         = "If the amount on the dice > the point's distance away from 0, then you must have already beared off all chex behind the point."
-	illegalEnemyControlsIt            = "Can't move to a point that's controlled (has >1 chex) by the enemy."
-	illegalBearOntoEnemyHome          = "Must move to a point inside the enemy's home."
-)
-
-// Specifically determines whether the given move is OK for moving a checker off the bar and back onto the board.
-// Before running this method, you must be certain that `m` specifically is for moving a checker back onto the board!
-func (b *Board) isLegalMoveForBearingOn(m turn.Move) (bool, string) {
-	if (m.Requestor == plyr.PCC && m.Letter != constants.LETTER_BAR_CC) ||
-		(m.Requestor == plyr.PC && m.Letter != constants.LETTER_BAR_C) {
-		return false, illegalEnemyBarChex
-	}
-
-	if b.chexOnTheBar(m.Requestor) < 1 {
-		return false, illegalEmptyPoint
-	}
-
-	enemy := m.Requestor.Enemy()
-	enemyHomeStart, enemyHomeEnd := enemy.HomePointIndices()
-
-	toPtIdx, _ := m.NextPointIdx()
-	if toPtIdx < int8(enemyHomeStart) || toPtIdx > int8(enemyHomeEnd) {
-		return false, illegalBearOntoEnemyHome
-	}
-	if pt := b.Points[toPtIdx]; pt.Owner == enemy && pt.NumCheckers > 1 {
-		return false, illegalEnemyControlsIt
-	}
-
-	return true, ""
-}
-
-func (b *Board) isLegalMoveForNonBearingOn(m turn.Move) (bool, string) {
-	if b.chexOnTheBar(m.Requestor) > 0 {
-		return false, illegalBarFirst
-	}
-
-	fromPt := b.Points[m.PointIdx()]
-	if fromPt.Owner != m.Requestor {
-		return false, illegalEnemyRegularChex
-	}
-	if fromPt.NumCheckers < 1 {
-		return false, illegalEmptyPoint
-	}
-
-	nxtIdx, nxtPtExists := m.NextPointIdx()
-	if !nxtPtExists {
-		if !b.doesPlayerHaveAllRemainingCheckersInHomeBoard(m.Requestor) {
-			return false, illegalCantBearoffUntilAllAreHome
-		}
-		if (m.Requestor == plyr.PCC && nxtIdx < 0) || (m.Requestor == plyr.PC && nxtIdx >= int8(constants.NUM_BOARD_POINTS)) {
-			return false, illegalWrongFinishLine
-		}
-		if ((m.Requestor == plyr.PCC && nxtIdx > int8(constants.NUM_BOARD_POINTS)) || (m.Requestor == plyr.PC && nxtIdx < -1)) && b.doesPlayerHaveAnyRemainingCheckersBehindPoint(m.Requestor, m.PointIdx()) {
-			// E.g., if you roll a 6, and you have chex on your 5 and 6 point, you can only bear off the ones on the 6 point (and not the ones on the 5 until all the chex on 6 are gone).
-			return false, illegalBearoffOthersFirst
-		}
-	} else {
-		if nxtPt := b.Points[nxtIdx]; nxtPt.Owner != m.Requestor && nxtPt.NumCheckers > 1 {
-			return false, illegalEnemyControlsIt
-		}
-	}
-
-	return true, ""
-}
-
-func (b *Board) isLegalMove(m turn.Move) (bool, string) {
-	if isForBar := m.Letter == constants.LETTER_BAR_CC || m.Letter == constants.LETTER_BAR_C; isForBar {
-		return b.isLegalMoveForBearingOn(m)
-	}
-	return b.isLegalMoveForNonBearingOn(m)
-}
-
-func (b *Board) doesPlayerHaveAnyRemainingCheckersBehindPoint(p plyr.Player, pointIdx uint8) bool {
-	homeStart, homeEnd := p.HomePointIndices()
-
-	if p == plyr.PCC {
-		for i := pointIdx - 1; i >= homeStart; i-- {
-			if pt := b.Points[i]; pt.Owner == p && pt.NumCheckers > 0 {
-				return true
-			}
-		}
-	} else {
-		for i := pointIdx + 1; i <= homeEnd; i++ {
-			if pt := b.Points[i]; pt.Owner == p && pt.NumCheckers > 0 {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 func (b *Board) LegalMoves(p plyr.Player, diceAmt uint8) []turn.Move {
 	var out []turn.Move
 
@@ -258,54 +168,6 @@ func (b *Board) LegalMoves(p plyr.Player, diceAmt uint8) []turn.Move {
 	}
 
 	return out
-}
-
-func (b *Board) incrementBar(p plyr.Player) {
-	if p == plyr.PCC {
-		b.BarCC++
-	} else {
-		b.BarC++
-	}
-}
-
-func (b *Board) decrementBar(p plyr.Player) {
-	if p == plyr.PCC {
-		b.BarCC--
-	} else {
-		b.BarC--
-	}
-}
-
-func (b *Board) incrementBearoffZone(p plyr.Player) {
-	if p == plyr.PCC {
-		b.OffCC++
-		if b.OffCC == constants.NUM_CHECKERS_PER_PLAYER {
-			b.winner, b.winKind = plyr.PCC, detectWinKind(b, plyr.PCC)
-		}
-	} else {
-		b.OffC++
-		if b.OffC == constants.NUM_CHECKERS_PER_PLAYER {
-			b.winner, b.winKind = plyr.PC, detectWinKind(b, plyr.PC)
-		}
-	}
-}
-
-type (
-	motimesPair struct {
-		mo    turn.Move
-		times uint8
-	}
-	sortableMotimesPairs []motimesPair
-)
-
-func (smp sortableMotimesPairs) Len() int      { return len(smp) }
-func (smp sortableMotimesPairs) Swap(i, j int) { smp[i], smp[j] = smp[j], smp[i] }
-func (smp sortableMotimesPairs) Less(i, j int) bool {
-	if left, right := smp[i], smp[j]; left.mo.Requestor == plyr.PCC {
-		return left.mo.Letter < right.mo.Letter // PCC needs to exec lo letters first, then hi ones
-	} else {
-		return left.mo.Letter > right.mo.Letter // PC needs to exec hi letters first, then lo ones
-	}
 }
 
 // MustExecuteTurn takes a Turn, and executes its individual moves, in an order that won't explode the game.
@@ -406,4 +268,143 @@ func (b *Board) PipCounts() (uint16, uint16) {
 	pipCC += uint16(b.BarCC) * uint16(barPips)
 
 	return pipC, pipCC
+}
+
+func (b *Board) doesPlayerHaveAllRemainingCheckersInHomeBoard(p plyr.Player) bool {
+	totalChexInHomeOrBearedOff := b.OffC
+	if p == plyr.PCC {
+		totalChexInHomeOrBearedOff = b.OffCC
+	}
+
+	homeStart, homeEnd := p.HomePointIndices()
+	for i := homeStart; i <= homeEnd; i++ {
+		if pt := b.Points[i]; pt.Owner == p {
+			totalChexInHomeOrBearedOff += pt.NumCheckers
+		}
+	}
+
+	return totalChexInHomeOrBearedOff == constants.NUM_CHECKERS_PER_PLAYER
+}
+
+func (b *Board) chexOnTheBar(p plyr.Player) uint8 {
+	if p == plyr.PC {
+		return b.BarC
+	}
+	return b.BarCC
+}
+
+// Specifically determines whether the given move is OK for moving a checker off the bar and back onto the board.
+// Before running this method, you must be certain that `m` specifically is for moving a checker back onto the board!
+func (b *Board) isLegalMoveForBearingOn(m turn.Move) (bool, string) {
+	if (m.Requestor == plyr.PCC && m.Letter != constants.LETTER_BAR_CC) ||
+		(m.Requestor == plyr.PC && m.Letter != constants.LETTER_BAR_C) {
+		return false, illegalEnemyBarChex
+	}
+
+	if b.chexOnTheBar(m.Requestor) < 1 {
+		return false, illegalEmptyPoint
+	}
+
+	enemy := m.Requestor.Enemy()
+	enemyHomeStart, enemyHomeEnd := enemy.HomePointIndices()
+
+	toPtIdx, _ := m.NextPointIdx()
+	if toPtIdx < int8(enemyHomeStart) || toPtIdx > int8(enemyHomeEnd) {
+		return false, illegalBearOntoEnemyHome
+	}
+	if pt := b.Points[toPtIdx]; pt.Owner == enemy && pt.NumCheckers > 1 {
+		return false, illegalEnemyControlsIt
+	}
+
+	return true, ""
+}
+
+func (b *Board) isLegalMoveForNonBearingOn(m turn.Move) (bool, string) {
+	if b.chexOnTheBar(m.Requestor) > 0 {
+		return false, illegalBarFirst
+	}
+
+	fromPt := b.Points[m.PointIdx()]
+	if fromPt.Owner != m.Requestor {
+		return false, illegalEnemyRegularChex
+	}
+	if fromPt.NumCheckers < 1 {
+		return false, illegalEmptyPoint
+	}
+
+	nxtIdx, nxtPtExists := m.NextPointIdx()
+	if !nxtPtExists {
+		if !b.doesPlayerHaveAllRemainingCheckersInHomeBoard(m.Requestor) {
+			return false, illegalCantBearoffUntilAllAreHome
+		}
+		if (m.Requestor == plyr.PCC && nxtIdx < 0) || (m.Requestor == plyr.PC && nxtIdx >= int8(constants.NUM_BOARD_POINTS)) {
+			return false, illegalWrongFinishLine
+		}
+		if ((m.Requestor == plyr.PCC && nxtIdx > int8(constants.NUM_BOARD_POINTS)) || (m.Requestor == plyr.PC && nxtIdx < -1)) && b.doesPlayerHaveAnyRemainingCheckersBehindPoint(m.Requestor, m.PointIdx()) {
+			// E.g., if you roll a 6, and you have chex on your 5 and 6 point, you can only bear off the ones on the 6 point (and not the ones on the 5 until all the chex on 6 are gone).
+			return false, illegalBearoffOthersFirst
+		}
+	} else {
+		if nxtPt := b.Points[nxtIdx]; nxtPt.Owner != m.Requestor && nxtPt.NumCheckers > 1 {
+			return false, illegalEnemyControlsIt
+		}
+	}
+
+	return true, ""
+}
+
+func (b *Board) isLegalMove(m turn.Move) (bool, string) {
+	if isForBar := m.Letter == constants.LETTER_BAR_CC || m.Letter == constants.LETTER_BAR_C; isForBar {
+		return b.isLegalMoveForBearingOn(m)
+	}
+	return b.isLegalMoveForNonBearingOn(m)
+}
+
+func (b *Board) doesPlayerHaveAnyRemainingCheckersBehindPoint(p plyr.Player, pointIdx uint8) bool {
+	homeStart, homeEnd := p.HomePointIndices()
+
+	if p == plyr.PCC {
+		for i := pointIdx - 1; i >= homeStart; i-- {
+			if pt := b.Points[i]; pt.Owner == p && pt.NumCheckers > 0 {
+				return true
+			}
+		}
+	} else {
+		for i := pointIdx + 1; i <= homeEnd; i++ {
+			if pt := b.Points[i]; pt.Owner == p && pt.NumCheckers > 0 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (b *Board) incrementBar(p plyr.Player) {
+	if p == plyr.PCC {
+		b.BarCC++
+	} else {
+		b.BarC++
+	}
+}
+
+func (b *Board) decrementBar(p plyr.Player) {
+	if p == plyr.PCC {
+		b.BarCC--
+	} else {
+		b.BarC--
+	}
+}
+
+func (b *Board) incrementBearoffZone(p plyr.Player) {
+	if p == plyr.PCC {
+		b.OffCC++
+		if b.OffCC == constants.NUM_CHECKERS_PER_PLAYER {
+			b.winner, b.winKind = plyr.PCC, detectWinKind(b, plyr.PCC)
+		}
+	} else {
+		b.OffC++
+		if b.OffC == constants.NUM_CHECKERS_PER_PLAYER {
+			b.winner, b.winKind = plyr.PC, detectWinKind(b, plyr.PC)
+		}
+	}
 }
