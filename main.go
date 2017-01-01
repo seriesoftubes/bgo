@@ -18,6 +18,14 @@ import (
 	"github.com/seriesoftubes/bgo/learn/nnet/nnperf"
 )
 
+const (
+	cmdAverageVariance            = "avgvar"
+	cmdTotalVariance              = "ttlvar"
+	cmdCFG                        = "cfg"
+	cmdprefixMultiplyLearningRate = "mulr_"
+	cmdHelp                       = "help"
+)
+
 var (
 	totalGamesToPlayPtr = flag.Uint64("total_games_to_play", 2000, "The total number of games to play across all goroutines")
 	numGoroutinesPtr    = flag.Uint64("goroutines", uint64(runtime.NumCPU()/2), "The number of goroutines to run on")
@@ -121,6 +129,33 @@ func writeVarianceLogs(startGamesPlayed uint64, filePath string) {
 	fmt.Println("done saving variance data!")
 }
 
+func onHelpCmd() {
+	fmt.Println("valid commands are:")
+	fmt.Println(cmdAverageVariance)
+	fmt.Println(cmdTotalVariance)
+	fmt.Println(cmdCFG)
+	fmt.Println(cmdprefixMultiplyLearningRate, "(plus a number, like mulr_1.23)")
+	fmt.Println(cmdHelp)
+}
+
+func onMulrCmd(cmd string) {
+	split := strings.Split(cmd, "_")
+
+	if len(split) != 2 {
+		fmt.Println("invalid command (should look like 'mulr_5.5') got", cmd)
+		return
+	}
+
+	factor, err := strconv.ParseFloat(split[1], 32)
+	if err != nil {
+		fmt.Println("invalid multiplier", split[1], err.Error())
+		return
+	}
+
+	fmt.Println("multiplying learning rate by", factor)
+	nnet.MultiplyLearningRate(float32(factor))
+}
+
 func readCommands(doneChan chan bool) {
 	for {
 		select {
@@ -135,30 +170,21 @@ func readCommands(doneChan chan bool) {
 		fmt.Scanln(&rawCmd)
 		cmd := strings.ToLower(strings.TrimSpace(rawCmd))
 
-		if cmd == "avgvar" {
+		if cmd == cmdAverageVariance {
 			for _, v := range nnperf.GameAverageVariances(30, false) {
 				fmt.Println(v)
 			}
-		} else if cmd == "ttlvar" {
+		} else if cmd == cmdTotalVariance {
 			for _, v := range nnperf.GameTotalVariances(30, false) {
 				fmt.Println(v)
 			}
-		} else if cmd == "cfg" {
+		} else if cmd == cmdCFG {
 			learningRate, decayRate := nnet.LearningParams()
 			fmt.Println("learningRate", learningRate, "decayRate", decayRate)
-		} else if strings.HasPrefix(cmd, "mulr_") {
-			split := strings.Split(cmd, "_")
-			if len(split) != 2 {
-				fmt.Println("invalid command (should look like 'mulr_5.5') got", cmd)
-				continue
-			}
-			factor, err := strconv.ParseFloat(split[1], 32)
-			if err != nil {
-				fmt.Println("invalid multiplier", split[1], err.Error())
-				continue
-			}
-			fmt.Println("multiplying learning rate by", factor)
-			nnet.MultiplyLearningRate(float32(factor))
+		} else if strings.HasPrefix(cmd, cmdprefixMultiplyLearningRate) {
+			onMulrCmd(cmd)
+		} else if cmd == cmdHelp {
+			onHelpCmd()
 		}
 	}
 }
