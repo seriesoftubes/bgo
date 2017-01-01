@@ -36,17 +36,22 @@ func (a *Agent) SetPlayer(p plyr.Player) {
 	a.player = p
 }
 
+func (a *Agent) TransmitStats() {
+	a.statsWG.Add(1)
+
+	go func(tv float32, nt uint32) {
+		nnperf.AppendGameData(tv, nt)
+		a.statsWG.Done()
+	}(a.totalVarianceAcrossAllTrainings, a.numTrainings)
+
+	a.numTrainings = 0
+	a.totalVarianceAcrossAllTrainings = 0.0
+}
+
 // It's assumed that this is only called when the Agent's GameController is starting a new game.
 func (a *Agent) SetGame(g *game.Game) {
 	if a.game != nil {
 		go func(gid uint32) { nnet.RemoveUselessGameData(gid) }(a.game.ID)
-		a.statsWG.Add(1)
-		go func(tv float32, nt uint32) {
-			nnperf.AppendGameData(tv, nt)
-			a.statsWG.Done()
-		}(a.totalVarianceAcrossAllTrainings, a.numTrainings)
-		a.numTrainings = 0
-		a.totalVarianceAcrossAllTrainings = 0.0
 	}
 
 	a.game = g

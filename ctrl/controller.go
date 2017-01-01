@@ -63,7 +63,8 @@ func randomlyChooseValidTurn(validTurns map[turn.TurnArray]turn.Turn) turn.Turn 
 	panic("no turns to choose. you should've prevented this line from being reached")
 }
 
-func (gc *GameController) WaitForStats() { gc.agent.WaitForStats() }
+func (gc *GameController) WaitForStats()                    { gc.agent.WaitForStats() }
+func (gc *GameController) TransmitStatsFromMostRecentGame() { gc.agent.TransmitStats() }
 
 func (gc *GameController) PlayOneGame(numHumanPlayers uint8, stopLearning bool) (plyr.Player, game.WinKind) {
 	gc.g = game.NewGame(numHumanPlayers)

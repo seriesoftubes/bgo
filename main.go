@@ -141,6 +141,7 @@ func main() {
 			mgr := ctrl.New(false)
 			for j := uint64(0); j < gamesToPlayPerGoroutine; j++ {
 				mgr.PlayOneGame(0, false) // Play 1 game with 0 humans and don't stop learning!
+				mgr.TransmitStatsFromMostRecentGame()
 				incrementGamesPlayed()
 			}
 			mgr.WaitForStats()

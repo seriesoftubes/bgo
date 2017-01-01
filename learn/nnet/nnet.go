@@ -212,7 +212,7 @@ func TrainWeights(gameID uint32, st state.State, target float32) float32 {
 	return valueEstimateDiff * valueEstimateDiff // The variance before adjusting the weights.
 }
 
-// splitIntoStartEndIndices spits out [start, end] indices for chunking an array into chunks each of which (if possible) share exactly the same size.
+// splitIntoStartEndIndices spits out ideal chunk sizes that would most evenly split an array into N (ideally) equally-sized chunks.
 // maxChunks refers to the number of chunks you want to produce.
 // It's possible that you will receive fewer chunks than you request, if there aren't enough elements in your array.
 // It's impossible to receive more chunks than you request though.
