@@ -29,10 +29,8 @@ type GameController struct {
 }
 
 func New(debug bool) *GameController {
-	learningRateAkaAlpha := float32(0.00001)
-	rewardsDiscountRateAkaGamma := float32(0.9)
 	initialExplorationRateAkaEpsilon := float32(1.0)
-	agent := learn.NewAgent(learningRateAkaAlpha, rewardsDiscountRateAkaGamma, initialExplorationRateAkaEpsilon)
+	agent := learn.NewAgent(initialExplorationRateAkaEpsilon)
 	return &GameController{agent: agent, debug: debug}
 }
 

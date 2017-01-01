@@ -14,11 +14,8 @@ import (
 )
 
 type Agent struct {
-	// Alpha = learning rate
-	// Gamma = discount rate for future rewards
 	// Epsilon = probability of choosing a random action (at least at first until annealing kicks in)
-	// TODO: annealing rate?
-	alpha, gamma, epsilon           float32
+	epsilon                         float32
 	game                            *game.Game
 	player                          plyr.Player
 	numTrainings                    uint32
@@ -26,8 +23,8 @@ type Agent struct {
 	statsWG                         sync.WaitGroup
 }
 
-func NewAgent(alpha, gamma, epsilon float32) *Agent {
-	return &Agent{alpha: alpha, gamma: gamma, epsilon: epsilon}
+func NewAgent(epsilon float32) *Agent {
+	return &Agent{epsilon: epsilon}
 }
 
 func (a *Agent) WaitForStats() { a.statsWG.Wait() }
