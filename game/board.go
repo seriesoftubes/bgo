@@ -17,7 +17,7 @@ const (
 )
 
 const (
-	barPips uint8 = constants.NUM_BOARD_POINTS + 1
+	barPips = uint16(constants.NUM_BOARD_POINTS + 1)
 
 	illegalBarFirst                   = "If you have anything on the bar, you must move those things first"
 	illegalEnemyBarChex               = "Can't move the enemy's chex off the enemy's bar."
@@ -264,8 +264,8 @@ func (b *Board) PipCounts() (uint16, uint16) {
 			pipCC += chex * (uint16(constants.NUM_BOARD_POINTS) - basePips + 1)
 		}
 	}
-	pipC += uint16(b.BarC) * uint16(barPips)
-	pipCC += uint16(b.BarCC) * uint16(barPips)
+	pipC += uint16(b.BarC) * barPips
+	pipCC += uint16(b.BarCC) * barPips
 
 	return pipC, pipCC
 }
