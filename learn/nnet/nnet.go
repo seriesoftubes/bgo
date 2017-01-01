@@ -166,7 +166,7 @@ func MultiplyLearningRate(rateMultiplier float32) {
 func TrainWeights(gameID uint32, st state.State, target float32) float32 {
 	est, fh2outWeightsGradient, in2fhWeightsGradient := weightGradients(st, target)
 	valueEstimateDiff := target - est // If this diff is positive, we need to add the gradient in the positive direction. else in the negative direction.
-	my_learningRate, my_eligibilityDecayRate := getLearningParams()
+	my_learningRate, my_eligibilityDecayRate := LearningParams()
 
 	defer in2fhWeightsMu.Unlock()
 	in2fhWeightsMu.Lock()
@@ -291,7 +291,7 @@ func weightGradients(st state.State, target float32) (float32, [numFh2OutConnect
 
 func sigmoid(x float32) float32 { return float32(1.0 / (1.0 + math.Exp(float64(-x)))) }
 
-func getLearningParams() (float32, float32) {
+func LearningParams() (float32, float32) {
 	configMu.RLock()
 	defer configMu.RUnlock()
 	return learningRate, eligibilityDecayRate

@@ -26,7 +26,7 @@ func GameAverageVariances(lastN int, waitForWrites bool) []float32 {
 
 	sz := len(gameAverageVariances.data)
 	firstIndex := sz - lastN
-	if lastN < 0 {
+	if lastN < 0 || firstIndex < 0 {
 		firstIndex = 0
 	}
 	return append([]float32{}, gameAverageVariances.data[firstIndex:sz]...)

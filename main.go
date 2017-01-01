@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/user"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -18,14 +19,18 @@ import (
 )
 
 var (
-	totalGamesToPlayPtr = flag.Uint64("total_games_to_play", 100, "The total number of games to play across all goroutines")
+	totalGamesToPlayPtr = flag.Uint64("total_games_to_play", 2000, "The total number of games to play across all goroutines")
 	numGoroutinesPtr    = flag.Uint64("goroutines", uint64(runtime.NumCPU()/2), "The number of goroutines to run on")
 	epsilonPtr          = flag.Float64("epsilon", 1.0, "The chance (number between 0 and 1.0) that an agent picks a random move instead of an optimal one")
 	inFilePathPtr       = flag.String("config_infile", "", "The file that contains the initial neural net config")
 	outFilePathPtr      = flag.String("config_outfile", "", "The file that will contain the updated neural net config")
 )
 
-var gamesPlayed uint64
+var (
+	learningRateReducerInterval     = uint64(42000)
+	learningRateReductionMultiplier = float32(0.5)
+	gamesPlayed                     uint64
+)
 
 func loadNeuralNetwork(filePath string) {
 	fmt.Println("loading neural network config from", filePath)
@@ -70,9 +75,9 @@ func incrementGamesPlayed() {
 		fmt.Println(time.Now(), "trained on", ct, "games")
 	}
 
-	if ct%42000 == 0 {
-		fmt.Println("reducing the neural net's learning rate by half.")
-		nnet.MultiplyLearningRate(0.5)
+	if ct%learningRateReducerInterval == 0 {
+		fmt.Println("multiplying the neural net's learning rate by", learningRateReductionMultiplier)
+		nnet.MultiplyLearningRate(learningRateReductionMultiplier)
 	}
 }
 
@@ -116,6 +121,48 @@ func writeVarianceLogs(startGamesPlayed uint64, filePath string) {
 	fmt.Println("done saving variance data!")
 }
 
+func readCommands(doneChan chan bool) {
+	for {
+		select {
+		case <-doneChan:
+			fmt.Println("done reading model training commands")
+			return
+		default:
+			fmt.Println("\n\nenter a command\n")
+		}
+
+		var rawCmd string
+		fmt.Scanln(&rawCmd)
+		cmd := strings.ToLower(strings.TrimSpace(rawCmd))
+
+		if cmd == "avgvar" {
+			for _, v := range nnperf.GameAverageVariances(30, false) {
+				fmt.Println(v)
+			}
+		} else if cmd == "ttlvar" {
+			for _, v := range nnperf.GameTotalVariances(30, false) {
+				fmt.Println(v)
+			}
+		} else if cmd == "cfg" {
+			learningRate, decayRate := nnet.LearningParams()
+			fmt.Println("learningRate", learningRate, "decayRate", decayRate)
+		} else if strings.HasPrefix(cmd, "mulr_") {
+			split := strings.Split(cmd, "_")
+			if len(split) != 2 {
+				fmt.Println("invalid command (should look like 'mulr_5.5') got", cmd)
+				continue
+			}
+			factor, err := strconv.ParseFloat(split[1], 32)
+			if err != nil {
+				fmt.Println("invalid multiplier", split[1], err.Error())
+				continue
+			}
+			fmt.Println("multiplying learning rate by", factor)
+			nnet.MultiplyLearningRate(float32(factor))
+		}
+	}
+}
+
 func main() {
 	flag.Parse()
 
@@ -130,7 +177,8 @@ func main() {
 	fmt.Printf("training on %d games (%d goroutines X %d games per goroutine)...\n", *numGoroutinesPtr*gamesToPlayPerGoroutine, *numGoroutinesPtr, gamesToPlayPerGoroutine)
 
 	loadNeuralNetwork(infilePath)
-
+	doneChan := make(chan bool, 1)
+	go readCommands(doneChan)
 	start := time.Now()
 	startGamesPlayed := gamesPlayed
 
@@ -149,6 +197,8 @@ func main() {
 		}()
 	}
 	wg.Wait()
+	doneChan <- true
+	close(doneChan)
 	fmt.Println("trained", gamesPlayed-startGamesPlayed, "times in", time.Since(start))
 
 	saveNeuralNetwork(outfilePath)
