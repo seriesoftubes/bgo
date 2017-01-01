@@ -27,6 +27,21 @@ var (
 	nnVariancesMu sync.Mutex
 )
 
+type GameController struct {
+	g         *game.Game
+	debug     bool
+	agent     *learn.Agent
+	prevBoard *game.Board
+}
+
+func New(debug bool) *GameController {
+	learningRateAkaAlpha := float32(0.00001)
+	rewardsDiscountRateAkaGamma := float32(0.9)
+	initialExplorationRateAkaEpsilon := float32(1.0)
+	agent := learn.NewAgent(learningRateAkaAlpha, rewardsDiscountRateAkaGamma, initialExplorationRateAkaEpsilon)
+	return &GameController{agent: agent, debug: debug}
+}
+
 func readTurnFromStdin(p plyr.Player, validTurns map[turn.TurnArray]turn.Turn) turn.Turn {
 	fmt.Println(msgAskForMove, string(p))
 	for {
@@ -47,27 +62,11 @@ func readTurnFromStdin(p plyr.Player, validTurns map[turn.TurnArray]turn.Turn) t
 	}
 }
 
-// The best AI ever built.
 func randomlyChooseValidTurn(validTurns map[turn.TurnArray]turn.Turn) turn.Turn {
 	for _, t := range validTurns {
 		return t
 	}
 	panic("no turns to choose. you should've prevented this line from being reached")
-}
-
-type GameController struct {
-	g         *game.Game
-	debug     bool
-	agent     *learn.Agent
-	prevBoard *game.Board
-}
-
-func New(debug bool) *GameController {
-	learningRateAkaAlpha := float32(0.00001)
-	rewardsDiscountRateAkaGamma := float32(0.9)
-	initialExplorationRateAkaEpsilon := float32(1.0)
-	agent := learn.NewAgent(learningRateAkaAlpha, rewardsDiscountRateAkaGamma, initialExplorationRateAkaEpsilon)
-	return &GameController{agent: agent, debug: debug}
 }
 
 func (gc *GameController) PlayOneGame(numHumanPlayers uint8, stopLearning bool) (plyr.Player, game.WinKind) {
