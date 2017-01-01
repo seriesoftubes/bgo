@@ -120,7 +120,7 @@ func (gc *GameController) playOneTurn() bool {
 		gc.maybePrint(msgForceMove)
 		chosenTurn = randomlyChooseValidTurn(validTurns)
 	} else {
-		if gc.g.IsCurrentPlayerHuman() {
+		if !isComputer {
 			chosenTurn = readTurnFromStdin(g.CurrentPlayer, validTurns)
 		} else {
 			chosenTurn = gc.agent.EpsilonGreedyAction(currentBoard, validTurns)
