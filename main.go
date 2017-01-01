@@ -14,10 +14,11 @@ import (
 
 	"github.com/seriesoftubes/bgo/ctrl"
 	"github.com/seriesoftubes/bgo/learn/nnet"
+	"github.com/seriesoftubes/bgo/learn/nnet/nnperf"
 )
 
 var (
-	totalGamesToPlayPtr = flag.Uint64("total_games_to_play", 9000, "The total number of games to play across all goroutines")
+	totalGamesToPlayPtr = flag.Uint64("total_games_to_play", 100, "The total number of games to play across all goroutines")
 	numGoroutinesPtr    = flag.Uint64("goroutines", uint64(runtime.NumCPU()/2), "The number of goroutines to run on")
 	epsilonPtr          = flag.Float64("epsilon", 1.0, "The chance (number between 0 and 1.0) that an agent picks a random move instead of an optimal one")
 	inFilePathPtr       = flag.String("config_infile", "", "The file that contains the initial neural net config")
@@ -104,7 +105,7 @@ func writeVarianceLogs(startGamesPlayed uint64, filePath string) {
 	}
 
 	writeLine("GamesPlayed\tAvgVariance\n")
-	for i, v := range ctrl.NNVariances {
+	for i, v := range nnperf.GameAverageVariances(-1, true) {
 		writeLine(fmt.Sprintf("%v\t%v\n", uint64(i)+1+startGamesPlayed, v))
 		if i%1000 == 0 {
 			w.Flush()
@@ -142,6 +143,7 @@ func main() {
 				mgr.PlayOneGame(0, false) // Play 1 game with 0 humans and don't stop learning!
 				incrementGamesPlayed()
 			}
+			mgr.WaitForStats()
 			wg.Done()
 		}()
 	}

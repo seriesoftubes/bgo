@@ -2,10 +2,13 @@
 package learn
 
 import (
+	"sync"
+
 	"github.com/seriesoftubes/bgo/game"
 	"github.com/seriesoftubes/bgo/game/plyr"
 	"github.com/seriesoftubes/bgo/game/turn"
 	"github.com/seriesoftubes/bgo/learn/nnet"
+	"github.com/seriesoftubes/bgo/learn/nnet/nnperf"
 	"github.com/seriesoftubes/bgo/random"
 	"github.com/seriesoftubes/bgo/state"
 )
@@ -20,22 +23,30 @@ type Agent struct {
 	player                          plyr.Player
 	numTrainings                    uint32
 	totalVarianceAcrossAllTrainings float32
+	statsWG                         sync.WaitGroup
 }
 
 func NewAgent(alpha, gamma, epsilon float32) *Agent {
 	return &Agent{alpha: alpha, gamma: gamma, epsilon: epsilon}
 }
 
-func (a *Agent) ResetNeuralNetworkStats() { a.numTrainings, a.totalVarianceAcrossAllTrainings = 0, 0.0 }
-func (a *Agent) AverageNeuralNetworkVariance() float32 {
-	return a.totalVarianceAcrossAllTrainings / float32(a.numTrainings)
+func (a *Agent) WaitForStats() { a.statsWG.Wait() }
+
+func (a *Agent) SetPlayer(p plyr.Player) {
+	a.player = p
 }
-func (a *Agent) SetPlayer(p plyr.Player) { a.player = p }
 
 // It's assumed that this is only called when the Agent's GameController is starting a new game.
 func (a *Agent) SetGame(g *game.Game) {
 	if a.game != nil {
-		nnet.RemoveUselessGameData(a.game.ID)
+		go func(gid uint32) { nnet.RemoveUselessGameData(gid) }(a.game.ID)
+		a.statsWG.Add(1)
+		go func(tv float32, nt uint32) {
+			nnperf.AppendGameData(tv, nt)
+			a.statsWG.Done()
+		}(a.totalVarianceAcrossAllTrainings, a.numTrainings)
+		a.numTrainings = 0
+		a.totalVarianceAcrossAllTrainings = 0.0
 	}
 
 	a.game = g

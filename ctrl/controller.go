@@ -3,7 +3,6 @@ package ctrl
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/seriesoftubes/bgo/game"
 	"github.com/seriesoftubes/bgo/game/plyr"
@@ -20,11 +19,6 @@ const (
 	msgForceMove    = "\tthis turn only has 1 option, forcing!"
 	msgAskForMove   = "\tYour move, "
 	msgChoseMove    = "\tChose move:"
-)
-
-var (
-	NNVariances   []float32
-	nnVariancesMu sync.Mutex
 )
 
 type GameController struct {
@@ -69,6 +63,8 @@ func randomlyChooseValidTurn(validTurns map[turn.TurnArray]turn.Turn) turn.Turn 
 	panic("no turns to choose. you should've prevented this line from being reached")
 }
 
+func (gc *GameController) WaitForStats() { gc.agent.WaitForStats() }
+
 func (gc *GameController) PlayOneGame(numHumanPlayers uint8, stopLearning bool) (plyr.Player, game.WinKind) {
 	gc.g = game.NewGame(numHumanPlayers)
 
@@ -82,12 +78,6 @@ func (gc *GameController) PlayOneGame(numHumanPlayers uint8, stopLearning bool) 
 	for !done {
 		done = gc.playOneTurn()
 	}
-	avgVariance := gc.agent.AverageNeuralNetworkVariance() // gets avg variance as of the end of a game.
-	defer nnVariancesMu.Unlock()
-	nnVariancesMu.Lock()
-	fmt.Println(avgVariance)
-	NNVariances = append(NNVariances, avgVariance)
-	gc.agent.ResetNeuralNetworkStats()
 	gc.prevBoard = nil
 
 	if gc.g.HasAnyHumans() || gc.debug {
