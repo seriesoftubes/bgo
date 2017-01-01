@@ -31,15 +31,6 @@ type (
 
 func (ma MoveArray) isEmpty() bool { return ma[maIdxNumTimes] == 0 }
 
-func (m Move) arrayify(numTimesMoveIsPlayed uint8) MoveArray {
-	var playerIsPCC uint8
-	if m.Requestor == plyr.PCC {
-		playerIsPCC = 1
-	}
-
-	return MoveArray{playerIsPCC, constants.Alpha2Num[m.Letter], m.FowardDistance, numTimesMoveIsPlayed}
-}
-
 func (m Move) String() string {
 	return fmt.Sprintf("%s: go %d spaces starting with %s", m.Requestor, m.FowardDistance, m.Letter)
 }
@@ -72,8 +63,6 @@ func (m Move) PointIdx() uint8 {
 	return constants.Alpha2Num[m.Letter]
 }
 
-// TODO: MoveSet struct, or execute each command, 1 at a time, until the player is out of moves.
-
 // Gets the PointIndex of the next point to go to.
 // May return < 0 or > 23, if the move is to bear-off a checker.
 func (m Move) NextPointIdx() (int8, bool) {
@@ -89,6 +78,15 @@ func (m Move) NextPointIdx() (int8, bool) {
 	}
 
 	return nxtIdx, nxtIdx >= 0 && nxtIdx < int8(constants.NUM_BOARD_POINTS)
+}
+
+func (m Move) arrayify(numTimesMoveIsPlayed uint8) MoveArray {
+	var playerIsPCC uint8
+	if m.Requestor == plyr.PCC {
+		playerIsPCC = 1
+	}
+
+	return MoveArray{playerIsPCC, constants.Alpha2Num[m.Letter], m.FowardDistance, numTimesMoveIsPlayed}
 }
 
 // distCC gets the counter-clockwise distance (meaning, moving in a positive direction thru the BoardPoint indices).
