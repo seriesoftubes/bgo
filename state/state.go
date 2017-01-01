@@ -7,12 +7,13 @@ import (
 )
 
 const (
-	NUM_VARS_PER_BOARD_POINT int = 12
-	NUM_NON_BOARD_POINT_VARS int = 3
-	lastPointIndex               = int(constants.FINAL_BOARD_POINT_INDEX)
+	numVarsPerBoardPoint int = 12
+	numNonBoardPointVars int = 3
+
+	lastPointIndex = int(constants.FINAL_BOARD_POINT_INDEX)
 )
 
-type State [int(constants.NUM_BOARD_POINTS)*NUM_VARS_PER_BOARD_POINT + NUM_NON_BOARD_POINT_VARS]float32
+type State [int(constants.NUM_BOARD_POINTS)*numVarsPerBoardPoint + numNonBoardPointVars]float32
 
 // DetectState detects the current state of the game.
 func DetectState(p plyr.Player, b *game.Board) State {
@@ -34,7 +35,7 @@ func DetectState(p plyr.Player, b *game.Board) State {
 			translatedPtIdx = ptIdx
 		}
 		// the first index in the out array that is relevant to the current boardpoint.
-		outIdx := NUM_NON_BOARD_POINT_VARS + (translatedPtIdx * NUM_VARS_PER_BOARD_POINT)
+		outIdx := numNonBoardPointVars + (translatedPtIdx * numVarsPerBoardPoint)
 
 		var ownerStatus float32
 		if pt.Owner == p {
