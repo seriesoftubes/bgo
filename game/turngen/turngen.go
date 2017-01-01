@@ -9,18 +9,6 @@ import (
 	"github.com/seriesoftubes/bgo/game/turn"
 )
 
-// TODO: Use go generate for this.
-func copySliceUint8(slice []uint8) []uint8 { return append([]uint8(nil), slice...) }
-func popSliceUint8(slice []uint8, atIndex int) ([]uint8, error) {
-	if slice == nil || len(slice) == 0 {
-		return nil, fmt.Errorf("cannot pop from an empty slice")
-	} else if atIndex >= len(slice) || atIndex < 0 {
-		return nil, fmt.Errorf("index %d out of bounds, must be between [0, %d] inclusive", atIndex, len(slice)-1)
-	}
-	slice = copySliceUint8(slice)
-	return append(slice[:atIndex], slice[atIndex+1:]...), nil
-}
-
 // Generates the set of all valid turns for a player, given a roll and a board.
 func ValidTurns(b *game.Board, r game.Roll, p plyr.Player) map[turn.TurnArray]turn.Turn {
 	serializedTurns := map[turn.TurnArray]turn.Turn{} // set of serialized Turn strings
@@ -71,4 +59,15 @@ func ValidTurns(b *game.Board, r game.Roll, p plyr.Player) map[turn.TurnArray]tu
 		}
 	}
 	return serializedTurns
+}
+
+func copySliceUint8(slice []uint8) []uint8 { return append([]uint8(nil), slice...) }
+func popSliceUint8(slice []uint8, atIndex int) ([]uint8, error) {
+	if slice == nil || len(slice) == 0 {
+		return nil, fmt.Errorf("cannot pop from an empty slice")
+	} else if atIndex >= len(slice) || atIndex < 0 {
+		return nil, fmt.Errorf("index %d out of bounds, must be between [0, %d] inclusive", atIndex, len(slice)-1)
+	}
+	slice = copySliceUint8(slice)
+	return append(slice[:atIndex], slice[atIndex+1:]...), nil
 }
