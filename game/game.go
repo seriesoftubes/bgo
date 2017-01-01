@@ -20,6 +20,22 @@ type Game struct {
 	numHumanPlayers uint8
 }
 
+func NewGame(numHumanPlayers uint8) *Game {
+	b := &Board{}
+	b.SetUp()
+
+	player := plyr.PCC
+	if time.Now().UnixNano()%2 == 0 {
+		player = plyr.PC
+	}
+
+	defer nextGameIdLock.Unlock()
+	nextGameIdLock.Lock()
+	nextGameID++
+
+	return &Game{ID: nextGameID, Board: b, CurrentPlayer: player, CurrentRoll: newRoll(), numHumanPlayers: numHumanPlayers}
+}
+
 func (g *Game) NextPlayersTurn() {
 	if g.CurrentPlayer == plyr.PCC {
 		g.CurrentPlayer = plyr.PC
@@ -40,20 +56,4 @@ func (g *Game) IsCurrentPlayerHuman() bool {
 	} else {
 		return false
 	}
-}
-
-func NewGame(numHumanPlayers uint8) *Game {
-	b := &Board{}
-	b.SetUp()
-
-	player := plyr.PCC
-	if time.Now().UnixNano()%2 == 0 {
-		player = plyr.PC
-	}
-
-	defer nextGameIdLock.Unlock()
-	nextGameIdLock.Lock()
-	nextGameID++
-
-	return &Game{ID: nextGameID, Board: b, CurrentPlayer: player, CurrentRoll: newRoll(), numHumanPlayers: numHumanPlayers}
 }
