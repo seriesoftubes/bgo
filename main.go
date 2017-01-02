@@ -209,6 +209,8 @@ func onCfgCmd() {
 }
 
 func readCommands(doneChan chan bool) {
+	var previousCmd string
+
 	for {
 		select {
 		case <-doneChan:
@@ -221,6 +223,12 @@ func readCommands(doneChan chan bool) {
 		var rawCmd string
 		fmt.Scanln(&rawCmd)
 		cmd := strings.ToLower(strings.TrimSpace(rawCmd))
+
+		cmdWasToRepeatPreviousCommand := cmd == "d" || cmd == "r"
+		if cmdWasToRepeatPreviousCommand {
+			fmt.Println("repeating command", previousCmd)
+			cmd = previousCmd
+		}
 
 		if cmd == cmdAverageVariance {
 			for _, v := range nnperf.GameAverageVariances(30, false) {
@@ -240,6 +248,10 @@ func readCommands(doneChan chan bool) {
 			onChangeLearningRateReducerMultiplierCmd(cmd)
 		} else if cmd == cmdHelp {
 			onHelpCmd()
+		}
+
+		if !cmdWasToRepeatPreviousCommand {
+			previousCmd = cmd
 		}
 	}
 }
