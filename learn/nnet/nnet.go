@@ -118,6 +118,11 @@ func Load(r io.Reader) (uint64, error) {
 		return 0, fmt.Errorf("json.Unmarshal error: %v", err)
 	}
 
+	configMu.Lock()
+	learningRate = cfg.LearningRate
+	eligibilityDecayRate = cfg.EligibilityDecayRate
+	configMu.Unlock()
+
 	if len(cfg.In2FhWeights) != numIn2FhConnections {
 		return 0, fmt.Errorf("serialized network In2FH weights do not match dimensions of the one in this program. expected both to have length of %d", numIn2FhConnections)
 	}
