@@ -32,6 +32,15 @@ var (
 
 	maxConcurrentGames int = runtime.NumCPU() * 2 // Assume a max of 2 goroutines training per CPU. This variable would be a const but that caused a compiler error.
 
+	bigassArrays chan *[numIn2FhConnections]float32 = func() chan *[numIn2FhConnections]float32 {
+		ch := make(chan *[numIn2FhConnections]float32, maxConcurrentGames)
+		for i := 0; i < maxConcurrentGames; i++ {
+			var arr [numIn2FhConnections]float32
+			ch <- &arr
+		}
+		return ch
+	}()
+
 	// Weights that connect IN to FH.
 	in2fhWeights [numIn2FhConnections]float32 = (func() [numIn2FhConnections]float32 {
 		out := [numIn2FhConnections]float32{}
@@ -132,6 +141,13 @@ func Load(r io.Reader) (uint64, error) {
 
 func RemoveUselessGameData(gameID uint32) {
 	in2fhWeightsMu.Lock()
+	go func(arrPtr *[numIn2FhConnections]float32) {
+		arr := *arrPtr
+		for i := range arr {
+			arr[i] = 0.0 // Must be all zeroed out for reuse.
+		}
+		bigassArrays <- arrPtr
+	}(in2fhWeightsPreviousEligibilityTracesByGameID[gameID])
 	delete(in2fhWeightsPreviousEligibilityTracesByGameID, gameID)
 	in2fhWeightsMu.Unlock()
 
@@ -196,7 +212,11 @@ func TrainWeights(gameID uint32, st state.State, target float32) float32 {
 	// Important: don't write to any of the global vars until these locks are acquired-- that's why very little processing could happen above this line.
 
 	if _, ok := in2fhWeightsPreviousEligibilityTracesByGameID[gameID]; !ok {
-		in2fhWeightsPreviousEligibilityTracesByGameID[gameID] = &([numIn2FhConnections]float32{})
+		select {
+		case in2fhWeightsPreviousEligibilityTracesByGameID[gameID] = <-bigassArrays:
+		default:
+			in2fhWeightsPreviousEligibilityTracesByGameID[gameID] = &([numIn2FhConnections]float32{})
+		}
 	}
 	in2fhWeightsPreviousEligibilityTraces := in2fhWeightsPreviousEligibilityTracesByGameID[gameID]
 

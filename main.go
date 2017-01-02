@@ -62,7 +62,7 @@ func newTrainer(configInFile, configOutFile string) *pokemodelTrainer {
 		configInFile:         configInFile,
 		configOutFile:        configOutFile,
 		varianceLogsFilePath: varianceLogsFilePath,
-		lrManager:            &learningRateManager{interval: 42000, multiplier: 0.00001},
+		lrManager:            &learningRateManager{interval: 42000, multiplier: 0.25},
 	}
 }
 
