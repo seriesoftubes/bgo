@@ -138,6 +138,7 @@ func writeVarianceLogs(startGamesPlayed uint64, filePath string) {
 
 func onHelpCmd() {
 	fmt.Println("valid commands are:")
+	fmt.Println("'d' or 'r' to repeat the previous command")
 	fmt.Println(cmdAverageVariance)
 	fmt.Println(cmdTotalVariance)
 	fmt.Println(cmdCFG)
@@ -226,7 +227,7 @@ func readCommands(doneChan chan bool) {
 
 		cmdWasToRepeatPreviousCommand := cmd == "d" || cmd == "r"
 		if cmdWasToRepeatPreviousCommand {
-			fmt.Println("repeating command", previousCmd)
+			fmt.Printf("repeating command: %q\n", previousCmd)
 			cmd = previousCmd
 		}
 
