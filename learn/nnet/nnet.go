@@ -33,8 +33,9 @@ var (
 	maxConcurrentGames int = runtime.NumCPU() * 2 // Assume a max of 2 goroutines training per CPU. This variable would be a const but that caused a compiler error.
 
 	bigassArrays chan *[numIn2FhConnections]float32 = func() chan *[numIn2FhConnections]float32 {
-		ch := make(chan *[numIn2FhConnections]float32, maxConcurrentGames)
-		for i := 0; i < maxConcurrentGames; i++ {
+		num := maxConcurrentGames * 3
+		ch := make(chan *[numIn2FhConnections]float32, num)
+		for i := 0; i < num; i++ {
 			var arr [numIn2FhConnections]float32
 			ch <- &arr
 		}
@@ -139,15 +140,17 @@ func Load(r io.Reader) (uint64, error) {
 	return cfg.GamesPlayedSoFar, nil
 }
 
+func recycleBigassArray(arrPtr *[numIn2FhConnections]float32) {
+	arr := *arrPtr
+	for i := range arr {
+		arr[i] = 0.0 // Must be all zeroed out for reuse.
+	}
+	bigassArrays <- arrPtr
+}
+
 func RemoveUselessGameData(gameID uint32) {
 	in2fhWeightsMu.Lock()
-	go func(arrPtr *[numIn2FhConnections]float32) {
-		arr := *arrPtr
-		for i := range arr {
-			arr[i] = 0.0 // Must be all zeroed out for reuse.
-		}
-		bigassArrays <- arrPtr
-	}(in2fhWeightsPreviousEligibilityTracesByGameID[gameID])
+	go recycleBigassArray(in2fhWeightsPreviousEligibilityTracesByGameID[gameID])
 	delete(in2fhWeightsPreviousEligibilityTracesByGameID, gameID)
 	in2fhWeightsMu.Unlock()
 
@@ -201,7 +204,7 @@ func MultiplyLearningRate(rateMultiplier float32) {
 
 // TrainWeights back-propagates the error of an estimate against a target.
 func TrainWeights(gameID uint32, st state.State, target float32) float32 {
-	est, fh2outWeightsGradient, in2fhWeightsGradient := weightGradients(st, target)
+	est, fh2outWeightsGradient, in2fhWeightsGradientPtr := weightGradients(st, target)
 	valueEstimateDiff := target - est // If this diff is positive, we need to add the gradient in the positive direction. else in the negative direction.
 	my_learningRate, my_eligibilityDecayRate := LearningParams()
 
@@ -226,7 +229,7 @@ func TrainWeights(gameID uint32, st state.State, target float32) float32 {
 		wg.Add(1)
 		go func(start, end int) {
 			for i := start; i <= end; i++ {
-				in2fhWeightDerivative := in2fhWeightsGradient[i]
+				in2fhWeightDerivative := (*in2fhWeightsGradientPtr)[i]
 				previousEligibilityTrace := (*in2fhWeightsPreviousEligibilityTraces)[i]
 				eligibilityTrace := in2fhWeightDerivative + (my_eligibilityDecayRate * previousEligibilityTrace)
 				(*in2fhWeightsPreviousEligibilityTraces)[i] = eligibilityTrace
@@ -249,6 +252,7 @@ func TrainWeights(gameID uint32, st state.State, target float32) float32 {
 	}
 
 	wg.Wait()
+	go recycleBigassArray(in2fhWeightsGradientPtr)
 
 	return valueEstimateDiff * valueEstimateDiff // The variance before adjusting the weights.
 }
@@ -293,12 +297,20 @@ func splitIntoChunkSizes(arrLen, maxChunks int) []int {
 	return append(out, splitIntoChunkSizes(arrLen-dominantNumEls, maxChunks-1)...)
 }
 
-func weightGradients(st state.State, target float32) (float32, [numFh2OutConnections]float32, [numIn2FhConnections]float32) {
+func weightGradients(st state.State, target float32) (float32, [numFh2OutConnections]float32, *[numIn2FhConnections]float32) {
 	var (
-		in2fhWeightIndex      int // tracks which in2fhWeight we're analyzing.
-		fh2outWeightsGradient [numFh2OutConnections]float32
-		in2fhWeightsGradient  [numIn2FhConnections]float32
+		in2fhWeightIndex        int // tracks which in2fhWeight we're analyzing.
+		fh2outWeightsGradient   [numFh2OutConnections]float32
+		in2fhWeightsGradientPtr *[numIn2FhConnections]float32
 	)
+
+	select {
+	case in2fhWeightsGradientPtr = <-bigassArrays:
+	default:
+		in2fhWeightsGradientPtr = &([numIn2FhConnections]float32{})
+	}
+	in2fhWeightsGradient := *in2fhWeightsGradientPtr
+
 	est, fhNodePostVals := ValueEstimate(st)
 
 	fh2outWeightsMu.RLock()
@@ -327,7 +339,7 @@ func weightGradients(st state.State, target float32) (float32, [numFh2OutConnect
 		in2fhWeightIndex++
 	}
 
-	return est, fh2outWeightsGradient, in2fhWeightsGradient
+	return est, fh2outWeightsGradient, in2fhWeightsGradientPtr
 }
 
 func sigmoid(x float32) float32 { return float32(1.0 / (1.0 + math.Exp(float64(-x)))) }
