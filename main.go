@@ -29,7 +29,7 @@ const (
 )
 
 var (
-	totalGamesToPlayPtr = flag.Uint64("total_games_to_play", 2000, "The total number of games to play across all goroutines")
+	totalGamesToPlayPtr = flag.Uint64("total_games_to_play", 5000, "The total number of games to play across all goroutines")
 	numGoroutinesPtr    = flag.Uint64("goroutines", uint64(runtime.NumCPU()/2), "The number of goroutines to run on")
 	epsilonPtr          = flag.Float64("epsilon", 1.0, "The chance (number between 0 and 1.0) that an agent picks a random move instead of an optimal one")
 	inFilePathPtr       = flag.String("config_infile", "", "The file that contains the initial neural net config")
@@ -62,7 +62,7 @@ func loadNeuralNetwork(filePath string) {
 	fmt.Println("neural net loaded!")
 }
 
-func saveNeuralNetwork(filePath string) {
+func saveNeuralNetwork(filePath string, waitForWrites bool) {
 	fmt.Println("saving neural net config to", filePath)
 
 	f, err := os.Create(filePath) // always overwrites the existing file.
@@ -71,7 +71,7 @@ func saveNeuralNetwork(filePath string) {
 	}
 	defer f.Close()
 
-	if err := nnet.Save(f, gamesPlayed); err != nil {
+	if err := nnet.Save(f, atomic.LoadUint64(&gamesPlayed), waitForWrites); err != nil {
 		panic("couldnt save neural network: " + err.Error())
 	}
 
@@ -108,7 +108,7 @@ func filePathFromFlag(fp *string) string {
 	return *fp
 }
 
-func writeVarianceLogs(startGamesPlayed uint64, filePath string) {
+func writeVarianceLogs(startGamesPlayed uint64, filePath string, waitForWrites bool) {
 	fmt.Println("saving variance data to", filePath)
 
 	f, err := os.Create(filePath) // always overwrites the existing file.
@@ -125,7 +125,7 @@ func writeVarianceLogs(startGamesPlayed uint64, filePath string) {
 	}
 
 	writeLine("GamesPlayed\tAvgVariance\n")
-	for i, v := range nnperf.GameAverageVariances(-1, true) {
+	for i, v := range nnperf.GameAverageVariances(-1, waitForWrites) {
 		writeLine(fmt.Sprintf("%v\t%v\n", uint64(i)+1+startGamesPlayed, v))
 		if i%1000 == 0 {
 			w.Flush()
@@ -295,9 +295,10 @@ func main() {
 	close(doneChan)
 	fmt.Println("trained", gamesPlayed-startGamesPlayed, "times in", time.Since(start))
 
-	saveNeuralNetwork(outfilePath)
-	writeVarianceLogs(startGamesPlayed, varianceLogsFilePath)
+	waitForWrites := true
+	saveNeuralNetwork(outfilePath, waitForWrites)
+	writeVarianceLogs(startGamesPlayed, varianceLogsFilePath, waitForWrites)
 
-	mgr := ctrl.New(true)
+	mgr := ctrl.New(true /* debug=true*/)
 	mgr.PlayOneGame(1, true /* stopLearning=true */)
 }

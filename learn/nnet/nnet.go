@@ -66,13 +66,28 @@ type netConfig struct {
 	Fh2OutWeights        [numFh2OutConnections]float32
 }
 
-func Save(w io.Writer, gamesPlayedSoFar uint64) error {
+func Save(w io.Writer, gamesPlayedSoFar uint64, waitForWrites bool) error {
+	my_learningRate, my_eligibilityDecayRate := LearningParams()
 	cfg := netConfig{
 		GamesPlayedSoFar:     gamesPlayedSoFar,
-		EligibilityDecayRate: eligibilityDecayRate,
-		LearningRate:         learningRate,
-		In2FhWeights:         in2fhWeights,
-		Fh2OutWeights:        fh2outWeights,
+		EligibilityDecayRate: my_eligibilityDecayRate,
+		LearningRate:         my_learningRate,
+	}
+
+	if waitForWrites {
+		fh2outWeightsMu.Lock()
+		cfg.Fh2OutWeights = fh2outWeights
+		fh2outWeightsMu.Unlock()
+		in2fhWeightsMu.Lock()
+		cfg.In2FhWeights = in2fhWeights
+		in2fhWeightsMu.Unlock()
+	} else {
+		fh2outWeightsMu.RLock()
+		cfg.Fh2OutWeights = fh2outWeights
+		fh2outWeightsMu.RUnlock()
+		in2fhWeightsMu.RLock()
+		cfg.In2FhWeights = in2fhWeights
+		in2fhWeightsMu.RUnlock()
 	}
 
 	enc := json.NewEncoder(w)
@@ -100,12 +115,18 @@ func Load(r io.Reader) (uint64, error) {
 		return 0, fmt.Errorf("serialized network FH2Out weights do not match dimensions of the one in this program. expected both to have length of %d", len(fh2outWeights))
 	}
 
+	in2fhWeightsMu.Lock()
 	for i, v := range cfg.In2FhWeights {
 		in2fhWeights[i] = v
 	}
+	in2fhWeightsMu.Unlock()
+
+	fh2outWeightsMu.Lock()
 	for i, v := range cfg.Fh2OutWeights {
 		fh2outWeights[i] = v
 	}
+	fh2outWeightsMu.Unlock()
+
 	return cfg.GamesPlayedSoFar, nil
 }
 
