@@ -26,13 +26,17 @@ type (
 
 // DeserializeTurn creates a Turn from a string like "X;a3;a3;b3;d3".
 func DeserializeTurn(s string) (Turn, error) {
-	if strings.TrimSpace(s) == "" {
+	s = strings.TrimSpace(s)
+	if s == "" || s == moveDelim {
 		return nil, fmt.Errorf("no turn provided in serialized turn %q", s)
 	}
 
 	out := Turn{}
 
 	moveStrings := strings.Split(s, moveDelim)
+	if len(moveStrings) < 2 {
+		return nil, fmt.Errorf("invalid format of serialized turn %q", s)
+	}
 
 	var p plyr.Player
 	if plyr.Player(moveStrings[0][0]) == plyr.PCC {
