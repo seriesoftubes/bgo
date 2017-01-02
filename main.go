@@ -19,11 +19,13 @@ import (
 )
 
 const (
-	cmdAverageVariance            = "avgvar"
-	cmdTotalVariance              = "ttlvar"
-	cmdCFG                        = "cfg"
-	cmdprefixMultiplyLearningRate = "mulr_"
-	cmdHelp                       = "help"
+	cmdAverageVariance                           = "avgvar"
+	cmdTotalVariance                             = "ttlvar"
+	cmdCFG                                       = "cfg"
+	cmdprefixMultiplyLearningRate                = "mulr_"
+	cmdprefixChangeLearningRateReducerInterval   = "interval_"
+	cmdprefixChangeLearningRateReducerMultiplier = "multiplier_"
+	cmdHelp                                      = "help"
 )
 
 var (
@@ -37,6 +39,7 @@ var (
 var (
 	learningRateReducerInterval     = uint64(42000)
 	learningRateReductionMultiplier = float32(0.5)
+	lrConfigMu                      sync.RWMutex
 	gamesPlayed                     uint64
 )
 
@@ -83,9 +86,13 @@ func incrementGamesPlayed() {
 		fmt.Println(time.Now(), "trained on", ct, "games")
 	}
 
-	if ct%learningRateReducerInterval == 0 {
-		fmt.Println("multiplying the neural net's learning rate by", learningRateReductionMultiplier)
-		nnet.MultiplyLearningRate(learningRateReductionMultiplier)
+	lrConfigMu.RLock()
+	my_interval, my_multiplier := learningRateReducerInterval, learningRateReductionMultiplier
+	lrConfigMu.RUnlock()
+
+	if ct%my_interval == 0 {
+		fmt.Println("multiplying the neural net's learning rate by", my_multiplier)
+		nnet.MultiplyLearningRate(my_multiplier)
 	}
 }
 
@@ -135,25 +142,70 @@ func onHelpCmd() {
 	fmt.Println(cmdTotalVariance)
 	fmt.Println(cmdCFG)
 	fmt.Println(cmdprefixMultiplyLearningRate, "(plus a number, like mulr_1.23)")
+	fmt.Println(cmdprefixChangeLearningRateReducerInterval, "(plus a number like bla_123123)")
+	fmt.Println(cmdprefixChangeLearningRateReducerMultiplier, "(plus a number like bla_0.8")
 	fmt.Println(cmdHelp)
 }
 
-func onMulrCmd(cmd string) {
+func float32FromCommand(cmd string) (float32, error) {
 	split := strings.Split(cmd, "_")
-
 	if len(split) != 2 {
-		fmt.Println("invalid command (should look like 'mulr_5.5') got", cmd)
-		return
+		return 0, fmt.Errorf("invalid command (should look like 'blabla_5.5') got", cmd)
 	}
 
 	factor, err := strconv.ParseFloat(split[1], 32)
 	if err != nil {
-		fmt.Println("invalid multiplier", split[1], err.Error())
+		return 0, fmt.Errorf("invalid number %s in command %q: %v", split[1], cmd, err)
+	}
+
+	return float32(factor), nil
+}
+
+func onMulrCmd(cmd string) {
+	factor, err := float32FromCommand(cmd)
+	if err != nil {
+		fmt.Println(err.Error())
 		return
 	}
 
 	fmt.Println("multiplying learning rate by", factor)
-	nnet.MultiplyLearningRate(float32(factor))
+	nnet.MultiplyLearningRate(factor)
+}
+
+func onChangeLearningRateReducerIntervalCmd(cmd string) {
+	defer lrConfigMu.Unlock()
+	lrConfigMu.Lock()
+
+	newInterval, err := float32FromCommand(cmd)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	fmt.Println("setting learningRateReducerInterval to", uint64(newInterval))
+	learningRateReducerInterval = uint64(newInterval)
+}
+
+func onChangeLearningRateReducerMultiplierCmd(cmd string) {
+	defer lrConfigMu.Unlock()
+	lrConfigMu.Lock()
+
+	newMultiplier, err := float32FromCommand(cmd)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	fmt.Println("setting learningRateReductionMultiplier to", newMultiplier)
+	learningRateReductionMultiplier = newMultiplier
+}
+
+func onCfgCmd() {
+	learningRate, decayRate := nnet.LearningParams()
+	fmt.Println("learningRate", learningRate)
+	fmt.Println("decayRate", decayRate)
+	fmt.Println("learningRateReductionMultiplier", learningRateReductionMultiplier)
+	fmt.Println("learningRateReducerInterval", learningRateReducerInterval)
 }
 
 func readCommands(doneChan chan bool) {
@@ -179,10 +231,13 @@ func readCommands(doneChan chan bool) {
 				fmt.Println(v)
 			}
 		} else if cmd == cmdCFG {
-			learningRate, decayRate := nnet.LearningParams()
-			fmt.Println("learningRate", learningRate, "decayRate", decayRate)
+			onCfgCmd()
 		} else if strings.HasPrefix(cmd, cmdprefixMultiplyLearningRate) {
 			onMulrCmd(cmd)
+		} else if strings.HasPrefix(cmd, cmdprefixChangeLearningRateReducerInterval) {
+			onChangeLearningRateReducerIntervalCmd(cmd)
+		} else if strings.HasPrefix(cmd, cmdprefixChangeLearningRateReducerMultiplier) {
+			onChangeLearningRateReducerMultiplierCmd(cmd)
 		} else if cmd == cmdHelp {
 			onHelpCmd()
 		}
