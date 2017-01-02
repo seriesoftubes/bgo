@@ -140,14 +140,6 @@ func Load(r io.Reader) (uint64, error) {
 	return cfg.GamesPlayedSoFar, nil
 }
 
-func recycleBigassArray(arrPtr *[numIn2FhConnections]float32) {
-	arr := *arrPtr
-	for i := range arr {
-		arr[i] = 0.0 // Must be all zeroed out for reuse.
-	}
-	bigassArrays <- arrPtr
-}
-
 func RemoveUselessGameData(gameID uint32) {
 	in2fhWeightsMu.Lock()
 	go recycleBigassArray(in2fhWeightsPreviousEligibilityTracesByGameID[gameID])
@@ -200,6 +192,12 @@ func MultiplyLearningRate(rateMultiplier float32) {
 	configMu.Lock()
 	defer configMu.Unlock()
 	learningRate *= rateMultiplier
+}
+
+func LearningParams() (float32, float32) {
+	configMu.RLock()
+	defer configMu.RUnlock()
+	return learningRate, eligibilityDecayRate
 }
 
 // TrainWeights back-propagates the error of an estimate against a target.
@@ -344,8 +342,10 @@ func weightGradients(st state.State, target float32) (float32, [numFh2OutConnect
 
 func sigmoid(x float32) float32 { return float32(1.0 / (1.0 + math.Exp(float64(-x)))) }
 
-func LearningParams() (float32, float32) {
-	configMu.RLock()
-	defer configMu.RUnlock()
-	return learningRate, eligibilityDecayRate
+func recycleBigassArray(arrPtr *[numIn2FhConnections]float32) {
+	arr := *arrPtr
+	for i := range arr {
+		arr[i] = 0.0 // Must be all zeroed out for reuse.
+	}
+	bigassArrays <- arrPtr
 }
