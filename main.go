@@ -56,7 +56,7 @@ func loadNeuralNetwork(filePath string) {
 	if existingGamesPlayed, err := nnet.Load(f); err != nil {
 		panic("could not deserialize neural network: " + err.Error())
 	} else {
-		gamesPlayed = existingGamesPlayed
+		atomic.StoreUint64(&gamesPlayed, existingGamesPlayed)
 	}
 
 	fmt.Println("neural net loaded!")
