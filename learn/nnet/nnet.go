@@ -43,12 +43,12 @@ var (
 	}()
 
 	// Weights that connect IN to FH.
-	in2fhWeights [numIn2FhConnections]float32 = (func() [numIn2FhConnections]float32 {
+	in2fhWeightsPtr *[numIn2FhConnections]float32 = (func() *[numIn2FhConnections]float32 {
 		out := [numIn2FhConnections]float32{}
 		for i := 0; i < numIn2FhConnections; i++ {
 			out[i] = random.Float32Between(-1, 1)
 		}
-		return out
+		return &out
 	})()
 	// each key in the map is a gameID, and each value is an array of previous eligibility traces-- one trace for each in2fh weight.
 	in2fhWeightsPreviousEligibilityTracesByGameID map[uint32]*[numIn2FhConnections]float32 = make(map[uint32]*[numIn2FhConnections]float32, maxConcurrentGames)
@@ -89,14 +89,14 @@ func Save(w io.Writer, gamesPlayedSoFar uint64, waitForWrites bool) error {
 		cfg.Fh2OutWeights = fh2outWeights
 		fh2outWeightsMu.Unlock()
 		in2fhWeightsMu.Lock()
-		cfg.In2FhWeights = in2fhWeights
+		cfg.In2FhWeights = *in2fhWeightsPtr
 		in2fhWeightsMu.Unlock()
 	} else {
 		fh2outWeightsMu.RLock()
 		cfg.Fh2OutWeights = fh2outWeights
 		fh2outWeightsMu.RUnlock()
 		in2fhWeightsMu.RLock()
-		cfg.In2FhWeights = in2fhWeights
+		cfg.In2FhWeights = *in2fhWeightsPtr
 		in2fhWeightsMu.RUnlock()
 	}
 
@@ -118,16 +118,16 @@ func Load(r io.Reader) (uint64, error) {
 		return 0, fmt.Errorf("json.Unmarshal error: %v", err)
 	}
 
-	if len(cfg.In2FhWeights) != len(in2fhWeights) {
-		return 0, fmt.Errorf("serialized network In2FH weights do not match dimensions of the one in this program. expected both to have length of %d", len(in2fhWeights))
+	if len(cfg.In2FhWeights) != numIn2FhConnections {
+		return 0, fmt.Errorf("serialized network In2FH weights do not match dimensions of the one in this program. expected both to have length of %d", numIn2FhConnections)
 	}
-	if len(cfg.Fh2OutWeights) != len(fh2outWeights) {
-		return 0, fmt.Errorf("serialized network FH2Out weights do not match dimensions of the one in this program. expected both to have length of %d", len(fh2outWeights))
+	if len(cfg.Fh2OutWeights) != numFh2OutConnections {
+		return 0, fmt.Errorf("serialized network FH2Out weights do not match dimensions of the one in this program. expected both to have length of %d", numFh2OutConnections)
 	}
 
 	in2fhWeightsMu.Lock()
 	for i, v := range cfg.In2FhWeights {
-		in2fhWeights[i] = v
+		(*in2fhWeightsPtr)[i] = v
 	}
 	in2fhWeightsMu.Unlock()
 
@@ -164,7 +164,7 @@ func ValueEstimate(st state.State) (float32, [numFhNodes]float32) {
 	var fhNodePostVals [numFhNodes]float32
 
 	in2fhWeightsMu.RLock()
-	my_in2fhWeights := in2fhWeights
+	my_in2fhWeights := *in2fhWeightsPtr
 	in2fhWeightsMu.RUnlock()
 
 	fh2outWeightsMu.RLock()
@@ -233,7 +233,7 @@ func TrainWeights(gameID uint32, st state.State, target float32) float32 {
 				previousEligibilityTrace := (*in2fhWeightsPreviousEligibilityTraces)[i]
 				eligibilityTrace := in2fhWeightDerivative + (my_eligibilityDecayRate * previousEligibilityTrace)
 				(*in2fhWeightsPreviousEligibilityTraces)[i] = eligibilityTrace
-				in2fhWeights[i] += my_learningRate * valueEstimateDiff * eligibilityTrace
+				(*in2fhWeightsPtr)[i] += my_learningRate * valueEstimateDiff * eligibilityTrace
 			}
 			wg.Done()
 		}(startIdx, startIdx+sz-1)
