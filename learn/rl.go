@@ -102,10 +102,14 @@ func (a *Agent) LearnNonFinalState(previousBoard, currentBoard *game.Board) {
 	a.numTrainings++
 }
 
-func (a *Agent) LearnFinal(preWinningMoveBoard *game.Board, rewardForNextState game.WinKind) {
+func (a *Agent) LearnFinal(preWinningMoveBoard, boardInWonState *game.Board, rewardForNextState game.WinKind) {
 	actualReward := float32(rewardForNextState)
 	previousStateHeroPOV := state.DetectState(a.player, preWinningMoveBoard)
 
 	a.totalVarianceAcrossAllTrainings += nnet.TrainWeights(a.game.ID, previousStateHeroPOV, actualReward)
+	a.numTrainings++
+
+	losingStateEnemyPOV := state.DetectState(a.player.Enemy(), boardInWonState)
+	a.totalVarianceAcrossAllTrainings += nnet.TrainWeights(a.game.ID, losingStateEnemyPOV, -actualReward)
 	a.numTrainings++
 }

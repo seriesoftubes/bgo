@@ -29,7 +29,7 @@ const (
 )
 
 var (
-	totalGamesToPlayPtr = flag.Uint64("total_games_to_play", 5000, "The total number of games to play across all goroutines")
+	totalGamesToPlayPtr = flag.Uint64("total_games_to_play", 7*60000, "The total number of games to play across all goroutines")
 	numGoroutinesPtr    = flag.Uint64("goroutines", uint64(runtime.NumCPU()/2), "The number of goroutines to run on")
 	epsilonPtr          = flag.Float64("epsilon", 1.0, "The chance (number between 0 and 1.0) that an agent picks a random move instead of an optimal one")
 	inFilePathPtr       = flag.String("config_infile", "", "The file that contains the initial neural net config")
@@ -268,6 +268,9 @@ func (pt *pokemodelTrainer) readCommands(doneChan chan bool) {
 		var rawCmd string
 		fmt.Scanln(&rawCmd)
 		cmd := strings.ToLower(strings.TrimSpace(rawCmd))
+		if cmd == "" {
+			continue
+		}
 
 		cmdWasToRepeatPreviousCommand := cmd == "d" || cmd == "r"
 		if cmdWasToRepeatPreviousCommand {
@@ -313,9 +316,8 @@ func (pt *pokemodelTrainer) train(numGoroutines, gamesToPlayPerGoroutine uint64)
 	go pt.readCommands(doneChan)
 
 	var wg sync.WaitGroup
+	wg.Add(int(numGoroutines))
 	for i := uint64(0); i < numGoroutines; i++ {
-		wg.Add(1)
-
 		go func() {
 			mgr := ctrl.New(false)
 			for j := uint64(0); j < gamesToPlayPerGoroutine; j++ {

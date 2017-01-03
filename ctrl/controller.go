@@ -129,12 +129,12 @@ func (gc *GameController) playOneTurn() bool {
 	gc.maybePrint(msgChoseMove, chosenTurn)
 
 	gc.prevBoard = currentBoard
-	gc.g.Board.MustExecuteTurn(chosenTurn, gc.debug)
-	winner, winAmt := gc.g.Board.Winner(), gc.g.Board.WinKind()
+	g.Board.MustExecuteTurn(chosenTurn, gc.debug)
+	winner, winAmt := g.Board.Winner(), g.Board.WinKind()
 
 	if winner != 0 {
 		if isComputer { // special case: a computer won, and they need to learn from that without having to re-run this playOneTurn method.
-			gc.agent.LearnFinal(currentBoard, winAmt) // The `currentBoard` variable still reflects the state before the turn was executed.
+			gc.agent.LearnFinal(currentBoard, g.Board, winAmt) // The `currentBoard` variable still reflects the state before the turn was executed.
 		}
 		return true
 	} else {
