@@ -37,11 +37,15 @@ func DeserializeTurn(s string) (Turn, error) {
 	if len(moveStrings) < 2 {
 		return nil, fmt.Errorf("invalid format of serialized turn %q", s)
 	}
+	playerString := moveStrings[0]
+	if len(playerString) != 1 {
+		return nil, fmt.Errorf("invalid format of serialized turn %q", s)
+	}
 
 	var p plyr.Player
-	if plyr.Player(moveStrings[0][0]) == plyr.PCC {
+	if plyr.Player(playerString[0]) == plyr.PCC {
 		p = plyr.PCC
-	} else if plyr.Player(moveStrings[0][0]) == plyr.PC {
+	} else if plyr.Player(playerString[0]) == plyr.PC {
 		p = plyr.PC
 	} else {
 		return nil, fmt.Errorf("invalid player in serialized turn %q", s)

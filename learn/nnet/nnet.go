@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	bias                 = float32(3.0)           // If you change the bias, saved weights will be erroneous and you need to retrain the network.
+	bias                 = float32(1.8)           // If you change the bias, saved weights will be erroneous and you need to retrain the network.
 	numInputs            = len(state.State{}) + 1 // The `+1` is for the artificially-added bias.
 	numIn2FhConnections  = numInputs * numInputs  // the "FH" aka firsthidden layer is fully-connected with all inputs.
 	numFhNodes           = numInputs + 1          // the "FH" layer has 1 node per input, plus one more bias.
@@ -27,7 +27,7 @@ const (
 var (
 	// TODO: automatically skip modifying certain weights to keep it closer to "all else equal".
 	learningRate         = float32(0.00001)
-	eligibilityDecayRate = float32(0.9)
+	eligibilityDecayRate = float32(0.95)
 	configMu             sync.RWMutex
 
 	maxConcurrentGames int = runtime.NumCPU() * 2 // Assume a max of 2 goroutines training per CPU. This variable would be a const but that caused a compiler error.
@@ -180,13 +180,13 @@ func ValueEstimate(st state.State) (float32, [numFhNodes]float32) {
 		fhNodeSum += bias * my_in2fhWeights[in2fhWeightIndex]
 		in2fhWeightIndex++
 
-		fhNodePostVal := sigmoid(fhNodeSum)
+		fhNodePostVal := tanh(fhNodeSum)
 		fhNodePostVals[fhNodeIdx] = fhNodePostVal
 		estimate += fhNodePostVal * my_fh2outWeights[fhNodeIdx]
 	}
 	// Now we artificially add a bias node to the FH layer:
 	fhNodeSum := bias
-	fhNodePostVal := sigmoid(fhNodeSum)
+	fhNodePostVal := tanh(fhNodeSum)
 	fhNodePostVals[fhNodeIdx] = fhNodePostVal
 	estimate += fhNodePostVal * my_fh2outWeights[fhNodeIdx]
 
@@ -328,9 +328,9 @@ func weightGradients(st state.State, target float32) (float32, [numFh2OutConnect
 		}
 		// From here down, we're talking about the incoming in2fh weights that connect to this FH node.
 
-		dEstimate_wrt_fhNodePostVal := my_fh2outWeights[fhNodeIdx]                                       // derive this wrt fhPostVal1: `estimate = (w1*fhPostVal1 + w2*fhPostVal2 + ...)`.
-		dFhNodePostVal_wrt_fhNodePreVal := dEstimate_wrt_fh2outWeight * (1 - dEstimate_wrt_fh2outWeight) // derivative of sigmoid(x) is: sigmoid(x) * (1 - sigmoid(x))
-		for _, dFhNodePreVal_wrt_in2fhWeight := range st {                                               // derive ths wrt w1: est = (w1*inp1 + w2*inp2 + ...)
+		dEstimate_wrt_fhNodePostVal := my_fh2outWeights[fhNodeIdx]                                   // derive this wrt fhPostVal1: `estimate = (w1*fhPostVal1 + w2*fhPostVal2 + ...)`.
+		dFhNodePostVal_wrt_fhNodePreVal := 1 - dEstimate_wrt_fh2outWeight*dEstimate_wrt_fh2outWeight // derivative of tanh(x) is: 1 - tanh(x)*tanh(x)
+		for _, dFhNodePreVal_wrt_in2fhWeight := range st {                                           // derive ths wrt w1: est = (w1*inp1 + w2*inp2 + ...)
 			dEstimate_wrt_in2fhWeight := dEstimate_wrt_fhNodePostVal * dFhNodePostVal_wrt_fhNodePreVal * dFhNodePreVal_wrt_in2fhWeight
 			in2fhWeightsGradient[in2fhWeightIndex] = dEstimate_wrt_in2fhWeight
 			in2fhWeightIndex++
@@ -346,6 +346,7 @@ func weightGradients(st state.State, target float32) (float32, [numFh2OutConnect
 }
 
 func sigmoid(x float32) float32 { return float32(1.0 / (1.0 + math.Exp(float64(-x)))) }
+func tanh(x float32) float32    { return float32(math.Tanh(float64(x))) }
 
 func recycleBigassArray(arrPtr *[numIn2FhConnections]float32) {
 	arr := *arrPtr

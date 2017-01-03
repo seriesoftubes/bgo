@@ -62,7 +62,7 @@ func newTrainer(configInFile, configOutFile string) *pokemodelTrainer {
 		configInFile:         configInFile,
 		configOutFile:        configOutFile,
 		varianceLogsFilePath: varianceLogsFilePath,
-		lrManager:            &learningRateManager{interval: 42000, multiplier: 0.25},
+		lrManager:            &learningRateManager{interval: 30000, multiplier: 0.25},
 	}
 }
 
@@ -296,6 +296,9 @@ func (pt *pokemodelTrainer) readCommands(doneChan chan bool) {
 			pt.onChangeLearningRateReducerMultiplierCmd(cmd)
 		} else if cmd == cmdHelp {
 			onHelpCmd()
+		} else {
+			fmt.Println("unrecognized command", cmd)
+			continue
 		}
 
 		if !cmdWasToRepeatPreviousCommand {
