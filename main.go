@@ -34,6 +34,7 @@ var (
 	epsilonPtr          = flag.Float64("epsilon", 1.0, "The chance (number between 0 and 1.0) that an agent picks a random move instead of an optimal one")
 	inFilePathPtr       = flag.String("config_infile", "", "The file that contains the initial neural net config")
 	outFilePathPtr      = flag.String("config_outfile", "", "The file that will contain the updated neural net config")
+	skipTraining        = flag.Bool("skip_training", false, "Whether to skip training.")
 )
 
 type (
@@ -344,9 +345,11 @@ func main() {
 
 	trainer := newTrainer(filePathFromFlag(inFilePathPtr), filePathFromFlag(outFilePathPtr))
 	trainer.loadNeuralNetwork()
-	trainer.train(*numGoroutinesPtr, *totalGamesToPlayPtr / *numGoroutinesPtr)
-	trainer.saveNeuralNetwork(true /* waitForWrites=true*/)
-	trainer.writeVarianceLogs(true /* waitForWrites=true*/)
+	if skipTraining == nil || !(*skipTraining) {
+		trainer.train(*numGoroutinesPtr, *totalGamesToPlayPtr / *numGoroutinesPtr)
+		trainer.saveNeuralNetwork(true /* waitForWrites=true*/)
+		trainer.writeVarianceLogs(true /* waitForWrites=true*/)
+	}
 
 	mgr := ctrl.New(true /* debug=true*/)
 	mgr.PlayOneGame(1, true /* stopLearning=true */)
