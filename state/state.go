@@ -8,7 +8,7 @@ import (
 
 const (
 	numVarsPerBoardPoint int = 12
-	numNonBoardPointVars int = 3
+	numNonBoardPointVars int = 6
 
 	lastPointIndex = int(constants.FINAL_BOARD_POINT_INDEX)
 )
@@ -23,8 +23,11 @@ func DetectState(p plyr.Player, b *game.Board) State {
 	if isPCC {
 		// HeroBar, EnemyBar, Hero-EnemyBar.
 		out[0], out[1], out[2] = float32(b.BarCC), float32(b.BarC), float32(b.BarCC-b.BarC)
+		// HeroOff, EnemyOff, Hero-EnemyOff
+		out[3], out[4], out[5] = float32(b.OffCC), float32(b.OffC), float32(b.OffCC-b.OffC)
 	} else {
 		out[0], out[1], out[2] = float32(b.BarC), float32(b.BarCC), float32(b.BarC-b.BarCC)
+		out[3], out[4], out[5] = float32(b.OffC), float32(b.OffCC), float32(b.OffC-b.OffCC)
 	}
 
 	for ptIdx, pt := range b.Points {
