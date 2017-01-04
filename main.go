@@ -110,7 +110,7 @@ func filePathFromFlag(fp *string) string {
 		if err != nil {
 			panic("could not get current OS user: " + err.Error())
 		}
-		return fmt.Sprintf("%s/Desktop/bgo_nnet.json", u.HomeDir)
+		return fmt.Sprintf("%s/Desktop/bgo/bgo_nnet.json", u.HomeDir)
 	}
 
 	return *fp
