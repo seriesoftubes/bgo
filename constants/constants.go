@@ -2,6 +2,7 @@
 package constants
 
 const (
+	NUM_PLAYERS                    = 2
 	NUM_POINTS_IN_HOME_BOARD uint8 = 6
 	NUM_BOARD_POINTS         uint8 = 24
 	FINAL_BOARD_POINT_INDEX        = NUM_BOARD_POINTS - 1

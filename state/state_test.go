@@ -35,345 +35,352 @@ func TestStartingBoard(t *testing.T) {
 
 	got := DetectState(plyr.PCC, b) // The "X" player.
 	want := State{
-		0.0, 0.0, 0.0, // HeroBar, EnemyBar, Hero-EnemyBar.
-		0.0, 0.0, 0.0, // HeroOff, EnemyOff, Hero-EnemyOff.
-		// Below here: from back to front, the points from "X"'s POV.
+		// Starting with player PCC (the hero)
 
-		// Point "a"
-		1.0,  // ownerStatus
-		0.0,  // numBeyond2
-		1.0,  // isSecured
-		0.0,  // oppositeDiff
-		15.0, // numEnemyChexInFront
-		0.0,  // distToClosestEnemyBlotPoint
-		5.0,  // distToClosestEnemySecuredPoint
-		1.0,  // ownerStatus * isSecured
-		0.0,  // ownerStatus * numBeyond2
-		15.0, // ownerStatus * numEnemyChexInFront
-		0.0,  // ownerStatus * distToClosestEnemyBlotPoint
-		5.0,  // ownerStatus * distToClosestEnemySecuredPoint
+		0.0, // BarChex / 2.0
+		0.0, // BearedOff%
+		// From here on down, for the current iteration's player (first iteration is hero, 2nd is enemy), the player-owned chex count for the point.
+		// Point "a"  2
+		1.0, // has 1 checker
+		1.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "b"  8
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "c"  14
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "d"  20
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "e"  26
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "f"  32
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "g"  38
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "h"  44
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "i"  50
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "j"  56
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "k"  62
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "l"  68
+		1.0, // has 1 checker
+		1.0, // has 2 checkers
+		1.0, // has 3 chex
+		1.0, // has 4 chex
+		1.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "m"  74
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "n"  80
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "o"  86
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "p"  92
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "q"  98
+		1.0, // has 1 checker
+		1.0, // has 2 checkers
+		1.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "r"  104
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "s"  110
+		1.0, // has 1 checker
+		1.0, // has 2 checkers
+		1.0, // has 3 chex
+		1.0, // has 4 chex
+		1.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "t"  116
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "u"  122
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "v"  128
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "w"  134
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "x"  140
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
 
-		// Point "b"
-		0.0,  // ownerStatus
-		-2.0, // numBeyond2
-		0.0,  // isSecured
-		0.0,  // oppositeDiff
-		15.0, // numEnemyChexInFront
-		0.0,  // distToClosestEnemyBlotPoint
-		4.0,  // distToClosestEnemySecuredPoint
-		0.0,  // ownerStatus * isSecured
-		0.0,  // ownerStatus * numBeyond2
-		0.0,  // ownerStatus * numEnemyChexInFront
-		0.0,  // ownerStatus * distToClosestEnemyBlotPoint
-		0.0,  // ownerStatus * distToClosestEnemySecuredPoint
-
-		// Point "c"
-		0.0,  // ownerStatus
-		-2.0, // numBeyond2
-		0.0,  // isSecured
-		0.0,  // oppositeDiff
-		15.0, // numEnemyChexInFront
-		0.0,  // distToClosestEnemyBlotPoint
-		3.0,  // distToClosestEnemySecuredPoint
-		0.0,  // ownerStatus * isSecured
-		0.0,  // ownerStatus * numBeyond2
-		0.0,  // ownerStatus * numEnemyChexInFront
-		0.0,  // ownerStatus * distToClosestEnemyBlotPoint
-		0.0,  // ownerStatus * distToClosestEnemySecuredPoint
-
-		// Point "d"
-		0.0,  // ownerStatus
-		-2.0, // numBeyond2
-		0.0,  // isSecured
-		0.0,  // oppositeDiff
-		15.0, // numEnemyChexInFront
-		0.0,  // distToClosestEnemyBlotPoint
-		2.0,  // distToClosestEnemySecuredPoint
-		0.0,  // ownerStatus * isSecured
-		0.0,  // ownerStatus * numBeyond2
-		0.0,  // ownerStatus * numEnemyChexInFront
-		0.0,  // ownerStatus * distToClosestEnemyBlotPoint
-		0.0,  // ownerStatus * distToClosestEnemySecuredPoint
-
-		// Point "e"
-		0.0,  // ownerStatus
-		-2.0, // numBeyond2
-		0.0,  // isSecured
-		0.0,  // oppositeDiff
-		15.0, // numEnemyChexInFront
-		0.0,  // distToClosestEnemyBlotPoint
-		1.0,  // distToClosestEnemySecuredPoint
-		0.0,  // ownerStatus * isSecured
-		0.0,  // ownerStatus * numBeyond2
-		0.0,  // ownerStatus * numEnemyChexInFront
-		0.0,  // ownerStatus * distToClosestEnemyBlotPoint
-		0.0,  // ownerStatus * distToClosestEnemySecuredPoint
-
-		// Point "f"
-		-1.0,  // ownerStatus
-		3.0,   // numBeyond2
-		1.0,   // isSecured
-		0.0,   // oppositeDiff
-		10.0,  // numEnemyChexInFront
-		0.0,   // distToClosestEnemyBlotPoint
-		2.0,   // distToClosestEnemySecuredPoint
-		-1.0,  // ownerStatus * isSecured
-		-3.0,  // ownerStatus * numBeyond2
-		-10.0, // ownerStatus * numEnemyChexInFront
-		0.0,   // ownerStatus * distToClosestEnemyBlotPoint
-		-2.0,  // ownerStatus * distToClosestEnemySecuredPoint
-
+		// Now onto the enemy player, PC aka "O".  146
+		0.0, // BarChex / 2.0
+		0.0, // BearedOff%
+		// From here on down, for the current iteration's player (first iteration is hero, 2nd is enemy), the player-owned chex count for the point.
+		// Point "a"  148
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "b"  154
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "c"  160
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "d"  166
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "e"  172
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
+		// Point "f"  178
+		1.0, // has 1 checker
+		1.0, // has 2 checkers
+		1.0, // has 3 chex
+		1.0, // has 4 chex
+		1.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
 		// Point "g"
-		0.0,  // ownerStatus
-		-2.0, // numBeyond2
-		0.0,  // isSecured
-		0.0,  // oppositeDiff
-		10.0, // numEnemyChexInFront
-		0.0,  // distToClosestEnemyBlotPoint
-		1.0,  // distToClosestEnemySecuredPoint
-		0.0,  // ownerStatus * isSecured
-		0.0,  // ownerStatus * numBeyond2
-		0.0,  // ownerStatus * numEnemyChexInFront
-		0.0,  // ownerStatus * distToClosestEnemyBlotPoint
-		0.0,  // ownerStatus * distToClosestEnemySecuredPoint
-
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
 		// Point "h"
-		-1.0, // ownerStatus
-		1.0,  // numBeyond2
-		1.0,  // isSecured
-		0.0,  // oppositeDiff
-		7.0,  // numEnemyChexInFront
-		0.0,  // distToClosestEnemyBlotPoint
-		5.0,  // distToClosestEnemySecuredPoint
-		-1.0, // ownerStatus * isSecured
-		-1.0, // ownerStatus * numBeyond2
-		-7.0, // ownerStatus * numEnemyChexInFront
-		0.0,  // ownerStatus * distToClosestEnemyBlotPoint
-		-5.0, // ownerStatus * distToClosestEnemySecuredPoint
-
+		1.0, // has 1 checker
+		1.0, // has 2 checkers
+		1.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
 		// Point "i"
-		0.0,  // ownerStatus
-		-2.0, // numBeyond2
-		0.0,  // isSecured
-		0.0,  // oppositeDiff
-		7.0,  // numEnemyChexInFront
-		0.0,  // distToClosestEnemyBlotPoint
-		4.0,  // distToClosestEnemySecuredPoint
-		0.0,  // ownerStatus * isSecured
-		0.0,  // ownerStatus * numBeyond2
-		0.0,  // ownerStatus * numEnemyChexInFront
-		0.0,  // ownerStatus * distToClosestEnemyBlotPoint
-		0.0,  // ownerStatus * distToClosestEnemySecuredPoint
-
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
 		// Point "j"
-		0.0,  // ownerStatus
-		-2.0, // numBeyond2
-		0.0,  // isSecured
-		0.0,  // oppositeDiff
-		7.0,  // numEnemyChexInFront
-		0.0,  // distToClosestEnemyBlotPoint
-		3.0,  // distToClosestEnemySecuredPoint
-		0.0,  // ownerStatus * isSecured
-		0.0,  // ownerStatus * numBeyond2
-		0.0,  // ownerStatus * numEnemyChexInFront
-		0.0,  // ownerStatus * distToClosestEnemyBlotPoint
-		0.0,  // ownerStatus * distToClosestEnemySecuredPoint
-
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
 		// Point "k"
-		0.0,  // ownerStatus
-		-2.0, // numBeyond2
-		0.0,  // isSecured
-		0.0,  // oppositeDiff
-		7.0,  // numEnemyChexInFront
-		0.0,  // distToClosestEnemyBlotPoint
-		2.0,  // distToClosestEnemySecuredPoint
-		0.0,  // ownerStatus * isSecured
-		0.0,  // ownerStatus * numBeyond2
-		0.0,  // ownerStatus * numEnemyChexInFront
-		0.0,  // ownerStatus * distToClosestEnemyBlotPoint
-		0.0,  // ownerStatus * distToClosestEnemySecuredPoint
-
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
 		// Point "l"
-		1.0, // ownerStatus
-		3.0, // numBeyond2
-		1.0, // isSecured
-		0.0, // oppositeDiff
-		7.0, // numEnemyChexInFront
-		0.0, // distToClosestEnemyBlotPoint
-		1.0, // distToClosestEnemySecuredPoint
-		1.0, // ownerStatus * isSecured
-		3.0, // ownerStatus * numBeyond2
-		7.0, // ownerStatus * numEnemyChexInFront
-		0.0, // ownerStatus * distToClosestEnemyBlotPoint
-		1.0, // ownerStatus * distToClosestEnemySecuredPoint
-
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
 		// Point "m"
-		-1.0,  // ownerStatus
-		3.0,   // numBeyond2
-		1.0,   // isSecured
-		0.0,   // oppositeDiff
-		2.0,   // numEnemyChexInFront
-		0.0,   // distToClosestEnemyBlotPoint
-		11.0,  // distToClosestEnemySecuredPoint
-		-1.0,  // ownerStatus * isSecured
-		-3.0,  // ownerStatus * numBeyond2
-		-2.0,  // ownerStatus * numEnemyChexInFront
-		0.0,   // ownerStatus * distToClosestEnemyBlotPoint
-		-11.0, // ownerStatus * distToClosestEnemySecuredPoint
-
+		1.0, // has 1 checker
+		1.0, // has 2 checkers
+		1.0, // has 3 chex
+		1.0, // has 4 chex
+		1.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
 		// Point "n"
-		0.0,  // ownerStatus
-		-2.0, // numBeyond2
-		0.0,  // isSecured
-		0.0,  // oppositeDiff
-		2.0,  // numEnemyChexInFront
-		0.0,  // distToClosestEnemyBlotPoint
-		10.0, // distToClosestEnemySecuredPoint
-		0.0,  // ownerStatus * isSecured
-		0.0,  // ownerStatus * numBeyond2
-		0.0,  // ownerStatus * numEnemyChexInFront
-		0.0,  // ownerStatus * distToClosestEnemyBlotPoint
-		0.0,  // ownerStatus * distToClosestEnemySecuredPoint
-
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
 		// Point "o"
-		0.0,  // ownerStatus
-		-2.0, // numBeyond2
-		0.0,  // isSecured
-		0.0,  // oppositeDiff
-		2.0,  // numEnemyChexInFront
-		0.0,  // distToClosestEnemyBlotPoint
-		9.0,  // distToClosestEnemySecuredPoint
-		0.0,  // ownerStatus * isSecured
-		0.0,  // ownerStatus * numBeyond2
-		0.0,  // ownerStatus * numEnemyChexInFront
-		0.0,  // ownerStatus * distToClosestEnemyBlotPoint
-		0.0,  // ownerStatus * distToClosestEnemySecuredPoint
-
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
 		// Point "p"
-		0.0,  // ownerStatus
-		-2.0, // numBeyond2
-		0.0,  // isSecured
-		0.0,  // oppositeDiff
-		2.0,  // numEnemyChexInFront
-		0.0,  // distToClosestEnemyBlotPoint
-		8.0,  // distToClosestEnemySecuredPoint
-		0.0,  // ownerStatus * isSecured
-		0.0,  // ownerStatus * numBeyond2
-		0.0,  // ownerStatus * numEnemyChexInFront
-		0.0,  // ownerStatus * distToClosestEnemyBlotPoint
-		0.0,  // ownerStatus * distToClosestEnemySecuredPoint
-
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
 		// Point "q"
-		1.0, // ownerStatus
-		1.0, // numBeyond2
-		1.0, // isSecured
-		0.0, // oppositeDiff
-		2.0, // numEnemyChexInFront
-		0.0, // distToClosestEnemyBlotPoint
-		7.0, // distToClosestEnemySecuredPoint
-		1.0, // ownerStatus * isSecured
-		1.0, // ownerStatus * numBeyond2
-		2.0, // ownerStatus * numEnemyChexInFront
-		0.0, // ownerStatus * distToClosestEnemyBlotPoint
-		7.0, // ownerStatus * distToClosestEnemySecuredPoint
-
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
 		// Point "r"
-		0.0,  // ownerStatus
-		-2.0, // numBeyond2
-		0.0,  // isSecured
-		0.0,  // oppositeDiff
-		2.0,  // numEnemyChexInFront
-		0.0,  // distToClosestEnemyBlotPoint
-		6.0,  // distToClosestEnemySecuredPoint
-		0.0,  // ownerStatus * isSecured
-		0.0,  // ownerStatus * numBeyond2
-		0.0,  // ownerStatus * numEnemyChexInFront
-		0.0,  // ownerStatus * distToClosestEnemyBlotPoint
-		0.0,  // ownerStatus * distToClosestEnemySecuredPoint
-
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
 		// Point "s"
-		1.0, // ownerStatus
-		3.0, // numBeyond2
-		1.0, // isSecured
-		0.0, // oppositeDiff
-		2.0, // numEnemyChexInFront
-		0.0, // distToClosestEnemyBlotPoint
-		5.0, // distToClosestEnemySecuredPoint
-		1.0, // ownerStatus * isSecured
-		3.0, // ownerStatus * numBeyond2
-		2.0, // ownerStatus * numEnemyChexInFront
-		0.0, // ownerStatus * distToClosestEnemyBlotPoint
-		5.0, // ownerStatus * distToClosestEnemySecuredPoint
-
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
 		// Point "t"
-		0.0,  // ownerStatus
-		-2.0, // numBeyond2
-		0.0,  // isSecured
-		0.0,  // oppositeDiff
-		2.0,  // numEnemyChexInFront
-		0.0,  // distToClosestEnemyBlotPoint
-		4.0,  // distToClosestEnemySecuredPoint
-		0.0,  // ownerStatus * isSecured
-		0.0,  // ownerStatus * numBeyond2
-		0.0,  // ownerStatus * numEnemyChexInFront
-		0.0,  // ownerStatus * distToClosestEnemyBlotPoint
-		0.0,  // ownerStatus * distToClosestEnemySecuredPoint
-
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
 		// Point "u"
-		0.0,  // ownerStatus
-		-2.0, // numBeyond2
-		0.0,  // isSecured
-		0.0,  // oppositeDiff
-		2.0,  // numEnemyChexInFront
-		0.0,  // distToClosestEnemyBlotPoint
-		3.0,  // distToClosestEnemySecuredPoint
-		0.0,  // ownerStatus * isSecured
-		0.0,  // ownerStatus * numBeyond2
-		0.0,  // ownerStatus * numEnemyChexInFront
-		0.0,  // ownerStatus * distToClosestEnemyBlotPoint
-		0.0,  // ownerStatus * distToClosestEnemySecuredPoint
-
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
 		// Point "v"
-		0.0,  // ownerStatus
-		-2.0, // numBeyond2
-		0.0,  // isSecured
-		0.0,  // oppositeDiff
-		2.0,  // numEnemyChexInFront
-		0.0,  // distToClosestEnemyBlotPoint
-		2.0,  // distToClosestEnemySecuredPoint
-		0.0,  // ownerStatus * isSecured
-		0.0,  // ownerStatus * numBeyond2
-		0.0,  // ownerStatus * numEnemyChexInFront
-		0.0,  // ownerStatus * distToClosestEnemyBlotPoint
-		0.0,  // ownerStatus * distToClosestEnemySecuredPoint
-
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
 		// Point "w"
-		0.0,  // ownerStatus
-		-2.0, // numBeyond2
-		0.0,  // isSecured
-		0.0,  // oppositeDiff
-		2.0,  // numEnemyChexInFront
-		0.0,  // distToClosestEnemyBlotPoint
-		1.0,  // distToClosestEnemySecuredPoint
-		0.0,  // ownerStatus * isSecured
-		0.0,  // ownerStatus * numBeyond2
-		0.0,  // ownerStatus * numEnemyChexInFront
-		0.0,  // ownerStatus * distToClosestEnemyBlotPoint
-		0.0,  // ownerStatus * distToClosestEnemySecuredPoint
-
+		0.0, // has 1 checker
+		0.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
 		// Point "x"
-		-1.0, // ownerStatus
-		0.0,  // numBeyond2
-		1.0,  // isSecured
-		0.0,  // oppositeDiff
-		0.0,  // numEnemyChexInFront
-		0.0,  // distToClosestEnemyBlotPoint
-		0.0,  // distToClosestEnemySecuredPoint
-		-1.0, // ownerStatus * isSecured
-		0.0,  // ownerStatus * numBeyond2
-		0.0,  // ownerStatus * numEnemyChexInFront
-		0.0,  // ownerStatus * distToClosestEnemyBlotPoint
-		0.0,  // ownerStatus * distToClosestEnemySecuredPoint
+		1.0, // has 1 checker
+		1.0, // has 2 checkers
+		0.0, // has 3 chex
+		0.0, // has 4 chex
+		0.0, // has 5 chex
+		0.0, // has 6 chex + num beyond 6
 	}
 
 	if !reflect.DeepEqual(got, want) {

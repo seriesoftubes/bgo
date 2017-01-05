@@ -7,101 +7,57 @@ import (
 )
 
 const (
-	numVarsPerBoardPoint int = 12
-	numNonBoardPointVars int = 6
+	numVarsPerBoardPoint int = 6
+	numNonBoardPointVars int = 2
+	stateLength              = constants.NUM_PLAYERS * (numNonBoardPointVars + int(constants.NUM_BOARD_POINTS)*numVarsPerBoardPoint)
 
 	lastPointIndex = int(constants.FINAL_BOARD_POINT_INDEX)
 )
 
-type State [int(constants.NUM_BOARD_POINTS)*numVarsPerBoardPoint + numNonBoardPointVars]float32
+type State [stateLength]float32
 
 // DetectState detects the current state of the game.
 func DetectState(p plyr.Player, b *game.Board) State {
-	var out State
-
 	isPCC := p == plyr.PCC
-	if isPCC {
-		// HeroBar, EnemyBar, Hero-EnemyBar.
-		out[0], out[1], out[2] = float32(b.BarCC), float32(b.BarC), float32(b.BarCC-b.BarC)
-		// HeroOff, EnemyOff, Hero-EnemyOff
-		out[3], out[4], out[5] = float32(b.OffCC), float32(b.OffC), float32(b.OffCC-b.OffC)
-	} else {
-		out[0], out[1], out[2] = float32(b.BarC), float32(b.BarCC), float32(b.BarC-b.BarCC)
-		out[3], out[4], out[5] = float32(b.OffC), float32(b.OffCC), float32(b.OffC-b.OffCC)
-	}
-
-	for ptIdx, pt := range b.Points {
-		chex := pt.NumCheckers
-		// fill them in order of distance from enemy home. so PCC starts as normal
-		translatedPtIdx := lastPointIndex - ptIdx
+	slice := make([]float32, 0, stateLength)
+	for _, player := range []plyr.Player{p, p.Enemy()} {
+		barChex, offChex := float32(b.BarC), float32(b.OffC)
 		if isPCC {
-			translatedPtIdx = ptIdx
+			barChex, offChex = float32(b.BarCC), float32(b.OffCC)
 		}
-		// the first index in the out array that is relevant to the current boardpoint.
-		outIdx := numNonBoardPointVars + (translatedPtIdx * numVarsPerBoardPoint)
+		slice = append(slice, barChex/float32(2.0), offChex/float32(constants.NUM_CHECKERS_PER_PLAYER))
 
-		var ownerStatus float32
-		if pt.Owner == p {
-			ownerStatus = 1.0
-		} else if pt.Owner != 0 {
-			ownerStatus = -1.0
-		}
-		out[outIdx+0] = ownerStatus
-
-		numBeyond2 := float32(pt.NumCheckers) - 2.0
-		out[outIdx+1] = numBeyond2
-
-		var isSecured float32
-		if numBeyond2 >= 0 {
-			isSecured = 1.0
-		}
-		out[outIdx+2] = isSecured
-
-		oppositeDiff := float32(chex - b.Points[constants.FINAL_BOARD_POINT_INDEX-uint8(ptIdx)].NumCheckers)
-		out[outIdx+3] = oppositeDiff
-
-		lookaheadDist := int(1)
-		var hasBlotDist, hasSecuredDist bool
-		var numEnemyChexInFront, distToClosestEnemyBlotPoint, distToClosestEnemySecuredPoint float32
 		if isPCC {
-			for forwardPtIdx := ptIdx + lookaheadDist; forwardPtIdx < int(constants.NUM_BOARD_POINTS); forwardPtIdx++ {
-				if fpt := b.Points[forwardPtIdx]; fpt.Owner == plyr.PC {
-					numEnemyChexInFront += float32(fpt.NumCheckers)
-					if !hasBlotDist && fpt.NumCheckers == 1 {
-						distToClosestEnemyBlotPoint = float32(lookaheadDist)
-						hasBlotDist = true
-					}
-					if !hasSecuredDist && fpt.NumCheckers > 1 {
-						distToClosestEnemySecuredPoint = float32(lookaheadDist)
-						hasSecuredDist = true
-					}
-				}
-				lookaheadDist++
+			for i := 0; i <= lastPointIndex; i++ {
+				slice = append(slice, descPoint(b.Points[i], player)...)
 			}
 		} else {
-			for forwardPtIdx := ptIdx - lookaheadDist; forwardPtIdx >= 0; forwardPtIdx-- {
-				if fpt := b.Points[forwardPtIdx]; fpt.Owner == plyr.PCC {
-					numEnemyChexInFront += float32(fpt.NumCheckers)
-					if !hasBlotDist && fpt.NumCheckers == 1 {
-						distToClosestEnemyBlotPoint = float32(lookaheadDist)
-						hasBlotDist = true
-					}
-					if !hasSecuredDist && fpt.NumCheckers > 1 {
-						distToClosestEnemySecuredPoint = float32(lookaheadDist)
-						hasSecuredDist = true
-					}
-				}
-				lookaheadDist++
+			for i := lastPointIndex; i >= 0; i-- {
+				slice = append(slice, descPoint(b.Points[i], player)...)
 			}
 		}
-		out[outIdx+4] = numEnemyChexInFront
-		out[outIdx+5] = distToClosestEnemyBlotPoint
-		out[outIdx+6] = distToClosestEnemySecuredPoint
-		out[outIdx+7] = ownerStatus * isSecured
-		out[outIdx+8] = ownerStatus * numBeyond2
-		out[outIdx+9] = ownerStatus * numEnemyChexInFront
-		out[outIdx+10] = ownerStatus * distToClosestEnemyBlotPoint
-		out[outIdx+11] = ownerStatus * distToClosestEnemySecuredPoint
+	}
+
+	var out State
+	for i, v := range slice {
+		out[i] = v
 	}
 	return out
+}
+
+func descPoint(pt *game.BoardPoint, supposedOwner plyr.Player) []float32 {
+	subslice := make([]float32, numVarsPerBoardPoint)
+
+	if pt.Owner != supposedOwner {
+		return subslice
+	}
+
+	for ct := uint8(0); ct < pt.NumCheckers; ct++ {
+		ssIdx := int(ct)
+		if ssIdx >= numVarsPerBoardPoint {
+			ssIdx = numVarsPerBoardPoint - 1
+		}
+		subslice[ssIdx]++
+	}
+	return subslice
 }
