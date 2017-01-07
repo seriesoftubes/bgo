@@ -12,6 +12,8 @@ const (
 	stateLength              = constants.NUM_PLAYERS * (numNonBoardPointVars + int(constants.NUM_BOARD_POINTS)*numVarsPerBoardPoint)
 
 	lastPointIndex = int(constants.FINAL_BOARD_POINT_INDEX)
+
+	tinyIncrement = float32(0.01)
 )
 
 type State [stateLength]float32
@@ -25,7 +27,11 @@ func DetectState(p plyr.Player, b *game.Board) State {
 		if isPCC {
 			barChex, offChex = float32(b.BarCC), float32(b.OffCC)
 		}
-		slice = append(slice, barChex/float32(2.0), offChex/float32(constants.NUM_CHECKERS_PER_PLAYER))
+		onChex := float32(constants.NUM_CHECKERS_PER_PLAYER) - offChex
+		slice = append(slice,
+			barChex/float32(2.0),
+			offChex/(onChex+tinyIncrement),
+		)
 
 		if isPCC {
 			for i := 0; i <= lastPointIndex; i++ {
