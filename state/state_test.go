@@ -35,6 +35,8 @@ func TestStartingBoard(t *testing.T) {
 
 	got := DetectState(plyr.PCC, b) // The "X" player.
 	want := State{
+		0.0, // isRace
+
 		// Starting with player PCC (the hero)
 
 		0.0, // BarChex / 2.0

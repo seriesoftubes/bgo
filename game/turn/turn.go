@@ -52,6 +52,10 @@ func DeserializeTurn(s string) (Turn, error) {
 	}
 
 	for _, moveString := range moveStrings[1:len(moveStrings)] {
+		if len(moveString) != 2 {
+			return nil, fmt.Errorf("invalid part %q of serialized turn %q", moveString, s)
+		}
+
 		letter := moveString[0]
 		dist, err := strconv.Atoi(string(moveString[1]))
 		distUint8 := uint8(dist)
