@@ -7,9 +7,11 @@ import (
 )
 
 const (
-	numVarsPerBoardPoint int = 6
-	numNonBoardPointVars int = 2
-	stateLength              = constants.NUM_PLAYERS * (numNonBoardPointVars + int(constants.NUM_BOARD_POINTS)*numVarsPerBoardPoint)
+	numBoardPointVarsForNonCheckerCounts = 0
+	numBoardPointVarsForCheckerCounts    = 6 // 1c, 2c, 3c, 4c, 5c, 6+c
+	numVarsPerBoardPoint                 = numBoardPointVarsForNonCheckerCounts + numBoardPointVarsForCheckerCounts
+	numNonBoardPointVars                 = 2
+	stateLength                          = constants.NUM_PLAYERS * (numNonBoardPointVars + int(constants.NUM_BOARD_POINTS)*numVarsPerBoardPoint)
 
 	lastPointIndex = int(constants.FINAL_BOARD_POINT_INDEX)
 
@@ -54,16 +56,17 @@ func DetectState(p plyr.Player, b *game.Board) State {
 func descPoint(pt *game.BoardPoint, supposedOwner plyr.Player) []float32 {
 	subslice := make([]float32, numVarsPerBoardPoint)
 
-	if pt.Owner != supposedOwner {
+	if pt.Owner != supposedOwner { // we only ever want to describe a point owned by the currently analyzed player.
 		return subslice
 	}
 
-	for ct := uint8(0); ct < pt.NumCheckers; ct++ {
-		ssIdx := int(ct)
-		if ssIdx >= numVarsPerBoardPoint {
-			ssIdx = numVarsPerBoardPoint - 1
+	for ct := uint8(1); ct <= pt.NumCheckers; ct++ {
+		cappedCt := int(ct)
+		if cappedCt > numBoardPointVarsForCheckerCounts {
+			cappedCt = numBoardPointVarsForCheckerCounts
 		}
-		subslice[ssIdx]++
+		subslice[cappedCt-1]++
 	}
+
 	return subslice
 }
