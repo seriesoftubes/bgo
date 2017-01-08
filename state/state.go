@@ -66,15 +66,15 @@ func DetectState(p plyr.Player, b *game.Board) State {
 
 func isRace(b *game.Board) float32 {
 	// loop thru points. if you see. PCC -> PC -> PCC, or PC -> PCC -> PC, it's not a race.
-	var numPlayerTransitions uint8
+	var hasSwitched bool
 	var currentPlayer plyr.Player
 	for _, pt := range b.Points {
 		if p := pt.Owner; p != 0 {
 			if currentPlayer != 0 && currentPlayer != p {
-				numPlayerTransitions++
-				if numPlayerTransitions > 2 {
+				if hasSwitched {
 					return 0.0
 				}
+				hasSwitched = true
 			}
 			currentPlayer = p
 		}
