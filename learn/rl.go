@@ -66,13 +66,17 @@ func (a *Agent) EpsilonGreedyAction(b *game.Board, validTurnsForState map[turn.T
 		panic("should have prevented this function from being called!")
 	}
 
-	// Use 1-ply lookahead to get the best turn. TODO: use 3-ply.
+	return bestTurnOnePly(b, validTurnsForState, a.player)
+}
+
+func bestTurnOnePly(b *game.Board, bvt map[turn.TurnArray]turn.Turn, p plyr.Player) turn.Turn {
 	var bestTurn turn.Turn
+	enemy := p.Enemy()
 	worstValForEnemy := float32(3e38)
-	for _, t := range validTurnsForState {
+	for _, t := range bvt {
 		bcop := b.Copy()
 		bcop.MustExecuteTurn(t, false)
-		if val, _ := nnet.ValueEstimate(state.DetectState(a.player.Enemy(), bcop)); val < worstValForEnemy {
+		if val, _ := nnet.ValueEstimate(state.DetectState(enemy, bcop)); val < worstValForEnemy {
 			worstValForEnemy = val
 			bestTurn = t
 		}
