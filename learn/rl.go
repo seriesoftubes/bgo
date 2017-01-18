@@ -27,6 +27,21 @@ func NewAgent(epsilon float32) *Agent {
 	return &Agent{epsilon: epsilon}
 }
 
+func bestTurnOnePly(b *game.Board, bvt map[turn.TurnArray]turn.Turn, p plyr.Player) turn.Turn {
+	var bestTurn turn.Turn
+	enemy := p.Enemy()
+	worstValForEnemy := float32(3e38)
+	for _, t := range bvt {
+		bcop := b.Copy()
+		bcop.MustExecuteTurn(t, false)
+		if val, _ := nnet.ValueEstimate(state.DetectState(enemy, bcop)); val < worstValForEnemy {
+			worstValForEnemy = val
+			bestTurn = t
+		}
+	}
+	return bestTurn
+}
+
 func (a *Agent) WaitForStats() { a.statsWG.Wait() }
 
 func (a *Agent) SetPlayer(p plyr.Player) {
@@ -67,21 +82,6 @@ func (a *Agent) EpsilonGreedyAction(b *game.Board, validTurnsForState map[turn.T
 	}
 
 	return bestTurnOnePly(b, validTurnsForState, a.player)
-}
-
-func bestTurnOnePly(b *game.Board, bvt map[turn.TurnArray]turn.Turn, p plyr.Player) turn.Turn {
-	var bestTurn turn.Turn
-	enemy := p.Enemy()
-	worstValForEnemy := float32(3e38)
-	for _, t := range bvt {
-		bcop := b.Copy()
-		bcop.MustExecuteTurn(t, false)
-		if val, _ := nnet.ValueEstimate(state.DetectState(enemy, bcop)); val < worstValForEnemy {
-			worstValForEnemy = val
-			bestTurn = t
-		}
-	}
-	return bestTurn
 }
 
 func (a *Agent) DetectState() state.State {
