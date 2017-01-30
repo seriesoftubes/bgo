@@ -39,8 +39,13 @@ func TestStartingBoard(t *testing.T) {
 
 		// Starting with player PCC (the hero)
 
-		0.0, // BarChex / 2.0
-		0.0, // BearedOff%
+		0.0,       // has1 on bar
+		0.0,       // has >1 on bar + amt in excess
+		0.0,       // blot % in enemy home
+		5.0 / 6.0, // landable % in enemy home
+		0.0,       // has1 beared off
+		0.0,       // has >1 beared off + amt in excess
+		0.0,       // diff % beared off
 		// From here on down, for the current iteration's player (first iteration is hero, 2nd is enemy), the player-owned chex count for the point.
 		// Point "a"  2
 		1.0, // has 1 checker
@@ -212,8 +217,13 @@ func TestStartingBoard(t *testing.T) {
 		0.0, // has 6 chex + num beyond 6
 
 		// Now onto the enemy player, PC aka "O".  146
-		0.0, // BarChex / 2.0
-		0.0, // BearedOff%
+		0.0,       // has1 on bar
+		0.0,       // has >1 on bar + amt in excess
+		0.0,       // blot % in enemy home
+		5.0 / 6.0, // landable % in enemy home
+		0.0,       // has1 beared off
+		0.0,       // has >1 beared off + amt in excess
+		0.0,       // diff % beared off
 		// From here on down, for the current iteration's player (first iteration is hero, 2nd is enemy), the player-owned chex count for the point.
 		// Point "a"  148
 		0.0, // has 1 checker
