@@ -27,13 +27,9 @@ func ValidTurns(b *game.Board, r game.Roll, p plyr.Player) map[turn.TurnArray]tu
 	}
 
 	var addPerm func(bb *game.Board, remainingDists []uint8, t turn.Turn)
-	addPerm = func(bb *game.Board, remainingDists []uint8, t turn.Turn) {
-		if remainingDists == nil || len(remainingDists) == 0 {
-			return
-		}
-
-		for distIdx, dist := range remainingDists {
-			for _, mv := range bb.LegalMoves(p, dist) {
+	if isDoubles := r[0] == r[1]; isDoubles {
+		addPerm = func(bb *game.Board, remainingDists []uint8, t turn.Turn) {
+			for _, mv := range bb.LegalMoves(p, remainingDists[0]) {
 				bcop := bb.Copy()
 				bcop.ExecuteMoveUnsafe(mv) // We already know the move is legal, so it's safe to do it.
 
@@ -43,10 +39,31 @@ func ValidTurns(b *game.Board, r game.Roll, p plyr.Player) map[turn.TurnArray]tu
 					continue
 				}
 
-				if nextRemaining, err := popSliceUint8(remainingDists, distIdx); err != nil {
+				if nextRemaining, err := popSliceUint8(remainingDists, 0); err != nil {
 					panic("problem popping a value from a uint8 slice: " + err.Error())
-				} else {
+				} else if nextRemaining != nil {
 					addPerm(bcop, nextRemaining, legitTurn)
+				}
+			}
+		}
+	} else {
+		addPerm = func(bb *game.Board, remainingDists []uint8, t turn.Turn) {
+			for distIdx, dist := range remainingDists {
+				for _, mv := range bb.LegalMoves(p, dist) {
+					bcop := bb.Copy()
+					bcop.ExecuteMoveUnsafe(mv) // We already know the move is legal, so it's safe to do it.
+
+					legitTurn := t.Copy()
+					legitTurn.Update(mv)
+					if !maybeAddToResultSet(legitTurn) {
+						continue
+					}
+
+					if nextRemaining, err := popSliceWithOneOrTwoElements(remainingDists, distIdx); err != nil {
+						panic("problem popping a value from a uint8 slice: " + err.Error())
+					} else if nextRemaining != nil {
+						addPerm(bcop, nextRemaining, legitTurn)
+					}
 				}
 			}
 		}
@@ -63,11 +80,24 @@ func ValidTurns(b *game.Board, r game.Roll, p plyr.Player) map[turn.TurnArray]tu
 
 func copySliceUint8(slice []uint8) []uint8 { return append([]uint8(nil), slice...) }
 func popSliceUint8(slice []uint8, atIndex int) ([]uint8, error) {
-	if slice == nil || len(slice) == 0 {
+	if sz := len(slice); sz == 1 {
+		return nil, nil
+	} else if sz == 0 {
 		return nil, fmt.Errorf("cannot pop from an empty slice")
-	} else if atIndex >= len(slice) || atIndex < 0 {
-		return nil, fmt.Errorf("index %d out of bounds, must be between [0, %d] inclusive", atIndex, len(slice)-1)
+	} else if atIndex >= sz || atIndex < 0 {
+		return nil, fmt.Errorf("index %d out of bounds, must be between [0, %d] inclusive", atIndex, sz-1)
 	}
+
 	slice = copySliceUint8(slice)
 	return append(slice[:atIndex], slice[atIndex+1:]...), nil
+}
+
+func popSliceWithOneOrTwoElements(sliceWithOneOrTwoElements []uint8, atIndex int) ([]uint8, error) {
+	if sz := len(sliceWithOneOrTwoElements); sz == 1 {
+		return nil, nil
+	} else if sz == 2 {
+		return []uint8{sliceWithOneOrTwoElements[1-atIndex]}, nil
+	}
+
+	return nil, fmt.Errorf("index %d out of bounds, must be between [0, %d] inclusive", atIndex, len(sliceWithOneOrTwoElements)-1)
 }
