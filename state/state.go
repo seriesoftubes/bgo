@@ -4,16 +4,19 @@ import (
 	"github.com/seriesoftubes/bgo/constants"
 	"github.com/seriesoftubes/bgo/game"
 	"github.com/seriesoftubes/bgo/game/plyr"
+	"github.com/seriesoftubes/bgo/game/turngen"
 )
 
 const (
+	numRollPermutations = float32(36.0)
+
 	lastPointIndex = int(constants.FINAL_BOARD_POINT_INDEX)
 	numBoardPoints = lastPointIndex + 1
 
 	numBoardPointVarsForNonCheckerCounts int = 0
 	numBoardPointVarsForCheckerCounts    int = 6 // 1c, 2c, 3c, 4c, 5c, 6+c
 	numVarsPerBoardPoint                 int = numBoardPointVarsForNonCheckerCounts + numBoardPointVarsForCheckerCounts
-	numNonBoardPointVarsPerPlayer        int = 7
+	numNonBoardPointVarsPerPlayer        int = 9
 	numNonPlayerSpecificVars             int = 1
 	stateLength                          int = numNonPlayerSpecificVars + constants.NUM_PLAYERS*(numNonBoardPointVarsPerPlayer+numBoardPoints*numVarsPerBoardPoint)
 )
@@ -30,21 +33,22 @@ func DetectState(p plyr.Player, b *game.Board) State {
 
 	for _, player := range []plyr.Player{p, p.Enemy()} {
 		// this section adds player-level vars
-		barChex, offChex, enemyOff := float32(b.BarC), float32(b.OffC), float32(b.OffCC)
+		barChex, offChex, enemyBar, enemyOff := float32(b.BarC), float32(b.OffC), float32(b.BarCC), float32(b.OffCC)
 		if player == plyr.PCC {
-			barChex, offChex, enemyOff = float32(b.BarCC), float32(b.OffCC), float32(b.OffC)
+			barChex, offChex, enemyBar, enemyOff = float32(b.BarCC), float32(b.OffCC), float32(b.BarC), float32(b.OffC)
 		}
 		slice = append(slice, descBar(player, b, barChex)...)
 		slice = append(slice, descOff(offChex, enemyOff)...)
+		slice = append(slice, descPlayerBoard(b, player, enemyBar)...)
 
 		// this section adds boardPoint-specific vars for each player.
 		if isPCC {
 			for i := 0; i <= lastPointIndex; i++ {
-				slice = append(slice, descPoint(b.Points[i], player)...)
+				slice = append(slice, descPoint(b, i, player)...)
 			}
 		} else {
 			for i := lastPointIndex; i >= 0; i-- {
-				slice = append(slice, descPoint(b.Points[i], player)...)
+				slice = append(slice, descPoint(b, i, player)...)
 			}
 		}
 	}
@@ -79,8 +83,40 @@ func isRace(b *game.Board) float32 {
 	return 1.0
 }
 
-func descPoint(pt *game.BoardPoint, supposedOwner plyr.Player) []float32 {
+func descPlayerBoard(b *game.Board, player plyr.Player, enemyBar float32) []float32 {
+	var numWinningRolls, numBlotHittingRolls, totalEnemyBlotsHit float32
+	for _, roll := range game.RollCombos {
+		numRollOccurrences := float32(2.0)
+		if isDoubles := roll[0] == roll[1]; isDoubles {
+			numRollOccurrences = float32(1.0)
+		}
+
+		for _, vt := range turngen.ValidTurns(b, roll, player) {
+			bc := b.Copy()
+			bc.MustExecuteTurn(vt, false)
+			numEnemyBlotsHit, heroOffCount := float32(bc.BarCC)-enemyBar, bc.OffC
+			if player == plyr.PCC {
+				numEnemyBlotsHit, heroOffCount = float32(bc.BarC)-enemyBar, bc.OffCC
+			}
+			totalEnemyBlotsHit += (numEnemyBlotsHit * numRollOccurrences)
+			if numEnemyBlotsHit > 0 {
+				numBlotHittingRolls += numRollOccurrences
+			}
+			if heroOffCount == constants.NUM_CHECKERS_PER_PLAYER {
+				numWinningRolls += numRollOccurrences
+			}
+		}
+	}
+	chanceWin := numWinningRolls / numRollPermutations
+	chanceHitBlot := numBlotHittingRolls / numRollPermutations
+	expectedBlotsHit := totalEnemyBlotsHit / numRollPermutations
+
+	return []float32{chanceWin, chanceHitBlot, expectedBlotsHit}
+}
+
+func descPoint(b *game.Board, pointIdx int, supposedOwner plyr.Player) []float32 {
 	subslice := make([]float32, numVarsPerBoardPoint)
+	pt := b.Points[pointIdx]
 
 	if pt.Owner != supposedOwner { // we only ever want to describe a point owned by the currently analyzed player.
 		return subslice
@@ -93,8 +129,6 @@ func descPoint(pt *game.BoardPoint, supposedOwner plyr.Player) []float32 {
 		}
 		subslice[cappedCt-1]++
 	}
-
-	// chance of hitting at least one enemy blot (go thru all moves for all 21 possible rolls)
 
 	return subslice
 }
@@ -120,16 +154,8 @@ func descBar(p plyr.Player, b *game.Board, barChex float32) []float32 {
 }
 
 func descOff(offChex, enemyOff float32) []float32 {
-	// TODO: % chance that i will have won after the next move
-	//   chex := total chex in home board currently.
-	//	 if chex > 4 || not all in home board, chance= 0
-	//   elif chex >= 3, chance of getting doubles >= highest point
-	//   elif chex > 0, chance of getting >= highest one off + >= lower one.  eg 64, 65, 66 may work.
-	//   elif chex == 0, chance=100%
-	diffPct := (offChex - enemyOff) / (enemyOff + 1.0/15.0)
-
 	if offChex > 0 {
-		return []float32{1.0, offChex - 1.0, diffPct}
+		return []float32{1.0, offChex - 1.0}
 	}
-	return []float32{0.0, 0.0, diffPct}
+	return []float32{0.0, 0.0}
 }

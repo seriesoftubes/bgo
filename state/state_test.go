@@ -45,7 +45,9 @@ func TestStartingBoard(t *testing.T) {
 		5.0 / 6.0, // landable % in enemy home
 		0.0,       // has1 beared off
 		0.0,       // has >1 beared off + amt in excess
-		0.0,       // diff % beared off
+		0.0,       // win%
+		0.0,       // blotHit %
+		0.0,       // E(blotHits)
 		// From here on down, for the current iteration's player (first iteration is hero, 2nd is enemy), the player-owned chex count for the point.
 		// Point "a"  2
 		1.0, // has 1 checker
@@ -223,7 +225,9 @@ func TestStartingBoard(t *testing.T) {
 		5.0 / 6.0, // landable % in enemy home
 		0.0,       // has1 beared off
 		0.0,       // has >1 beared off + amt in excess
-		0.0,       // diff % beared off
+		0.0,       // win%
+		0.0,       // blotHit %
+		0.0,       // E(blotHits)
 		// From here on down, for the current iteration's player (first iteration is hero, 2nd is enemy), the player-owned chex count for the point.
 		// Point "a"  148
 		0.0, // has 1 checker
